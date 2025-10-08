@@ -1,0 +1,129 @@
+//
+//  EditChecklistTemplateView.swift
+//  Right Rudder
+//
+//  Created by Ryan on 10/2/25.
+//
+
+import SwiftUI
+import SwiftData
+
+struct EditChecklistTemplateView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var template: ChecklistTemplate
+    @State private var templateName: String
+    @State private var relevantData: String
+    @State private var items: [ChecklistItem]
+    @State private var newItemTitle = ""
+    @State private var newItemNotes = ""
+
+    init(template: ChecklistTemplate) {
+        self._template = State(initialValue: template)
+        self._templateName = State(initialValue: template.name)
+        self._relevantData = State(initialValue: template.relevantData ?? "")
+        self._items = State(initialValue: template.items ?? [])
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Template Information") {
+                    TextField("Template Name", text: $templateName)
+                    Text("Category: \(template.category)")
+                        .foregroundColor(.secondary)
+                }
+                
+                Section("Relevant Data (Optional)") {
+                    TextEditor(text: $relevantData)
+                        .frame(minHeight: 100)
+                    Text("Add study materials, ACS references, or other lesson-specific information. Leave blank if not applicable.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section("Items") {
+                    ForEach(items.sorted { $0.order < $1.order }) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title)
+                                .font(.subheadline)
+                            if let notes = item.notes, !notes.isEmpty {
+                                Text(notes)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete(perform: deleteItems)
+                    
+                    HStack {
+                        TextField("New item title", text: $newItemTitle)
+                        Button("Add") {
+                            addItem()
+                        }
+                        .disabled(newItemTitle.isEmpty)
+                    }
+                    
+                    if !newItemTitle.isEmpty {
+                        TextField("Notes (optional)", text: $newItemNotes, axis: .vertical)
+                            .lineLimit(2...4)
+                    }
+                }
+            }
+            .navigationTitle("Edit Template")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveTemplate()
+                    }
+                    .disabled(templateName.isEmpty)
+                }
+            }
+        }
+    }
+    
+    private var sortedItems: [ChecklistItem] {
+        items.sorted { $0.order < $1.order }
+    }
+    
+    private func addItem() {
+        let item = ChecklistItem(
+            title: newItemTitle,
+            notes: newItemNotes.isEmpty ? nil : newItemNotes
+        )
+        items.append(item)
+        newItemTitle = ""
+        newItemNotes = ""
+    }
+    
+    private func deleteItems(offsets: IndexSet) {
+        items.remove(atOffsets: offsets)
+    }
+    
+    private func saveTemplate() {
+        template.name = templateName
+        let trimmedRelevantData = relevantData.trimmingCharacters(in: .whitespacesAndNewlines)
+        template.relevantData = trimmedRelevantData.isEmpty ? nil : trimmedRelevantData
+        template.items = items
+        
+        // Mark as user-modified if not already user-created
+        if !template.isUserCreated {
+            template.isUserModified = true
+        }
+        
+        dismiss()
+    }
+}
+
+#Preview {
+    let template = ChecklistTemplate(name: "Pre-Flight Inspection", category: "PPL", items: [])
+    EditChecklistTemplateView(template: template)
+        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+}
