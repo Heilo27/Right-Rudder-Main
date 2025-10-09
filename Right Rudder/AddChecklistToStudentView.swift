@@ -51,12 +51,7 @@ struct AddChecklistToStudentView: View {
             Button("Add All") {
                 addAllTemplatesInPhase(phaseGroup.templates)
             }
-            .buttonStyle(.noHaptic)
-            .background(Color(.systemBlue))
-            .foregroundColor(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .cornerRadius(6)
+            .buttonStyle(.rounded)
         }
     }
     

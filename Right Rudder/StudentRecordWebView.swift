@@ -13,23 +13,18 @@ struct StudentRecordWebView: View {
     @State private var isLoading = true
     @State private var showingShareSheet = false
     @State private var htmlContent = ""
-    @State private var loadingProgress = 0.0
     
     var body: some View {
         NavigationView {
             VStack {
                 if isLoading {
                     VStack(spacing: 20) {
-                        ProgressView(value: loadingProgress, total: 1.0)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .frame(width: 200)
+                        ProgressView()
+                            .scaleEffect(1.5)
                         
-                        Text("Generating Report...")
+                        Text("Generating Student Record")
                             .font(.headline)
-                        
-                        Text("\(Int(loadingProgress * 100))%")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -45,12 +40,26 @@ struct StudentRecordWebView: View {
                         dismiss()
                     }
                     .buttonStyle(.noHaptic)
+                    .font(.body)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(20)
+                    .frame(minWidth: 80)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Share") {
                         showingShareSheet = true
                     }
                     .buttonStyle(.noHaptic)
+                    .font(.body)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(20)
+                    .frame(minWidth: 80)
                     .disabled(isLoading)
                 }
             }
@@ -64,19 +73,12 @@ struct StudentRecordWebView: View {
     }
     
     private func generateHTMLContentAsync() {
-        // Show immediate progress
-        DispatchQueue.main.async {
-            self.loadingProgress = 0.1
-        }
-        
         DispatchQueue.global(qos: .userInitiated).async {
             // Pre-calculate heavy operations
             let dateFormatter = DateFormatter()
             dateFormatter.dateStyle = .long
             dateFormatter.timeStyle = .short
             let currentDate = dateFormatter.string(from: Date())
-            
-            DispatchQueue.main.async { self.loadingProgress = 0.2 }
             
             // Generate HTML in chunks to avoid blocking
             let html = self.generateHTMLContentOptimized(currentDate: currentDate)
@@ -118,8 +120,16 @@ struct StudentRecordWebView: View {
                 .item-title{flex:1;font-weight:500}
                 .completion-date{font-size:10px;color:#666;font-style:italic}
                 .instructor-comments{background:#fff3cd;border:1px solid #ffeaa7;border-radius:4px;padding:8px;margin-top:8px;font-style:italic;font-size:12px}
-                .endorsement-item{border:1px solid #ddd;border-radius:6px;padding:8px;margin-bottom:8px;background:white}
+                .endorsement-item{border:1px solid #ddd;border-radius:6px;padding:8px;background:white;width:100%;box-sizing:border-box}
                 .endorsement-filename{font-size:11px;color:#666;text-align:center}
+                .endorsement-photo{max-width:100%;height:auto;border-radius:4px;margin-bottom:8px}
+                .document-item{border:1px solid #ddd;border-radius:6px;padding:10px;background:white;width:100%;box-sizing:border-box}
+                .document-icon{font-size:20px;color:#007AFF}
+                .document-info{flex:1}
+                .document-type{font-weight:bold;color:#333;font-size:14px}
+                .document-filename{font-size:12px;color:#666;margin-top:2px}
+                .document-date{font-size:11px;color:#999;margin-top:2px}
+                .document-photo{max-width:100%;height:auto;border-radius:4px;margin-bottom:8px}
                 .footer{text-align:center;margin-top:30px;padding-top:15px;border-top:1px solid #ddd;color:#666;font-size:10px}
             </style>
         </head>
@@ -149,6 +159,8 @@ struct StudentRecordWebView: View {
         let checklistsSection = (student.checklists?.isEmpty ?? true) ? "" : generateChecklistsSection()
         
         let endorsementsSection = (student.endorsements?.isEmpty ?? true) ? "" : generateEndorsementsSection()
+        
+        let documentsSection = (student.documents?.isEmpty ?? true) ? "" : generateDocumentsSection()
         
         return html + """
                 <div class="section">
@@ -182,6 +194,7 @@ struct StudentRecordWebView: View {
                 </div>
                 \(checklistsSection)
                 \(endorsementsSection)
+                \(documentsSection)
                 <div class="footer">
                     <p>Generated by Right Rudder Flight Training Management System</p>
                     <p>Generated on \(currentDate)</p>
@@ -305,7 +318,7 @@ struct StudentRecordWebView: View {
                 let base64String = imageData.base64EncodedString()
                 return """
                 <div class="endorsement-item">
-                    <img src="data:image/jpeg;base64,\(base64String)" style="max-width:100%;height:auto;border-radius:4px;margin-bottom:8px;" alt="\(endorsement.filename)">
+                    <img src="data:image/jpeg;base64,\(base64String)" class="endorsement-photo" alt="\(endorsement.filename)">
                     <div class="endorsement-filename">\(endorsement.filename)</div>
                 </div>
                 """
@@ -321,9 +334,66 @@ struct StudentRecordWebView: View {
         return """
             <div class="section">
                 <h2>Endorsements & Documents</h2>
-                \(endorsementsHTML)
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+                    \(endorsementsHTML)
+                </div>
             </div>
         """
+    }
+    
+    private func generateDocumentsSection() -> String {
+        let documentsHTML = (student.documents ?? []).map { document in
+            let icon = getDocumentIcon(for: document.documentType)
+            let uploadDate = document.uploadedAt.formatted(date: .abbreviated, time: .omitted)
+            let expirationInfo = document.expirationDate != nil ? 
+                "<div class=\"document-date\">Expires: \(document.expirationDate!.formatted(date: .abbreviated, time: .omitted))</div>" : ""
+            
+            // Convert image data to base64 for embedding in HTML
+            let imageHTML: String
+            if let imageData = document.fileData {
+                let base64String = imageData.base64EncodedString()
+                imageHTML = "<img src=\"data:image/jpeg;base64,\(base64String)\" style=\"max-width:100%;height:auto;border-radius:4px;margin-bottom:8px;\" alt=\"\(document.filename)\">"
+            } else {
+                imageHTML = "<div style=\"text-align:center;color:#666;font-style:italic;margin:20px 0;\">No image data available</div>"
+            }
+            
+            return """
+            <div class="document-item">
+                <div class="document-icon">\(icon)</div>
+                <div class="document-info">
+                    <div class="document-type">\(document.documentType.rawValue)</div>
+                    <div class="document-filename">\(document.filename)</div>
+                    <div class="document-date">Uploaded: \(uploadDate)</div>
+                    \(expirationInfo)
+                </div>
+                <div class="document-photo">
+                    \(imageHTML)
+                </div>
+            </div>
+            """
+        }.joined()
+        
+        return """
+            <div class="section">
+                <h2>Required Documents</h2>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+                    \(documentsHTML)
+                </div>
+            </div>
+        """
+    }
+    
+    private func getDocumentIcon(for documentType: DocumentType) -> String {
+        switch documentType {
+        case .studentPilotCertificate:
+            return "✈️"
+        case .medicalCertificate:
+            return "🏥"
+        case .passportBirthCertificate:
+            return "📄"
+        case .logBook:
+            return "📖"
+        }
     }
     
 }

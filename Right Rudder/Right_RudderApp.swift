@@ -14,6 +14,7 @@ struct RightRudderApp: App {
     let modelContainer: ModelContainer
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     @StateObject private var pushNotificationService = PushNotificationService.shared
+    @StateObject private var whatsNewService = WhatsNewService()
     
     init() {
         do {
@@ -95,6 +96,12 @@ struct RightRudderApp: App {
                 }
                 .onOpenURL { url in
                     handleIncomingURL(url)
+                }
+                .sheet(isPresented: $whatsNewService.shouldShowWhatsNew) {
+                    WhatsNewView()
+                        .onDisappear {
+                            whatsNewService.markWhatsNewAsShown()
+                        }
                 }
         }
         .modelContainer(modelContainer)

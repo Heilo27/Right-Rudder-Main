@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var isCheckingCloudKit = false
     @State private var showingInstructorInfo = false
     @State private var showingShareTemplates = false
+    @State private var showingWhatsNew = false
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     
     var body: some View {
@@ -238,6 +239,30 @@ struct SettingsView: View {
                         Text(buildNumber)
                             .foregroundColor(.secondary)
                     }
+                    
+                    Button(action: {
+                        showingWhatsNew = true
+                    }) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("What's New")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("View recent updates and new features")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .navigationTitle("Settings")
@@ -266,6 +291,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingShareTemplates) {
                 ShareTemplatesView()
+            }
+            .sheet(isPresented: $showingWhatsNew) {
+                WhatsNewView()
             }
             .onAppear {
                 cloudKitBackupService.setModelContext(modelContext)

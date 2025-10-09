@@ -68,7 +68,7 @@ class TemplateExportService {
             templates: exportableTemplates,
             exportDate: Date(),
             exportedBy: authorName,
-            appVersion: "2.0"
+            appVersion: "1.3"
         )
         
         do {

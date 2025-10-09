@@ -24,17 +24,37 @@ struct ShareTemplatesView: View {
     @AppStorage("instructorName") private var instructorName: String = ""
     
     private var sortedTemplates: [ChecklistTemplate] {
-        // Sort: User-created/modified first, then alphabetically
-        allTemplates.sorted { template1, template2 in
-            // Priority 1: User-created templates
+        // Get the default template order from DefaultTemplates.allTemplates
+        let defaultTemplateOrder = DefaultTemplates.allTemplates.map { $0.templateIdentifier }
+        
+        return allTemplates.sorted { template1, template2 in
+            // Priority 1: User-created templates (always first)
             if template1.isUserCreated != template2.isUserCreated {
                 return template1.isUserCreated
             }
-            // Priority 2: User-modified templates
+            
+            // Priority 2: User-modified templates (second)
             if template1.isUserModified != template2.isUserModified {
                 return template1.isUserModified
             }
-            // Priority 3: Alphabetical order
+            
+            // Priority 3: Default templates in the order defined in DefaultTemplates.allTemplates
+            if !template1.isUserCreated && !template1.isUserModified && 
+               !template2.isUserCreated && !template2.isUserModified {
+                
+                let index1 = defaultTemplateOrder.firstIndex(of: template1.templateIdentifier)
+                let index2 = defaultTemplateOrder.firstIndex(of: template2.templateIdentifier)
+                
+                if let idx1 = index1, let idx2 = index2 {
+                    return idx1 < idx2
+                } else if index1 != nil {
+                    return true
+                } else if index2 != nil {
+                    return false
+                }
+            }
+            
+            // Priority 4: Alphabetical order for any remaining templates
             return template1.name.localizedCaseInsensitiveCompare(template2.name) == .orderedAscending
         }
     }
