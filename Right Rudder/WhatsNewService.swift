@@ -6,26 +6,40 @@
 //
 
 import Foundation
-import Combine
 
-class WhatsNewService: ObservableObject {
-    @Published var shouldShowWhatsNew = false
+class WhatsNewService {
+    private static let currentAppVersion = "1.4.6"
+    private static let lastShownVersionKey = "lastShownWhatsNewVersion"
     
-    private let whatsNewShownKey = "WhatsNewShown_v1.3"
-    
-    init() {
-        checkIfShouldShowWhatsNew()
-    }
-    
-    private func checkIfShouldShowWhatsNew() {
-        let hasShownWhatsNew = UserDefaults.standard.bool(forKey: whatsNewShownKey)
-        if !hasShownWhatsNew {
-            shouldShowWhatsNew = true
+    /// Determines if the "What's New" screen should be shown
+    static func shouldShowWhatsNew() -> Bool {
+        let userDefaults = UserDefaults.standard
+        let lastShownVersion = userDefaults.string(forKey: lastShownVersionKey)
+        
+        // Show if we haven't shown it for this version yet
+        if lastShownVersion != currentAppVersion {
+            return true
         }
+        
+        return false
     }
     
-    func markWhatsNewAsShown() {
-        UserDefaults.standard.set(true, forKey: whatsNewShownKey)
-        shouldShowWhatsNew = false
+    /// Marks the "What's New" screen as shown for the current version
+    static func markAsShown() {
+        let userDefaults = UserDefaults.standard
+        userDefaults.set(currentAppVersion, forKey: lastShownVersionKey)
+        print("What's New screen marked as shown for version \(currentAppVersion)")
+    }
+    
+    /// Gets the current app version
+    static func getCurrentVersion() -> String {
+        return currentAppVersion
+    }
+    
+    /// Resets the "What's New" screen (for testing purposes)
+    static func reset() {
+        let userDefaults = UserDefaults.standard
+        userDefaults.removeObject(forKey: lastShownVersionKey)
+        print("What's New screen reset - will show on next launch")
     }
 }

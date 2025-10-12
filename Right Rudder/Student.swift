@@ -84,6 +84,7 @@ class Student {
     var ftnNumber: String = ""
     var biography: String?
     var backgroundNotes: String?
+    var profilePhotoData: Data?
     var createdAt: Date = Date()
     
     // Instructor information (entered by student in companion app)

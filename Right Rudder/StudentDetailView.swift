@@ -10,6 +10,7 @@ import SwiftData
 
 struct StudentDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var student: Student
     @State private var showingEditStudent = false
     @State private var showingAddChecklist = false
@@ -176,24 +177,75 @@ struct StudentDetailView: View {
     }
     
     private func sortChecklists(_ checklists: [StudentChecklist]) -> [StudentChecklist] {
-        return checklists.sorted { checklist1, checklist2 in
-            // Check if both are Phase 1 lessons with lesson numbers
+        // Split into incomplete and completed checklists
+        let incompleteChecklists = checklists.filter { !isChecklistComplete($0) }
+        let completedChecklists = checklists.filter { isChecklistComplete($0) }
+        
+        // Sort incomplete checklists by phase order
+        let sortedIncomplete = incompleteChecklists.sorted { checklist1, checklist2 in
+            let phase1 = getPhasePriority(for: checklist1.templateName)
+            let phase2 = getPhasePriority(for: checklist2.templateName)
+            
+            if phase1 != phase2 {
+                return phase1 < phase2
+            }
+            
+            // Within same phase, sort by lesson number if available
             let lesson1 = extractLessonNumber(from: checklist1.templateName)
             let lesson2 = extractLessonNumber(from: checklist2.templateName)
             
             if let num1 = lesson1, let num2 = lesson2 {
-                // Both have lesson numbers, sort numerically
                 return num1 < num2
-            } else if lesson1 != nil {
-                // Only first has lesson number, it comes first
-                return true
-            } else if lesson2 != nil {
-                // Only second has lesson number, it comes first
-                return false
             }
             
-            // Neither has lesson numbers, or one doesn't, sort alphabetically
             return checklist1.templateName.localizedCaseInsensitiveCompare(checklist2.templateName) == .orderedAscending
+        }
+        
+        // Sort completed checklists by phase order (not by date)
+        let sortedCompleted = completedChecklists.sorted { checklist1, checklist2 in
+            let phase1 = getPhasePriority(for: checklist1.templateName)
+            let phase2 = getPhasePriority(for: checklist2.templateName)
+            
+            if phase1 != phase2 {
+                return phase1 < phase2
+            }
+            
+            // Within same phase, sort by lesson number if available
+            let lesson1 = extractLessonNumber(from: checklist1.templateName)
+            let lesson2 = extractLessonNumber(from: checklist2.templateName)
+            
+            if let num1 = lesson1, let num2 = lesson2 {
+                return num1 < num2
+            }
+            
+            return checklist1.templateName.localizedCaseInsensitiveCompare(checklist2.templateName) == .orderedAscending
+        }
+        
+        // Return incomplete first, then completed
+        return sortedIncomplete + sortedCompleted
+    }
+    
+    private func isChecklistComplete(_ checklist: StudentChecklist) -> Bool {
+        guard let items = checklist.items, !items.isEmpty else { return false }
+        return items.allSatisfy { $0.isComplete }
+    }
+    
+    private func getPhasePriority(for templateName: String) -> Int {
+        // Define phase order: Onboarding > Phase 1 > Pre-Solo/Solo > Phase 2 > Phase 3 > Phase 4
+        if templateName.contains("Student Onboard") || templateName.contains("Training Overview") {
+            return 0 // Onboarding - highest priority
+        } else if templateName.contains("P1-L") || templateName.contains("Phase 1") {
+            return 1 // Phase 1
+        } else if templateName.contains("Pre-Solo") || templateName.contains("Solo") || templateName.contains("First Solo") {
+            return 2 // Pre-Solo/Solo
+        } else if templateName.contains("P2-L") || templateName.contains("Phase 2") {
+            return 3 // Phase 2
+        } else if templateName.contains("P3-L") || templateName.contains("Phase 3") {
+            return 4 // Phase 3
+        } else if templateName.contains("P4-L") || templateName.contains("Phase 4") {
+            return 5 // Phase 4
+        } else {
+            return 6 // Other templates
         }
     }
     
@@ -229,34 +281,55 @@ struct StudentDetailView: View {
     
     private var studentInfoHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(student.displayName)
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Button(action: {
-                    if let emailURL = URL(string: "mailto:\(student.email)") {
-                        UIApplication.shared.open(emailURL)
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(student.displayName)
+                        .font(.system(size: 28, weight: .bold))
+                        .fontWeight(.bold)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Button(action: {
+                            if let emailURL = URL(string: "mailto:\(student.email)") {
+                                UIApplication.shared.open(emailURL)
+                            }
+                        }) {
+                            Label(student.email, systemImage: "envelope")
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Label(student.telephone, systemImage: "phone")
+                        if !student.homeAddress.isEmpty {
+                            Label(student.homeAddress, systemImage: "location")
+                        }
+                        if !student.ftnNumber.isEmpty {
+                            Label("FTN: \(student.ftnNumber)", systemImage: "person.badge.key")
+                        }
+                        Label("Total Dual Given: \(String(format: "%.1f", student.totalDualGivenHours)) hours", systemImage: "clock")
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
                     }
-                }) {
-                    Label(student.email, systemImage: "envelope")
-                        .foregroundColor(.blue)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
                 
-                Label(student.telephone, systemImage: "phone")
-                if !student.homeAddress.isEmpty {
-                    Label(student.homeAddress, systemImage: "location")
+                // ID Photo
+                if let photoData = student.profilePhotoData, let uiImage = UIImage(data: photoData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 72, height: 72)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.appPrimary, lineWidth: 2)
+                        )
+                } else {
+                    Image(systemName: "person.circle")
+                        .font(.system(size: 72))
+                        .foregroundColor(.gray)
                 }
-                if !student.ftnNumber.isEmpty {
-                    Label("FTN: \(student.ftnNumber)", systemImage: "person.badge.key")
-                }
-                Label("Total Dual Given: \(String(format: "%.1f", student.totalDualGivenHours)) hours", systemImage: "clock")
-                    .foregroundColor(.blue)
-                    .fontWeight(.medium)
             }
-            .font(.subheadline)
-            .foregroundColor(.secondary)
         }
         .padding()
         .background(Color.appMutedBox)
@@ -367,7 +440,11 @@ struct StudentDetailView: View {
             }
             
             List {
-                ForEach(Array(sortedChecklists.enumerated()), id: \.element.id) { index, checklist in
+                let incompleteChecklists = sortedChecklists.filter { !isChecklistComplete($0) }
+                let completedChecklists = sortedChecklists.filter { isChecklistComplete($0) }
+                
+                // Incomplete checklists
+                ForEach(Array(incompleteChecklists.enumerated()), id: \.element.id) { index, checklist in
                     NavigationLink(destination: destinationView(for: checklist).id(checklist.id)) {
                         HStack {
                             VStack(alignment: .leading) {
@@ -384,12 +461,48 @@ struct StudentDetailView: View {
                         }
                         .padding(.vertical, 4)
                     }
-                    .listRowBackground(index.isMultiple(of: 2) ? Color.appMutedBox : Color.clear)
+                    .adaptiveRowBackgroundModifier(for: index)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button("Delete", role: .destructive) {
                             checklistToDelete = checklist
                             showingDeleteConfirmation = true
                         }
+                    }
+                }
+                
+                // Completed section divider and checklists
+                if !completedChecklists.isEmpty {
+                    Section {
+                        ForEach(Array(completedChecklists.enumerated()), id: \.element.id) { index, checklist in
+                            NavigationLink(destination: destinationView(for: checklist).id(checklist.id)) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(checklist.templateName)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                        Text("\(completedItemsCount(for: checklist))/\(checklist.items?.count ?? 0) completed")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .adaptiveRowBackgroundModifier(for: index)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button("Delete", role: .destructive) {
+                                    checklistToDelete = checklist
+                                    showingDeleteConfirmation = true
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Completed")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
                     }
                 }
             }

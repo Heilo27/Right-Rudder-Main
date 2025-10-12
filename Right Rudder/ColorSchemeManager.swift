@@ -13,6 +13,7 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
     case professional = "Professional Navy"
     case forest = "Forest Green"
     case planePrincess = "Plane Princess"
+    case highContrast = "High Contrast"
     
     var id: String { self.rawValue }
     
@@ -29,6 +30,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.13, green: 0.55, blue: 0.13) // #228B22 - Forest green
         case .planePrincess:
             return Color(red: 0.84, green: 0.38, blue: 0.62) // #D6619E - Rose pink
+        case .highContrast:
+            return Color(red: 0.17, green: 0.17, blue: 0.17) // #2B2B2B - Dark gray
         }
     }
     
@@ -45,6 +48,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.2, green: 0.7, blue: 0.2) // #33B333 - Lighter green
         case .planePrincess:
             return Color(red: 0.78, green: 0.57, blue: 0.85) // #C791D9 - Soft lavender
+        case .highContrast:
+            return Color(red: 0.4, green: 0.4, blue: 0.4) // #666666 - Medium gray
         }
     }
     
@@ -61,6 +66,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.4, green: 0.65, blue: 0.12) // #66A61E - Lime
         case .planePrincess:
             return Color(red: 1.0, green: 0.42, blue: 0.62) // #FF6B9D - Coral pink
+        case .highContrast:
+            return Color(red: 1.0, green: 0.65, blue: 0.0) // #FFA500 - High contrast orange
         }
     }
     
@@ -77,6 +84,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.95, green: 0.98, blue: 0.95) // #F2FAF2 - Light mint
         case .planePrincess:
             return Color(red: 1.0, green: 0.94, blue: 0.96) // #FFF0F5 - Lavender blush
+        case .highContrast:
+            return Color(red: 0.96, green: 0.96, blue: 0.96) // #F5F5F5 - Light gray
         }
     }
     
@@ -93,6 +102,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.90, green: 0.95, blue: 0.90) // Muted green
         case .planePrincess:
             return Color(red: 0.98, green: 0.88, blue: 0.92) // Muted pink
+        case .highContrast:
+            return Color(red: 0.9, green: 0.9, blue: 0.9) // Muted light gray
         }
     }
     
@@ -109,6 +120,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.1, green: 0.2, blue: 0.1) // #1A331A - Dark green-grey
         case .planePrincess:
             return Color(red: 0.36, green: 0.22, blue: 0.33) // #5D3954 - Deep plum
+        case .highContrast:
+            return Color(red: 0.1, green: 0.1, blue: 0.1) // Very dark text for high contrast
         }
     }
     
@@ -125,6 +138,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return "Natural and grounded"
         case .planePrincess:
             return "Elegant and soothing"
+        case .highContrast:
+            return "High contrast for accessibility"
         }
     }
     

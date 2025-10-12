@@ -8,6 +8,7 @@ struct StudentDocumentsView: View {
     
     @State private var showingDocumentPicker = false
     @State private var selectedDocumentType: DocumentType?
+    @State private var documentPickerDocumentType: DocumentType?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedDocumentForViewing: StudentDocument?
@@ -39,8 +40,13 @@ struct StudentDocumentsView: View {
                         documentType: docType,
                         document: getDocument(for: docType),
                         onAddDocument: {
+                            print("StudentDocumentsView: onAddDocument called for type: \(docType.rawValue)")
                             selectedDocumentType = docType
+                            documentPickerDocumentType = docType
+                            print("StudentDocumentsView: selectedDocumentType set to: \(selectedDocumentType?.rawValue ?? "nil")")
+                            print("StudentDocumentsView: documentPickerDocumentType set to: \(documentPickerDocumentType?.rawValue ?? "nil")")
                             showingDocumentPicker = true
+                            print("StudentDocumentsView: showingDocumentPicker set to: \(showingDocumentPicker)")
                         },
                         onUploadPhoto: {
                             selectedDocumentType = docType
@@ -51,8 +57,11 @@ struct StudentDocumentsView: View {
                             showingCamera = true
                         },
                         onViewDocument: { doc in
+                            print("StudentDocumentsView: onViewDocument called with document: \(doc.filename)")
                             selectedDocumentForViewing = doc
+                            print("StudentDocumentsView: selectedDocumentForViewing set to: \(selectedDocumentForViewing?.filename ?? "nil")")
                             showingDocumentDetail = true
+                            print("StudentDocumentsView: showingDocumentDetail set to: \(showingDocumentDetail)")
                         },
                         onDeleteDocument: { doc in
                             deleteDocument(doc)
@@ -66,16 +75,33 @@ struct StudentDocumentsView: View {
         .navigationTitle("Documents")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingDocumentPicker) {
-            if let docType = selectedDocumentType {
+            if let docType = documentPickerDocumentType {
                 DocumentPickerView(documentType: docType) { url in
+                    print("StudentDocumentsView: DocumentPickerView completion called with URL: \(url)")
                     addDocument(type: docType, fileURL: url)
                     showingDocumentPicker = false
+                }
+            } else {
+                VStack {
+                    Text("No document type selected")
+                        .foregroundColor(.red)
+                    Text("documentPickerDocumentType is nil")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
         }
         .sheet(isPresented: $showingDocumentDetail) {
             if let document = selectedDocumentForViewing {
                 DocumentDetailView(document: document)
+            } else {
+                VStack {
+                    Text("No document selected")
+                        .foregroundColor(.red)
+                    Text("selectedDocumentForViewing is nil")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .sheet(isPresented: $showingCamera) {
@@ -96,6 +122,17 @@ struct StudentDocumentsView: View {
         }
         .onAppear {
             updateSortedDocuments()
+        }
+        .onChange(of: showingDocumentDetail) { _, isShowing in
+            if isShowing {
+                print("StudentDocumentsView: showingDocumentDetail changed to true, selectedDocumentForViewing: \(selectedDocumentForViewing?.filename ?? "nil")")
+            }
+        }
+        .onChange(of: showingDocumentPicker) { _, isShowing in
+            if isShowing {
+                print("StudentDocumentsView: showingDocumentPicker changed to true, selectedDocumentType: \(selectedDocumentType?.rawValue ?? "nil")")
+                print("StudentDocumentsView: showingDocumentPicker changed to true, documentPickerDocumentType: \(documentPickerDocumentType?.rawValue ?? "nil")")
+            }
         }
     }
     
@@ -212,10 +249,12 @@ struct DocumentPickerView: UIViewControllerRepresentable {
     let completion: (URL) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        print("DocumentPickerView: Creating UIDocumentPickerViewController")
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf, .image, .jpeg, .png, .heic], asCopy: true)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.modalPresentationStyle = .formSheet
+        print("DocumentPickerView: Picker created with delegate set")
         return picker
     }
     
@@ -233,13 +272,17 @@ struct DocumentPickerView: UIViewControllerRepresentable {
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            print("DocumentPickerView: didPickDocumentsAt called with \(urls.count) URLs")
             if let url = urls.first {
+                print("DocumentPickerView: Calling completion with URL: \(url)")
                 completion(url)
+            } else {
+                print("DocumentPickerView: No URLs provided")
             }
         }
         
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            // Handle cancellation
+            print("DocumentPickerView: User cancelled document picker")
         }
     }
 }
@@ -359,29 +402,50 @@ struct DocumentDetailView: View {
     let document: StudentDocument
     
     @State private var uiImage: UIImage?
+    @State private var isLoading = true
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Document preview
-                    if let uiImage = uiImage {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .cornerRadius(12)
-                    } else {
+                    if isLoading {
                         VStack {
-                            Image(systemName: "doc.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(.secondary)
-                            Text(document.filename)
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Loading document...")
                                 .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 200)
                         .background(Color.appMutedBox)
                         .cornerRadius(12)
+                    } else if let uiImage = uiImage {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .cornerRadius(12)
+                    } else {
+                        VStack(spacing: 12) {
+                            Image(systemName: documentIcon)
+                                .font(.system(size: 60))
+                                .foregroundColor(.blue)
+                            Text(document.filename)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.primary)
+                            Text("Tap to open in external app")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .background(Color.appMutedBox)
+                        .cornerRadius(12)
+                        .onTapGesture {
+                            openDocumentExternally()
+                        }
                     }
                     
                     // Document info
@@ -421,18 +485,62 @@ struct DocumentDetailView: View {
             }
         }
         .onAppear {
+            print("DocumentDetailView: View appeared for document: \(document.filename)")
             loadImage()
         }
     }
     
+    private var documentIcon: String {
+        let filename = document.filename.lowercased()
+        if filename.hasSuffix(".pdf") {
+            return "doc.fill"
+        } else if filename.hasSuffix(".jpg") || filename.hasSuffix(".jpeg") || filename.hasSuffix(".png") || filename.hasSuffix(".heic") {
+            return "photo.fill"
+        } else {
+            return "doc.fill"
+        }
+    }
+    
     private func loadImage() {
-        guard let fileData = document.fileData else { return }
+        guard let fileData = document.fileData else { 
+            print("DocumentDetailView: No file data available")
+            isLoading = false
+            return 
+        }
+        
+        print("DocumentDetailView: Loading document with \(fileData.count) bytes, filename: \(document.filename)")
         
         DispatchQueue.global(qos: .userInitiated).async {
             let image = UIImage(data: fileData)
             DispatchQueue.main.async {
-                self.uiImage = image
+                if let image = image {
+                    print("DocumentDetailView: Successfully loaded image")
+                    self.uiImage = image
+                } else {
+                    print("DocumentDetailView: Failed to create UIImage from data - likely not an image format")
+                }
+                self.isLoading = false
             }
+        }
+    }
+    
+    private func openDocumentExternally() {
+        guard let fileData = document.fileData else { return }
+        
+        // Create a temporary file
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(document.filename)
+        
+        do {
+            try fileData.write(to: tempURL)
+            
+            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first {
+                window.rootViewController?.present(activityVC, animated: true)
+            }
+        } catch {
+            print("Failed to open document externally: \(error)")
         }
     }
 }

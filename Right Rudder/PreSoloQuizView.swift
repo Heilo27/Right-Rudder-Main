@@ -40,7 +40,7 @@ struct PreSoloQuizView: View {
                         print("Failed to save checklist item: \(error)")
                     }
                 }, displayTitle: displayTitle)
-                .listRowBackground(index.isMultiple(of: 2) ? Color.appMutedBox : Color.clear)
+                .adaptiveRowBackgroundModifier(for: index)
             }
             .onMove(perform: moveItems)
             

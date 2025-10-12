@@ -14,7 +14,7 @@ struct RightRudderApp: App {
     let modelContainer: ModelContainer
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     @StateObject private var pushNotificationService = PushNotificationService.shared
-    @StateObject private var whatsNewService = WhatsNewService()
+    @State private var shouldShowWhatsNew = false
     
     init() {
         do {
@@ -85,24 +85,26 @@ struct RightRudderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SplashScreenView()
-                .tint(currentColorScheme.primaryColor)
-                .task {
-                    await pushNotificationService.checkNotificationPermission()
-                    if pushNotificationService.notificationPermissionGranted {
-                        await pushNotificationService.subscribeToInstructorComments()
-                    }
-                    
-                }
-                .onOpenURL { url in
-                    handleIncomingURL(url)
-                }
-                .sheet(isPresented: $whatsNewService.shouldShowWhatsNew) {
+            Group {
+                if shouldShowWhatsNew {
                     WhatsNewView()
-                        .onDisappear {
-                            whatsNewService.markWhatsNewAsShown()
-                        }
+                } else {
+                    SplashScreenView()
                 }
+            }
+            .tint(currentColorScheme.primaryColor)
+            .task {
+                await pushNotificationService.checkNotificationPermission()
+                if pushNotificationService.notificationPermissionGranted {
+                    await pushNotificationService.subscribeToInstructorComments()
+                }
+                
+                // Check if we should show What's New screen
+                shouldShowWhatsNew = WhatsNewService.shouldShowWhatsNew()
+            }
+            .onOpenURL { url in
+                handleIncomingURL(url)
+            }
         }
         .modelContainer(modelContainer)
     }

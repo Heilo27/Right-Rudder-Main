@@ -264,6 +264,32 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                
+                Section("Contact Us") {
+                    Button(action: {
+                        openEmail()
+                    }) {
+                        HStack {
+                            Image(systemName: "envelope")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Contact Us")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("RightRudderApp@icloud.com")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .navigationTitle("Settings")
             .alert("Delete iCloud Backup", isPresented: $showingDeleteConfirmation) {
@@ -339,6 +365,23 @@ struct SettingsView: View {
     // Get build number from Info.plist
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    }
+    
+    // Open default email app with contact email
+    private func openEmail() {
+        let email = "RightRudderApp@icloud.com"
+        let subject = "Right Rudder App Support"
+        let body = "Hello,\n\nI need help with the Right Rudder app.\n\n"
+        
+        if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            } else {
+                // Fallback: copy email to clipboard
+                UIPasteboard.general.string = email
+                print("Email app not available. Email address copied to clipboard: \(email)")
+            }
+        }
     }
 }
 

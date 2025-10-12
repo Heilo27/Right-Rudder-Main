@@ -13,17 +13,32 @@ struct StudentsView: View {
     @Query(sort: \Student.lastName, order: .forward) private var students: [Student]
     @State private var showingAddStudent = false
     @State private var selectedStudent: Student?
-
+    
     var body: some View {
         NavigationView {
             List {
                 ForEach(Array(students.enumerated()), id: \.element.id) { index, student in
                     NavigationLink(destination: StudentDetailView(student: student)) {
-                        Text(student.displayName)
-                            .font(.title3)
-                            .fontWeight(.medium)
+                        HStack(alignment: .center) {
+                            Text(student.displayName)
+                                .font(.system(size: 20, weight: .medium))
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                            
+                            // Show photo thumbnail only if photo exists
+                            if let photoData = student.profilePhotoData, let uiImage = UIImage(data: photoData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 45, height: 45)
+                                    .clipShape(Circle())
+                                    .clipped()
+                            }
+                        }
+                        .frame(height: 50) // Fixed row height
                     }
-                    .listRowBackground(index.isMultiple(of: 2) ? Color.appMutedBox : Color.clear)
+                    .adaptiveRowBackgroundModifier(for: index)
                 }
                 .onDelete(perform: deleteStudents)
             }

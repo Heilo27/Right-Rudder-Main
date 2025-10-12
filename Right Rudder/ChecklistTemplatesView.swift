@@ -49,6 +49,7 @@ struct ChecklistTemplatesView: View {
             Text("PPL").tag("PPL")
             Text("Instrument").tag("Instrument")
             Text("Commercial").tag("Commercial")
+            Text("Reviews").tag("Reviews")
         }
         .pickerStyle(.segmented)
         .padding()
@@ -61,7 +62,7 @@ struct ChecklistTemplatesView: View {
                     ForEach(Array(phaseGroup.templates.enumerated()), id: \.element.id) { index, template in
                         if isEditing {
                             templateRow(template)
-                                .listRowBackground(index.isMultiple(of: 2) ? Color.appMutedBox : Color.clear)
+                                .adaptiveRowBackgroundModifier(for: index)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button("Delete", role: .destructive) {
                                         deleteTemplate(template)
@@ -71,7 +72,7 @@ struct ChecklistTemplatesView: View {
                             NavigationLink(destination: ChecklistTemplateDetailView(template: template)) {
                                 templateRow(template)
                             }
-                            .listRowBackground(index.isMultiple(of: 2) ? Color.appMutedBox : Color.clear)
+                            .adaptiveRowBackgroundModifier(for: index)
                         }
                     }
                     .onMove { from, to in

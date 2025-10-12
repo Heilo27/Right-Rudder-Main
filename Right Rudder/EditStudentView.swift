@@ -24,6 +24,9 @@ struct EditStudentView: View {
     @State private var biography: String
     @State private var backgroundNotes: String
     @State private var showingContactPicker = false
+    @State private var showingCamera = false
+    @State private var showingPhotoLibrary = false
+    @State private var capturedImage: UIImage?
 
     init(student: Student) {
         self._student = State(initialValue: student)
@@ -69,6 +72,63 @@ struct EditStudentView: View {
                     TextField("Background Notes", text: $backgroundNotes, axis: .vertical)
                         .lineLimit(3...6)
                 }
+                
+                Section("ID Photo") {
+                    if let photoData = student.profilePhotoData, let uiImage = UIImage(data: photoData) {
+                        HStack {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 60, height: 60)
+                                .clipShape(Circle())
+                            
+                            VStack(alignment: .leading) {
+                                Text("Current Photo")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text("Tap to change or remove")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button("Remove") {
+                                student.profilePhotoData = nil
+                            }
+                            .foregroundColor(.red)
+                        }
+                    } else {
+                        HStack {
+                            Image(systemName: "person.circle")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            
+                            VStack(alignment: .leading) {
+                                Text("No Photo")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text("Tap to add a photo")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    HStack(spacing: 16) {
+                        Button("Take Photo") {
+                            showingCamera = true
+                        }
+                        .buttonStyle(.rounded)
+                        
+                        Button("Choose from Library") {
+                            showingPhotoLibrary = true
+                        }
+                        .buttonStyle(.rounded)
+                    }
+                }
             }
             .navigationTitle("Edit Student")
             .navigationBarTitleDisplayMode(.inline)
@@ -89,6 +149,16 @@ struct EditStudentView: View {
         .sheet(isPresented: $showingContactPicker) {
             ContactPickerView { contact in
                 importContact(contact)
+            }
+        }
+        .sheet(isPresented: $showingCamera) {
+            CameraView { image in
+                student.profilePhotoData = image.jpegData(compressionQuality: 0.8)
+            }
+        }
+        .sheet(isPresented: $showingPhotoLibrary) {
+            PhotoLibraryView { image in
+                student.profilePhotoData = image.jpegData(compressionQuality: 0.8)
             }
         }
     }
