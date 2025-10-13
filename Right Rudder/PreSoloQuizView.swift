@@ -12,6 +12,7 @@ struct PreSoloQuizView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var student: Student
     @State private var checklist: StudentChecklist
+    @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedImage: UIImage?
@@ -43,6 +44,22 @@ struct PreSoloQuizView: View {
                 .adaptiveRowBackgroundModifier(for: index)
             }
             .onMove(perform: moveItems)
+            
+            // Relevant Data section (only if data exists)
+            if let template = template,
+               let relevantData = template.relevantData,
+               !relevantData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(relevantData)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(Color.appMutedBox)
+                    .cornerRadius(8)
+                }
+            }
             
             // Photo upload section
             Section("Quiz Documentation") {
@@ -82,12 +99,14 @@ struct PreSoloQuizView: View {
             Section("Dual Given Hours") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        TextField("0.0", value: Binding(
-                            get: { checklist.dualGivenHours },
-                            set: { checklist.dualGivenHours = $0 }
-                        ), format: .number.precision(.fractionLength(1)))
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        SelectableTextField(
+                            placeholder: "0.0",
+                            value: Binding(
+                                get: { checklist.dualGivenHours },
+                                set: { checklist.dualGivenHours = $0 }
+                            ),
+                            format: .number.precision(.fractionLength(1))
+                        )
                         .frame(width: 100)
                         
                         Text("hours")
@@ -136,6 +155,9 @@ struct PreSoloQuizView: View {
                 addQuizPhoto(image)
             }
         }
+        .onAppear {
+            loadTemplate()
+        }
     }
     
     private func addQuizPhoto(_ image: UIImage) {
@@ -177,6 +199,19 @@ struct PreSoloQuizView: View {
         // Update order values
         for (index, item) in sortedItems.enumerated() {
             item.order = index
+        }
+    }
+    
+    private func loadTemplate() {
+        let templateId = checklist.templateId
+        let descriptor = FetchDescriptor<ChecklistTemplate>(
+            predicate: #Predicate { $0.id == templateId }
+        )
+        do {
+            let templates = try modelContext.fetch(descriptor)
+            template = templates.first
+        } catch {
+            print("Failed to load template: \(error)")
         }
     }
 }

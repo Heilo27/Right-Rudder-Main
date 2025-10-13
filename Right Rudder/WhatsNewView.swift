@@ -27,15 +27,15 @@ struct WhatsNewView: View {
             color: .green
         ),
         FeatureItem(
-            icon: "shield.checkered",
-            title: "Enhanced Safety Features",
-            description: "Runway incursion avoidance, automation failure procedures, and personal currency programs",
+            icon: "paintbrush.fill",
+            title: "UI Improvements",
+            description: "Light and Dark mode improvements for legibility, Student ID photo, High contrast color scheme",
             color: .orange
         ),
         FeatureItem(
             icon: "list.bullet.clipboard",
             title: "Improved Organization",
-            description: "Clean sequential numbering for all checklist items with logical section grouping",
+            description: "Logical section grouping, better organization and navigation, streamlined user experience",
             color: .purple
         ),
         FeatureItem(
@@ -151,7 +151,7 @@ struct WhatsNewView: View {
                 }
                 
                 // Auto-advance pages
-                Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+                Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { _ in
                     withAnimation(.easeInOut(duration: 0.5)) {
                         self.currentPage = (self.currentPage + 1) % self.features.count
                     }

@@ -12,9 +12,11 @@ struct InstructorInfoView: View {
     
     @AppStorage("instructorName") private var instructorName: String = ""
     @AppStorage("instructorCFINumber") private var instructorCFINumber: String = ""
+    @AppStorage("instructorCFIExpiration") private var instructorCFIExpiration: String = ""
     
     @State private var tempInstructorName: String = ""
     @State private var tempInstructorCFINumber: String = ""
+    @State private var tempInstructorCFIExpiration: String = ""
     @State private var showingSavedAlert = false
     
     var body: some View {
@@ -47,8 +49,18 @@ struct InstructorInfoView: View {
                         Text("CFI Number")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        TextField("e.g., 1234567890", text: $tempInstructorCFINumber)
-                            .keyboardType(.numberPad)
+                        TextField("e.g., CFI1234567890", text: $tempInstructorCFINumber)
+                            .keyboardType(.default)
+                            .autocapitalization(.allCharacters)
+                    }
+                    .padding(.vertical, 4)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("CFI Expiration Date (Optional)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g., 12/31/2025", text: $tempInstructorCFIExpiration)
+                            .keyboardType(.default)
                     }
                     .padding(.vertical, 4)
                 }
@@ -74,6 +86,16 @@ struct InstructorInfoView: View {
                         }
                     }
                     
+                    if !instructorCFIExpiration.isEmpty {
+                        HStack {
+                            Text("CFI Expiration:")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(instructorCFIExpiration)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    
                     if instructorName.isEmpty && instructorCFINumber.isEmpty {
                         Text("No instructor information saved yet")
                             .foregroundColor(.secondary)
@@ -88,24 +110,13 @@ struct InstructorInfoView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                Section {
-                    Button(action: saveInstructorInfo) {
-                        HStack {
-                            Spacer()
-                            Text("Save Instructor Information")
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                    }
-                    .disabled(tempInstructorName.isEmpty && tempInstructorCFINumber.isEmpty)
-                }
             }
             .navigationTitle("User Information")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                    Button("Save") {
+                        saveInstructorInfo()
                     }
                 }
             }
@@ -125,13 +136,15 @@ struct InstructorInfoView: View {
     private func loadExistingInfo() {
         tempInstructorName = instructorName
         tempInstructorCFINumber = instructorCFINumber
+        tempInstructorCFIExpiration = instructorCFIExpiration
     }
     
     private func saveInstructorInfo() {
         instructorName = tempInstructorName
         instructorCFINumber = tempInstructorCFINumber
+        instructorCFIExpiration = tempInstructorCFIExpiration
         
-        print("Instructor information saved: \(instructorName), CFI: \(instructorCFINumber)")
+        print("Instructor information saved: \(instructorName), CFI: \(instructorCFINumber), Expiration: \(instructorCFIExpiration)")
         showingSavedAlert = true
     }
 }

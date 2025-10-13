@@ -31,7 +31,7 @@ struct RightRudderApp: App {
                 StudentDocument.self
             ])
             
-            // Configure CloudKit container
+            // Configure CloudKit container with optimized settings
             let cloudKitConfiguration = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false,

@@ -12,6 +12,7 @@ struct EndorsementsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var student: Student
     @State private var checklist: StudentChecklist
+    @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var showingPhotoOptions = false
@@ -111,6 +112,22 @@ struct EndorsementsView: View {
                 }
             }
             
+            // Relevant Data section (only if data exists)
+            if let template = template,
+               let relevantData = template.relevantData,
+               !relevantData.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(relevantData)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(Color.appMutedBox)
+                    .cornerRadius(8)
+                }
+            }
+            
             // Instructor Comments Section
             Section("Instructor Comments") {
                 VStack(alignment: .leading, spacing: 8) {
@@ -149,6 +166,9 @@ struct EndorsementsView: View {
             PhotoLibraryView { image in
                 addEndorsementImage(image)
             }
+        }
+        .onAppear {
+            loadTemplate()
         }
     }
     
@@ -197,6 +217,19 @@ struct EndorsementsView: View {
         
         let sequenceNumber = String(format: "%02d", todayEndorsements.count + 1)
         return "Endorsement_\(dateString)\(sequenceNumber).jpg"
+    }
+    
+    private func loadTemplate() {
+        let templateId = checklist.templateId
+        let descriptor = FetchDescriptor<ChecklistTemplate>(
+            predicate: #Predicate { $0.id == templateId }
+        )
+        do {
+            let templates = try modelContext.fetch(descriptor)
+            template = templates.first
+        } catch {
+            print("Failed to load template: \(error)")
+        }
     }
 }
 

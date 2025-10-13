@@ -62,12 +62,14 @@ struct LessonView: View {
             Section("Dual Given Hours") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        TextField("0.0", value: Binding(
-                            get: { checklist.dualGivenHours },
-                            set: { checklist.dualGivenHours = $0 }
-                        ), format: .number.precision(.fractionLength(1)))
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        SelectableTextField(
+                            placeholder: "0.0",
+                            value: Binding(
+                                get: { checklist.dualGivenHours },
+                                set: { checklist.dualGivenHours = $0 }
+                            ),
+                            format: .number.precision(.fractionLength(1))
+                        )
                         .frame(width: 100)
                         
                         Text("hours")

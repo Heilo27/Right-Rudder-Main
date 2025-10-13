@@ -32,7 +32,7 @@ struct SplashScreenView: View {
                         .foregroundColor(.primary)
                     
                     // Subtitle
-                    Text("Instructor Data Management")
+                    Text("Flight Instructor Data Management")
                         .font(.title2)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)

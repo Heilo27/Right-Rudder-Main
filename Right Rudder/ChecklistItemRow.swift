@@ -13,8 +13,6 @@ struct ChecklistItemRow: View {
     let onToggle: (Bool) -> Void
     let displayTitle: ((String) -> String)?
     @State private var showingNotes = false
-    @State private var notes: String
-    @State private var isComplete: Bool
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
 
@@ -22,21 +20,19 @@ struct ChecklistItemRow: View {
         self.item = item
         self.onToggle = onToggle
         self.displayTitle = displayTitle
-        self._notes = State(initialValue: item.notes ?? "")
-        self._isComplete = State(initialValue: item.isComplete)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isComplete ? .green : .gray)
+                    Image(systemName: item.isComplete ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(item.isComplete ? .green : .gray)
                         .font(.title2)
 
                     Text(displayTitle?(item.title) ?? item.title)
-                        .strikethrough(isComplete)
-                        .foregroundColor(isComplete ? .secondary : .primary)
+                        .strikethrough(item.isComplete)
+                        .foregroundColor(item.isComplete ? .secondary : .primary)
                         .multilineTextAlignment(.leading)
 
                     Spacer()
@@ -62,11 +58,8 @@ struct ChecklistItemRow: View {
             .offset(x: dragOffset)
             .contentShape(Rectangle()) // Make the entire area tappable
             .onTapGesture {
-                print("DEBUG: Tap gesture detected, isComplete: \(isComplete)")
                 // Only allow checking (not unchecking) with tap
-                if !isComplete {
-                    print("DEBUG: Checking item")
-                    isComplete = true
+                if !item.isComplete {
                     onToggle(true)
                 }
             }
@@ -81,8 +74,8 @@ struct ChecklistItemRow: View {
                         // AND minimum 50 points horizontal movement
                         if abs(horizontalMovement) > 50 && abs(horizontalMovement) > verticalMovement * 4.0 {
                             isDragging = true
-                            // Only allow left swipes (negative values) and only if item is complete
-                            if horizontalMovement < 0 && isComplete {
+                        // Only allow left swipes (negative values) and only if item is complete
+                        if horizontalMovement < 0 && item.isComplete {
                                 // Smooth drag animation that follows finger
                                 withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
                                     dragOffset = max(horizontalMovement, -120) // Limit drag distance
@@ -95,18 +88,14 @@ struct ChecklistItemRow: View {
                         let verticalMovement = abs(value.translation.height)
                         
                         print("DEBUG: Swipe ended - horizontal: \(horizontalMovement), vertical: \(verticalMovement)")
-                        print("DEBUG: isComplete: \(isComplete), ratio: \(abs(horizontalMovement) / max(verticalMovement, 1))")
+                        print("DEBUG: isComplete: \(item.isComplete), ratio: \(abs(horizontalMovement) / max(verticalMovement, 1))")
                         
                         // Check if this was a valid left swipe for unchecking
                         let isValidSwipe = horizontalMovement < -60 && verticalMovement < 40 && 
-                                         abs(horizontalMovement) > verticalMovement * 2.0 && isComplete
-                        
-                        print("DEBUG: isValidSwipe: \(isValidSwipe)")
+                                         abs(horizontalMovement) > verticalMovement * 2.0 && item.isComplete
                         
                         if isValidSwipe {
-                            print("DEBUG: Left swipe - unchecking item")
                             // Perform the uncheck action
-                            isComplete = false
                             onToggle(false)
                         }
                         
@@ -118,35 +107,28 @@ struct ChecklistItemRow: View {
                     }
             )
             
-            if isComplete, let completedAt = item.completedAt {
+            if item.isComplete, let completedAt = item.completedAt {
                 Text("Completed: \(completedAt, style: .date)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
         .sheet(isPresented: $showingNotes) {
-            NotesView(notes: $notes, item: item)
-        }
-        .onAppear {
-            // Sync with item state when view appears
-            isComplete = item.isComplete
-            notes = item.notes ?? ""
-        }
-        .onChange(of: item.isComplete) { _, newValue in
-            // Update local state when item changes
-            isComplete = newValue
-        }
-        .onChange(of: item.notes) { _, newValue in
-            // Update local notes state when item notes change
-            notes = newValue ?? ""
+            NotesView(item: item)
         }
     }
 }
 
 struct NotesView: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var notes: String
+    @Environment(\.modelContext) private var modelContext
     let item: StudentChecklistItem
+    @State private var notes: String
+
+    init(item: StudentChecklistItem) {
+        self.item = item
+        self._notes = State(initialValue: item.notes ?? "")
+    }
 
     var body: some View {
         NavigationView {
@@ -165,6 +147,11 @@ struct NotesView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         item.notes = notes.isEmpty ? nil : notes
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Failed to save notes: \(error)")
+                        }
                         dismiss()
                     }
                 }

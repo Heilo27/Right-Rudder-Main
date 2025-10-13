@@ -37,6 +37,17 @@ struct ContentView: View {
                 .tag(2)
             
         }
+        .onAppear {
+            // Start performance monitoring in debug builds
+            #if DEBUG
+            PerformanceMonitor.shared.startMonitoring()
+            #endif
+        }
+        .onDisappear {
+            #if DEBUG
+            PerformanceMonitor.shared.stopMonitoring()
+            #endif
+        }
     }
 }
 

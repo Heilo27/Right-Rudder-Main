@@ -11,23 +11,64 @@ import SwiftData
 struct AddChecklistToStudentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedCategory: String? = nil
     
     let student: Student
     let templates: [ChecklistTemplate]
 
     var body: some View {
         NavigationView {
-            templatesList
-                .navigationTitle("Add Checklist")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Cancel") {
-                            dismiss()
-                        }
-                        .buttonStyle(.noHaptic)
+            if selectedCategory == nil {
+                categorySelectionView
+            } else {
+                templatesList
+            }
+        }
+        .navigationTitle(selectedCategory == nil ? "Select Category" : "Add Checklist")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if selectedCategory != nil {
+                    Button("Back") {
+                        selectedCategory = nil
                     }
+                    .buttonStyle(.noHaptic)
                 }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .buttonStyle(.noHaptic)
+            }
+        }
+    }
+    
+    private var categorySelectionView: some View {
+        List {
+            ForEach(availableCategories, id: \.self) { category in
+                Button(action: {
+                    selectedCategory = category
+                }) {
+                    HStack {
+                        categoryIcon(for: category)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(category)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text("\(templatesInCategory(category).count) templates")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
     
@@ -112,8 +153,43 @@ struct AddChecklistToStudentView: View {
         return Int(templateName[numberRange])
     }
     
+    private var availableCategories: [String] {
+        let categories = Set(templates.map { $0.category })
+        return Array(categories).sorted()
+    }
+    
+    private func templatesInCategory(_ category: String) -> [ChecklistTemplate] {
+        return templates.filter { $0.category == category }
+    }
+    
+    private func categoryIcon(for category: String) -> some View {
+        let (icon, color) = categoryIconInfo(for: category)
+        return Image(systemName: icon)
+            .foregroundColor(color)
+            .font(.title2)
+            .frame(width: 30)
+    }
+    
+    private func categoryIconInfo(for category: String) -> (String, Color) {
+        switch category {
+        case "PPL":
+            return ("airplane", .blue)
+        case "Instrument":
+            return ("cloud.fog", .gray)
+        case "Commercial":
+            return ("briefcase", .green)
+        case "Reviews":
+            return ("checkmark.circle", .orange)
+        default:
+            return ("list.bullet", .secondary)
+        }
+    }
+    
     private var phaseGroups: [PhaseGroup] {
-        let grouped = Dictionary(grouping: templates) { template in
+        guard let selectedCategory = selectedCategory else { return [] }
+        
+        let filteredTemplates = templates.filter { $0.category == selectedCategory }
+        let grouped = Dictionary(grouping: filteredTemplates) { template in
             template.phase ?? "Phase 1"
         }
         

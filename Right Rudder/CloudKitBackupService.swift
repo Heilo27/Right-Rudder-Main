@@ -354,8 +354,8 @@ class CloudKitBackupService: ObservableObject {
         // Check if we need to backup (every 24 hours)
         checkAndPerformAutomaticBackup()
         
-        // Set up timer to check every hour
-        backupTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+        // Set up timer to check every 6 hours instead of every hour
+        backupTimer = Timer.scheduledTimer(withTimeInterval: 21600, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.checkAndPerformAutomaticBackup()
             }

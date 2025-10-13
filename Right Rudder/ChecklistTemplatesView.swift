@@ -135,7 +135,7 @@ struct ChecklistTemplatesView: View {
         }
         
         // Define the logical order for phases - First Steps must be at the top
-        let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4"]
+        let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
         
         // Create phase groups with sorted templates
         var phaseGroups: [PhaseGroup] = []
@@ -194,6 +194,15 @@ struct ChecklistTemplatesView: View {
     private func getPhaseIndex(_ phase: String, in phaseOrder: [String]) -> Int {
         if phase == "First Steps" {
             return 0 // Always first
+        }
+        if phase == "Flight Reviews" {
+            return phaseOrder.firstIndex(of: "Flight Reviews") ?? phaseOrder.count
+        }
+        if phase == "Instrument Rating" {
+            return phaseOrder.firstIndex(of: "Instrument Rating") ?? phaseOrder.count
+        }
+        if phase == "Commercial Rating" {
+            return phaseOrder.firstIndex(of: "Commercial Rating") ?? phaseOrder.count
         }
         return phaseOrder.firstIndex(of: phase) ?? phaseOrder.count
     }

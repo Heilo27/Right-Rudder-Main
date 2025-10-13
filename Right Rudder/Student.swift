@@ -102,6 +102,9 @@ class Student {
     
     var displayName: String { "\(firstName) \(lastName)" }
     
+    // Optimized computed property for sorting
+    var sortKey: String { "\(lastName), \(firstName)" }
+    
     var totalDualGivenHours: Double {
         checklists?.reduce(0.0) { $0 + $1.dualGivenHours } ?? 0.0
     }

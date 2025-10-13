@@ -1091,10 +1091,10 @@ class DefaultTemplates {
             ChecklistItem(title: "46. Flight - Ground Reference Maneuvers", notes: "Demonstrate ground reference maneuvers", order: 81),
             
             // MARK: - Post-Flight Activities
-            ChecklistItem(title: "47. Post-Flight - After Landing", notes: "Demonstrate proper after landing procedures", order: 82),
-            ChecklistItem(title: "48. Post-Flight - Taxi to Parking", notes: "Demonstrate safe taxi to parking procedures", order: 83),
-            ChecklistItem(title: "49. Post-Flight - Securing Aircraft", notes: "Demonstrate proper aircraft securing procedures", order: 84),
-            ChecklistItem(title: "50. Post-Flight - Equipment Check", notes: "Demonstrate post-flight equipment check", order: 85),
+            ChecklistItem(title: "1. Post-Flight - After Landing", notes: "Demonstrate proper after landing procedures", order: 82),
+            ChecklistItem(title: "2. Post-Flight - Taxi to Parking", notes: "Demonstrate safe taxi to parking procedures", order: 83),
+            ChecklistItem(title: "3. Post-Flight - Securing Aircraft", notes: "Demonstrate proper aircraft securing procedures", order: 84),
+            ChecklistItem(title: "4. Post-Flight - Equipment Check", notes: "Demonstrate post-flight equipment check", order: 85),
             
             // MARK: - Post-Review Considerations
             ChecklistItem(title: "1. Post-Review - Performance Assessment", notes: "Assess pilot performance and identify areas for improvement", order: 86),
@@ -1104,7 +1104,7 @@ class DefaultTemplates {
             ChecklistItem(title: "5. Post-Review - Training Plan", notes: "Develop or update training plan for continued proficiency", order: 90),
             ChecklistItem(title: "6. Post-Review - Safety Culture", notes: "Discuss safety culture and continuous improvement", order: 91),
             ChecklistItem(title: "7. Post-Review - Logbook Entry", notes: "Make appropriate logbook entry for flight review completion", order: 92),
-            ChecklistItem(title: "8. Post-Review - Endorsement", notes: "Provide flight review endorsement if pilot meets requirements", order: 93),
+            ChecklistItem(title: "8. Post-Review - Endorsement", notes: "I certify that [Pilot's Full Name], [Pilot Certificate, e.g., Private Pilot], [Certificate Number], has satisfactorily completed the flight review required in §61.56(a) on [Date].", order: 93),
         ]
     )
     
@@ -1176,7 +1176,7 @@ class DefaultTemplates {
             
             // MARK: - Completion and Endorsement
             ChecklistItem(title: "10.1 Completion - Overall Assessment", notes: "Complete overall assessment of pilot's instrument proficiency", order: 42),
-            ChecklistItem(title: "10.2 Completion - Endorsement", notes: "Provide IPC endorsement if pilot meets all requirements", order: 43),
+            ChecklistItem(title: "10.2 Completion - Endorsement", notes: "I certify that [First name, MI, Last name, grade of pilot certificate, certificate number], has satisfactorily completed the instrument proficiency check of § 61.57(d) in a [list make and model of aircraft] on [date].", order: 43),
             ChecklistItem(title: "10.3 Completion - Logbook Entry", notes: "Make appropriate logbook entry for IPC completion", order: 44),
         ]
     )

@@ -14,6 +14,7 @@ struct StudentRecordWebView: View {
     @State private var showingShareSheet = false
     @State private var htmlContent = ""
     
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -73,24 +74,24 @@ struct StudentRecordWebView: View {
     }
     
     private func generateHTMLContentAsync() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Pre-calculate heavy operations
+        Task.detached(priority: .userInitiated) {
+            // Create date formatter locally to avoid main actor isolation issues
             let dateFormatter = DateFormatter()
             dateFormatter.dateStyle = .long
             dateFormatter.timeStyle = .short
             let currentDate = dateFormatter.string(from: Date())
             
             // Generate HTML in chunks to avoid blocking
-            let html = self.generateHTMLContentOptimized(currentDate: currentDate)
+            let html = await self.generateHTMLContentOptimized(currentDate: currentDate)
             
-            DispatchQueue.main.async {
+            await MainActor.run {
                 self.htmlContent = html
                 self.isLoading = false
             }
         }
     }
     
-    private func generateHTMLContentOptimized(currentDate: String) -> String {
+    private func generateHTMLContentOptimized(currentDate: String) async -> String {
         // Ultra-minimal HTML for maximum speed
         let html = """
         <!DOCTYPE html>

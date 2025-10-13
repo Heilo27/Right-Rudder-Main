@@ -10,7 +10,7 @@ import SwiftData
 
 class SmartTemplateUpdateService {
     
-    private static let templateVersion = "1.4.6" // Increment this when templates change
+    private static let templateVersion = "1.4.8" // Increment this when templates change
     
     /// Updates default templates while preserving user customizations
     static func updateDefaultTemplates(modelContext: ModelContext) {
