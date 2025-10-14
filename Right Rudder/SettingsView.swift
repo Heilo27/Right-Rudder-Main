@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var isCheckingCloudKit = false
     @State private var showingInstructorInfo = false
     @State private var showingShareTemplates = false
+    @State private var showingReceiveTemplates = false
     @State private var showingWhatsNew = false
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     
@@ -55,6 +56,30 @@ struct SettingsView: View {
                                     .font(.headline)
                                     .foregroundColor(.primary)
                                 Text("Export custom templates to share with other users")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        showingReceiveTemplates = true
+                    }) {
+                        HStack {
+                            Image(systemName: "square.and.arrow.down.on.square")
+                                .foregroundColor(.green)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Receive Lesson Lists from Others")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Import lesson templates from other users or CSV files")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -317,6 +342,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingShareTemplates) {
                 ShareTemplatesView()
+            }
+            .sheet(isPresented: $showingReceiveTemplates) {
+                ReceiveTemplatesView()
             }
             .sheet(isPresented: $showingWhatsNew) {
                 WhatsNewView()

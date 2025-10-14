@@ -57,34 +57,105 @@ struct ChecklistTemplatesView: View {
     
     private var templatesList: some View {
         List {
-            ForEach(phaseGroups) { phaseGroup in
-                Section(header: Text(phaseGroup.phase).font(.headline)) {
-                    ForEach(Array(phaseGroup.templates.enumerated()), id: \.element.id) { index, template in
-                        if isEditing {
-                            templateRow(template)
-                                .adaptiveRowBackgroundModifier(for: index)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button("Delete", role: .destructive) {
-                                        deleteTemplate(template)
-                                    }
-                                }
-                        } else {
-                            NavigationLink(destination: ChecklistTemplateDetailView(template: template)) {
-                                templateRow(template)
-                            }
-                            .adaptiveRowBackgroundModifier(for: index)
-                        }
-                    }
-                    .onMove { from, to in
-                        moveTemplates(from: from, to: to, in: phaseGroup.templates)
-                    }
-                    .onDelete { offsets in
-                        deleteTemplates(offsets: offsets, templates: phaseGroup.templates)
-                    }
-                }
+            ForEach(Array(phaseGroups.enumerated()), id: \.element.id) { phaseIndex, phaseGroup in
+                phaseSection(phaseIndex: phaseIndex, phaseGroup: phaseGroup)
+                
+                  // Add spacing between phases for Instrument and Commercial categories (except after the last one)
+                  if (selectedCategory == "Instrument" || selectedCategory == "Commercial") && phaseIndex < phaseGroups.count - 1 {
+                      spacingSection
+                  }
             }
         }
         .environment(\.editMode, isEditing ? .constant(.active) : .constant(.inactive))
+    }
+    
+    @ViewBuilder
+    private func phaseSection(phaseIndex: Int, phaseGroup: PhaseGroup) -> some View {
+        Section(header: sectionHeader(phaseIndex: phaseIndex, phaseGroup: phaseGroup)) {
+            ForEach(Array(phaseGroup.templates.enumerated()), id: \.element.id) { index, template in
+                templateRowWithActions(template: template, index: index, phaseGroup: phaseGroup)
+            }
+            .onMove { from, to in
+                moveTemplates(from: from, to: to, in: phaseGroup.templates)
+            }
+            .onDelete { offsets in
+                deleteTemplates(offsets: offsets, templates: phaseGroup.templates)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func sectionHeader(phaseIndex: Int, phaseGroup: PhaseGroup) -> some View {
+        if selectedCategory == "Instrument" {
+            phaseHeader(for: phaseGroup.phase, isFirst: phaseIndex == 0)
+        } else {
+            Text(phaseGroup.phase)
+                .font(.headline)
+        }
+    }
+    
+    @ViewBuilder
+    private func templateRowWithActions(template: ChecklistTemplate, index: Int, phaseGroup: PhaseGroup) -> some View {
+        if isEditing {
+            templateRow(template)
+                .adaptiveRowBackgroundModifier(for: index)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button("Delete", role: .destructive) {
+                        deleteTemplate(template)
+                    }
+                }
+        } else {
+            NavigationLink(destination: ChecklistTemplateDetailView(template: template)) {
+                templateRow(template)
+            }
+            .adaptiveRowBackgroundModifier(for: index)
+        }
+    }
+    
+    private var spacingSection: some View {
+        Section {
+            EmptyView()
+        } header: {
+            Spacer()
+                .frame(height: 4)
+        }
+    }
+    
+    @ViewBuilder
+    private func phaseHeader(for phase: String, isFirst: Bool) -> some View {
+        VStack(spacing: 8) {
+            if !isFirst {
+                // Add spacing above phase name (except for first phase)
+                Spacer()
+                    .frame(height: 3)
+            }
+            
+            if selectedCategory == "Instrument" || selectedCategory == "Commercial" {
+                // Special formatting for Instrument and Commercial phases with number and description
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(phase)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        Spacer()
+                    }
+                }
+                .padding(.horizontal, 4)
+            } else {
+                // Standard formatting for other categories
+                HStack {
+                    Text(phase)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+        .padding(.vertical, 4)
+        .background(Color(.systemGray6))
     }
     
     private func templateRow(_ template: ChecklistTemplate) -> some View {
@@ -130,22 +201,93 @@ struct ChecklistTemplatesView: View {
     
     private var phaseGroups: [PhaseGroup] {
         let filtered = filteredTemplates
-        let grouped = Dictionary(grouping: filtered) { template in
-            template.phase ?? "Phase 1"
+        
+        if selectedCategory == "Instrument" {
+            return createInstrumentPhaseGroups(filtered)
+        } else if selectedCategory == "Commercial" {
+            return createCommercialPhaseGroups(filtered)
+        } else {
+            let grouped = Dictionary(grouping: filtered) { template in
+                template.phase ?? "Phase 1"
+            }
+            
+            // Define the logical order for phases - First Steps must be at the top
+            let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
+            
+            // Create phase groups with sorted templates
+            var phaseGroups: [PhaseGroup] = []
+            for (phase, templates) in grouped {
+                let sortedTemplates = sortTemplatesForPhase(templates, phase: phase)
+                let phaseGroup = PhaseGroup(phase: phase, templates: sortedTemplates)
+                phaseGroups.append(phaseGroup)
+            }
+            
+            return sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
+        }
+    }
+    
+    private func createInstrumentPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {
+        let phase1Templates = templates.filter { template in
+            template.name.contains("P1L") || template.name.contains("P1-L")
+        }
+        let phase2Templates = templates.filter { template in
+            template.name.contains("P2L") || template.name.contains("P2-L")
+        }
+        let phase3Templates = templates.filter { template in
+            template.name.contains("P3L") || template.name.contains("P3-L")
+        }
+        let phase4Templates = templates.filter { template in
+            template.name.contains("P4L") || template.name.contains("P4-L")
+        }
+        let phase5Templates = templates.filter { template in
+            template.name.contains("P5L") || template.name.contains("P5-L")
         }
         
-        // Define the logical order for phases - First Steps must be at the top
-        let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
-        
-        // Create phase groups with sorted templates
         var phaseGroups: [PhaseGroup] = []
-        for (phase, templates) in grouped {
-            let sortedTemplates = sortTemplatesForPhase(templates, phase: phase)
-            let phaseGroup = PhaseGroup(phase: phase, templates: sortedTemplates)
-            phaseGroups.append(phaseGroup)
+        
+        if !phase1Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 1: Basic instrument control and skills", templates: phase1Templates.sorted { $0.name < $1.name }))
+        }
+        if !phase2Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 2: Navigation systems and procedures", templates: phase2Templates.sorted { $0.name < $1.name }))
+        }
+        if !phase3Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 3: Instrument approaches and advanced procedures", templates: phase3Templates.sorted { $0.name < $1.name }))
+        }
+        if !phase4Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 4: Instrument Cross Countries", templates: phase4Templates.sorted { $0.name < $1.name }))
+        }
+        if !phase5Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 5: Becoming Instrument Rated", templates: phase5Templates.sorted { $0.name < $1.name }))
         }
         
-        return sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
+        return phaseGroups
+    }
+    
+    private func createCommercialPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {
+        let stage1Templates = templates.filter { template in
+            template.name.contains("C1L") || template.name.contains("C1-L")
+        }
+        let stage2Templates = templates.filter { template in
+            template.name.contains("C2L") || template.name.contains("C2-L")
+        }
+        let stage3Templates = templates.filter { template in
+            template.name.contains("C3L") || template.name.contains("C3-L")
+        }
+        
+        var phaseGroups: [PhaseGroup] = []
+        
+        if !stage1Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Stage 1: Learning Professional Cross-Country and Night Procedures", templates: stage1Templates.sorted { $0.name < $1.name }))
+        }
+        if !stage2Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers", templates: stage2Templates.sorted { $0.name < $1.name }))
+        }
+        if !stage3Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Stage 3: Preparing for Commercial Pilot Check Ride", templates: stage3Templates.sorted { $0.name < $1.name }))
+        }
+        
+        return phaseGroups
     }
     
     private func sortTemplatesForPhase(_ templates: [ChecklistTemplate], phase: String) -> [ChecklistTemplate] {

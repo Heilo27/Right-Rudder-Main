@@ -18,6 +18,8 @@ struct StudentShareView: View {
     @State private var showingSuccessSplash = false
     @State private var monitoringForAcceptance = false
     
+    @AppStorage("instructorName") private var instructorName: String = ""
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -156,7 +158,7 @@ struct StudentShareView: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 if let shareURL = shareURL {
-                    ActivityShareSheet(items: [shareURL])
+                    ActivityShareSheet(items: [shareURL], instructorName: instructorName.isEmpty ? "Your Instructor" : instructorName)
                 }
             }
             .task {
@@ -301,13 +303,31 @@ struct InfoRow: View {
 // ActivityShareSheet for presenting UIActivityViewController
 struct ActivityShareSheet: UIViewControllerRepresentable {
     let items: [Any]
+    let instructorName: String
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        // Create the custom sharing message
+        let shareMessage = createShareMessage(instructorName: instructorName, shareURL: items.first as? URL)
+        
+        let controller = UIActivityViewController(activityItems: [shareMessage], applicationActivities: nil)
         return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    
+    private func createShareMessage(instructorName: String, shareURL: URL?) -> String {
+        let appStoreLink = "https://apps.apple.com/app/right-rudder-student/id[APP_ID]" // Replace [APP_ID] with actual App Store ID
+        
+        return """
+        You have been invited to link apps with \(instructorName).
+        
+        Step 1. Download the Right Rudder - Student app: \(appStoreLink)
+        
+        Step 2. Click on link below to connect: \(shareURL?.absoluteString ?? "")
+        
+        Step 3. Fill out your information, and upload any required documents.
+        """
+    }
 }
 
 // Success Splash View

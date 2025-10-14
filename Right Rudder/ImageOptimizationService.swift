@@ -13,11 +13,14 @@ class ImageOptimizationService {
     static let shared = ImageOptimizationService()
     
     private let imageCache = NSCache<NSString, UIImage>()
-    private let maxCacheSize = 50 // Maximum number of images to cache
+    private let maxCacheSize = 20 // Reduced maximum number of images to cache
+    private let maxCacheSizeMB = 20 // Reduced cache size to 20MB
     
     private init() {
         imageCache.countLimit = maxCacheSize
-        imageCache.totalCostLimit = 50 * 1024 * 1024 // 50MB limit
+        imageCache.totalCostLimit = maxCacheSizeMB * 1024 * 1024 // 20MB limit
+        NotificationCenter.default.addObserver(self, selector: #selector(clearCache), name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(clearCache), name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
     
     // Optimize image for display with compression
@@ -65,8 +68,9 @@ class ImageOptimizationService {
     }
     
     // Clear cache when memory pressure is detected
-    func clearCache() {
+    @objc func clearCache() {
         imageCache.removeAllObjects()
+        print("Image cache cleared due to memory pressure")
     }
     
     // Get cached image if available
@@ -80,6 +84,7 @@ struct OptimizedImage: View {
     let image: UIImage
     let maxSize: CGSize
     @State private var optimizedImage: UIImage?
+    @State private var isLoading = true
     
     init(_ image: UIImage, maxSize: CGSize = CGSize(width: 300, height: 300)) {
         self.image = image
@@ -92,13 +97,21 @@ struct OptimizedImage: View {
                 Image(uiImage: optimizedImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-            } else {
+            } else if isLoading {
                 ProgressView()
+                    .frame(width: maxSize.width, height: maxSize.height)
+            } else {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
                     .frame(width: maxSize.width, height: maxSize.height)
             }
         }
         .onAppear {
             loadOptimizedImage()
+        }
+        .onDisappear {
+            // Clear optimized image when view disappears to free memory
+            optimizedImage = nil
         }
     }
     
@@ -107,6 +120,7 @@ struct OptimizedImage: View {
             let optimized = ImageOptimizationService.shared.optimizeImage(image, maxSize: maxSize)
             await MainActor.run {
                 self.optimizedImage = optimized
+                self.isLoading = false
             }
         }
     }

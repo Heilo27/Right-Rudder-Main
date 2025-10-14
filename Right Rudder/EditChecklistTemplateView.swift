@@ -46,13 +46,19 @@ struct EditChecklistTemplateView: View {
                 Section("Items") {
                     ForEach(items.sorted { $0.order < $1.order }) { item in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(item.title)
-                                .font(.subheadline)
-                            if let notes = item.notes, !notes.isEmpty {
-                                Text(notes)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                            TextField("Item title", text: Binding(
+                                get: { item.title },
+                                set: { item.title = $0 }
+                            ))
+                            .font(.subheadline)
+                            
+                            TextField("Notes (optional)", text: Binding(
+                                get: { item.notes ?? "" },
+                                set: { item.notes = $0.isEmpty ? nil : $0 }
+                            ), axis: .vertical)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2...4)
                         }
                     }
                     .onDelete(perform: deleteItems)

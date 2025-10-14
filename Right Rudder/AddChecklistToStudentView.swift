@@ -89,10 +89,18 @@ struct AddChecklistToStudentView: View {
             Text(phaseGroup.phase)
                 .font(.headline)
             Spacer()
-            Button("Add All") {
-                addAllTemplatesInPhase(phaseGroup.templates)
+            HStack(spacing: 12) {
+                Button("Delete All") {
+                    deleteAllTemplatesInPhase(phaseGroup.templates)
+                }
+                .buttonStyle(.rounded)
+                .foregroundColor(.red)
+                
+                Button("Add All") {
+                    addAllTemplatesInPhase(phaseGroup.templates)
+                }
+                .buttonStyle(.rounded)
             }
-            .buttonStyle(.rounded)
         }
     }
     
@@ -344,6 +352,32 @@ struct AddChecklistToStudentView: View {
                 }
                 
                 self.dismiss()
+            }
+        }
+    }
+    
+    private func deleteAllTemplatesInPhase(_ templates: [ChecklistTemplate]) {
+        // Process on background queue for better performance
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Get template IDs for this phase
+            let templateIds = Set(templates.map { $0.id })
+            
+            DispatchQueue.main.async {
+                // Filter out checklists that match any template in this phase
+                if let checklists = self.student.checklists {
+                    self.student.checklists = checklists.filter { checklist in
+                        !templateIds.contains(checklist.templateId)
+                    }
+                }
+                
+                // Save the context to persist changes and trigger UI updates
+                do {
+                    try self.modelContext.save()
+                    // Force a refresh of the student object to trigger UI updates
+                    self.student.lastModified = Date()
+                } catch {
+                    print("Failed to save after deleting student checklists: \(error)")
+                }
             }
         }
     }

@@ -917,7 +917,9 @@ class DefaultTemplates {
     
     // MARK: - All Templates Array
     
-    static let allTemplates: [ChecklistTemplate] = [
+    // Lazy loading for memory efficiency
+    static var allTemplates: [ChecklistTemplate] {
+        return [
         // First Steps
         studentOnboardTrainingOverview,
         
@@ -969,12 +971,65 @@ class DefaultTemplates {
         biAnnualFlightReview,
         instrumentProficiencyCheck,
         
-        // Instrument Rating
-        instrumentRatingBanner,
+        // Instrument Rating - Phase 1
+        p1L1PreflightAndBasicInstrumentControl,
+        p1L2ExpandingInstrumentSkills,
+        p1L3UsingTheMagneticCompass,
+        p1L4IFRFlightPlansAndClearances,
+        p1L5PrimaryFlightInstrumentDisplayFailure,
+        p1L6ReviewOfInstrumentControlAndProgressCheck,
         
-        // Commercial Rating
-        commercialRatingBanner,
-    ]
+        // Instrument Rating - Phase 2
+        p2L1GPSAndVORForIFR,
+        p2L2NDBADFNavigationAndDepartureProcedures,
+        p2L3BuildingSkillWithGPSVORAndNDBNDBNavigation,
+        p2L4DMEARX,
+        p2L5HoldingProcedures,
+        p2L6ProgressCheck,
+        
+        // Instrument Rating - Phase 3
+        p3L1ILSApproachesAndProcedureTurns,
+        p3L2RNAVApproachesWithVerticalGuidance,
+        p3L4VORAndNDBApproaches,
+        p3L5CirclingApproaches,
+        p3L6PartialPanelAndUsingTheAutopilotForApproaches,
+        p3L7ProgressCheck,
+        
+        // Instrument Rating - Phase 4
+        p4L1ShortIFRCrossCountry,
+        p4L2RefiningApproaches,
+        p4L3LongIFRCrossCountryProgressCheck,
+        
+        // Instrument Rating - Phase 5
+        p5L1AirmanCertificationStandards,
+        p5L2HoningTheEdge,
+        p5L3PreCheckrideProgressCheck,
+        
+          // Commercial Rating - Stage 1: Learning Professional Cross-Country and Night Procedures
+          c1L1DualCrossCountry,
+          c1L2DualLocalNight,
+          c1L3PICCrossCountry,
+          c1L4DualCrossCountryNight,
+          c1L5SoloLocalNight,
+          c1L6PICCrossCountry,
+          c1L7SoloLocalNight,
+          c1L8SoloCrossCountryNight,
+          c1L9PICCrossCountry,
+          c1L10ProgressCheck,
+          
+          // Commercial Rating - Stage 2: Flying Complex Airplanes and Commercial Maneuvers
+          c2L1DualLocalComplex,
+          c2L2DualLocalComplex,
+          c2L3SteepTurns,
+          c2L4Chandelles,
+          c2L5LazyEights,
+          c2L6EightsOnPylons,
+          
+          // Commercial Rating - Stage 3: Preparing for Commercial Pilot Check Ride
+          c3L1DualLocal,
+          c3L2FinalProgressCheck,
+        ]
+    }
     
     // MARK: - Review Templates
     
@@ -993,118 +1048,118 @@ class DefaultTemplates {
             ChecklistItem(title: "1.6 Pre-Review - Personal Currency Program", notes: "Review pilot's personal currency program and proficiency goals", order: 5),
             
             // MARK: - Ground Review - Pilot Knowledge
-            ChecklistItem(title: "1. Ground - Pilot Responsibilities", notes: "Review PIC authority and responsibilities per 14 CFR 91.3", order: 6),
-            ChecklistItem(title: "2. Ground - Preflight Actions", notes: "Review preflight planning requirements per 14 CFR 91.103", order: 7),
-            ChecklistItem(title: "3. Ground - Medical Facts", notes: "Review medical factors affecting flight safety (AIM Chapter 8)", order: 8),
-            ChecklistItem(title: "4. Ground - Recent Experience", notes: "Verify compliance with recent flight experience requirements", order: 9),
-            ChecklistItem(title: "5. Ground - Currency Requirements", notes: "Review currency requirements for privileges exercised", order: 10),
+            ChecklistItem(title: "2.1. Ground - Pilot Responsibilities", notes: "Review PIC authority and responsibilities per 14 CFR 91.3", order: 6),
+            ChecklistItem(title: "2.2. Ground - Preflight Actions", notes: "Review preflight planning requirements per 14 CFR 91.103", order: 7),
+            ChecklistItem(title: "2.3. Ground - Medical Facts", notes: "Review medical factors affecting flight safety (AIM Chapter 8)", order: 8),
+            ChecklistItem(title: "2.4. Ground - Recent Experience", notes: "Verify compliance with recent flight experience requirements", order: 9),
+            ChecklistItem(title: "2.5. Ground - Currency Requirements", notes: "Review currency requirements for privileges exercised", order: 10),
             
             // MARK: - Ground Review - Aircraft Systems
-            ChecklistItem(title: "6. Ground - Fuel Requirements", notes: "Review fuel requirements and planning per 14 CFR 91.167", order: 11),
-            ChecklistItem(title: "7. Ground - Equipment Requirements", notes: "Review required instruments and equipment per 14 CFR 91.205", order: 12),
-            ChecklistItem(title: "8. Ground - Navigation Equipment", notes: "Review VOR equipment check requirements per 14 CFR 91.171", order: 13),
-            ChecklistItem(title: "9. Ground - Communication Equipment", notes: "Review two-way radio communication requirements per 14 CFR 91.183", order: 14),
-            ChecklistItem(title: "10. Ground - Emergency Equipment", notes: "Review ELT requirements per 14 CFR 91.207 and emergency procedures", order: 15),
-            ChecklistItem(title: "11. Ground - Aircraft Lights", notes: "Review aircraft lighting requirements per 14 CFR 91.209", order: 16),
-            ChecklistItem(title: "12. Ground - Inoperative Equipment", notes: "Review procedures for inoperative instruments per 14 CFR 91.213", order: 17),
-            ChecklistItem(title: "13. Ground - Altimeter Tests", notes: "Review altimeter and pitot-static system test requirements per 14 CFR 91.411", order: 18),
-            ChecklistItem(title: "14. Ground - Transponder Tests", notes: "Review ATC transponder test requirements per 14 CFR 91.413", order: 19),
-            ChecklistItem(title: "15. Ground - Malfunction Reports", notes: "Review malfunction reporting requirements per 14 CFR 91.187", order: 20),
+            ChecklistItem(title: "3.1. Ground - Fuel Requirements", notes: "Review fuel requirements and planning per 14 CFR 91.167", order: 11),
+            ChecklistItem(title: "3.2. Ground - Equipment Requirements", notes: "Review required instruments and equipment per 14 CFR 91.205", order: 12),
+            ChecklistItem(title: "3.3. Ground - Navigation Equipment", notes: "Review VOR equipment check requirements per 14 CFR 91.171", order: 13),
+            ChecklistItem(title: "3.4. Ground - Communication Equipment", notes: "Review two-way radio communication requirements per 14 CFR 91.183", order: 14),
+            ChecklistItem(title: "3.5. Ground - Emergency Equipment", notes: "Review ELT requirements per 14 CFR 91.207 and emergency procedures", order: 15),
+            ChecklistItem(title: "3.6. Ground - Aircraft Lights", notes: "Review aircraft lighting requirements per 14 CFR 91.209", order: 16),
+            ChecklistItem(title: "3.7. Ground - Inoperative Equipment", notes: "Review procedures for inoperative instruments per 14 CFR 91.213", order: 17),
+            ChecklistItem(title: "3.8. Ground - Altimeter Tests", notes: "Review altimeter and pitot-static system test requirements per 14 CFR 91.411", order: 18),
+            ChecklistItem(title: "3.9. Ground - Transponder Tests", notes: "Review ATC transponder test requirements per 14 CFR 91.413", order: 19),
+            ChecklistItem(title: "3.10. Ground - Malfunction Reports", notes: "Review malfunction reporting requirements per 14 CFR 91.187", order: 20),
             
             // MARK: - Ground Review - Environment and Procedures
-            ChecklistItem(title: "16. Ground - ATC Instructions", notes: "Review compliance with ATC instructions per 14 CFR 91.123", order: 21),
-            ChecklistItem(title: "17. Ground - Flight Plans", notes: "Review IFR flight plan requirements per 14 CFR 91.169", order: 22),
-            ChecklistItem(title: "18. Ground - ATC Clearances", notes: "Review ATC clearance and flight plan requirements per 14 CFR 91.173", order: 23),
-            ChecklistItem(title: "19. Ground - IFR Operations", notes: "Review IFR takeoff and landing requirements per 14 CFR 91.175", order: 24),
-            ChecklistItem(title: "20. Ground - Minimum IFR Altitudes", notes: "Review minimum IFR altitude requirements per 14 CFR 91.177", order: 25),
-            ChecklistItem(title: "21. Ground - IFR Cruising Altitudes", notes: "Review IFR cruising altitude requirements per 14 CFR 91.179", order: 26),
-            ChecklistItem(title: "22. Ground - Course Requirements", notes: "Review course to be flown requirements per 14 CFR 91.181", order: 27),
-            ChecklistItem(title: "23. Ground - Navigation Aids", notes: "Review navigation aid procedures and limitations (AIM Chapter 1)", order: 28),
-            ChecklistItem(title: "24. Ground - ATC Procedures", notes: "Review ATC procedures and communications (AIM Chapter 4)", order: 29),
-            ChecklistItem(title: "25. Ground - Air Traffic Procedures", notes: "Review air traffic procedures (AIM Chapter 5)", order: 30),
+            ChecklistItem(title: "4.1. Ground - ATC Instructions", notes: "Review compliance with ATC instructions per 14 CFR 91.123", order: 21),
+            ChecklistItem(title: "4.2. Ground - Flight Plans", notes: "Review IFR flight plan requirements per 14 CFR 91.169", order: 22),
+            ChecklistItem(title: "4.3. Ground - ATC Clearances", notes: "Review ATC clearance and flight plan requirements per 14 CFR 91.173", order: 23),
+            ChecklistItem(title: "4.4. Ground - IFR Operations", notes: "Review IFR takeoff and landing requirements per 14 CFR 91.175", order: 24),
+            ChecklistItem(title: "4.5. Ground - Minimum IFR Altitudes", notes: "Review minimum IFR altitude requirements per 14 CFR 91.177", order: 25),
+            ChecklistItem(title: "4.6. Ground - IFR Cruising Altitudes", notes: "Review IFR cruising altitude requirements per 14 CFR 91.179", order: 26),
+            ChecklistItem(title: "4.7. Ground - Course Requirements", notes: "Review course to be flown requirements per 14 CFR 91.181", order: 27),
+            ChecklistItem(title: "4.8. Ground - Navigation Aids", notes: "Review navigation aid procedures and limitations (AIM Chapter 1)", order: 28),
+            ChecklistItem(title: "4.9. Ground - ATC Procedures", notes: "Review ATC procedures and communications (AIM Chapter 4)", order: 29),
+            ChecklistItem(title: "4.10. Ground - Air Traffic Procedures", notes: "Review air traffic procedures (AIM Chapter 5)", order: 30),
             
             // MARK: - Ground Review - External Pressures and Emergencies
-            ChecklistItem(title: "26. Ground - Communication Failures", notes: "Review IFR two-way radio communication failure procedures per 14 CFR 91.185", order: 31),
-            ChecklistItem(title: "27. Ground - Emergency Procedures", notes: "Review emergency procedures (AIM Chapter 6)", order: 32),
-            ChecklistItem(title: "28. Ground - National Security", notes: "Review national security and interception procedures (AIM Chapter 5, Section 6)", order: 33),
-            ChecklistItem(title: "29. Ground - Risk Management", notes: "Review risk management and aeronautical decision making", order: 34),
-            ChecklistItem(title: "30. Ground - Personal Minimums", notes: "Review and update personal minimums and safety margins", order: 35),
+            ChecklistItem(title: "5.1. Ground - Communication Failures", notes: "Review IFR two-way radio communication failure procedures per 14 CFR 91.185", order: 31),
+            ChecklistItem(title: "5.2. Ground - Emergency Procedures", notes: "Review emergency procedures (AIM Chapter 6)", order: 32),
+            ChecklistItem(title: "5.3. Ground - National Security", notes: "Review national security and interception procedures (AIM Chapter 5, Section 6)", order: 33),
+            ChecklistItem(title: "5.4. Ground - Risk Management", notes: "Review risk management and aeronautical decision making", order: 34),
+            ChecklistItem(title: "5.5. Ground - Personal Minimums", notes: "Review and update personal minimums and safety margins", order: 35),
             
             // MARK: - Flight Activities - Preflight
-            ChecklistItem(title: "1. Flight - Preflight Preparation", notes: "Demonstrate proper preflight planning and weather analysis", order: 36),
-            ChecklistItem(title: "2. Flight - Weather Information", notes: "Obtain and interpret weather information for flight", order: 37),
-            ChecklistItem(title: "3. Flight - Cross-Country Planning", notes: "Demonstrate cross-country flight planning skills", order: 38),
-            ChecklistItem(title: "4. Flight - Preflight Procedures", notes: "Demonstrate proper preflight inspection procedures", order: 39),
-            ChecklistItem(title: "5. Flight - Aircraft Systems", notes: "Demonstrate knowledge of aircraft systems and limitations", order: 40),
-            ChecklistItem(title: "6. Flight - Flight Instruments", notes: "Demonstrate knowledge of flight instruments and navigation equipment", order: 41),
-            ChecklistItem(title: "7. Flight - Cockpit Check", notes: "Demonstrate proper cockpit check procedures", order: 42),
+            ChecklistItem(title: "1.1. Flight - Preflight Preparation", notes: "Demonstrate proper preflight planning and weather analysis", order: 36),
+            ChecklistItem(title: "1.2. Flight - Weather Information", notes: "Obtain and interpret weather information for flight", order: 37),
+            ChecklistItem(title: "1.3. Flight - Cross-Country Planning", notes: "Demonstrate cross-country flight planning skills", order: 38),
+            ChecklistItem(title: "1.4. Flight - Preflight Procedures", notes: "Demonstrate proper preflight inspection procedures", order: 39),
+            ChecklistItem(title: "1.5. Flight - Aircraft Systems", notes: "Demonstrate knowledge of aircraft systems and limitations", order: 40),
+            ChecklistItem(title: "1.6. Flight - Flight Instruments", notes: "Demonstrate knowledge of flight instruments and navigation equipment", order: 41),
+            ChecklistItem(title: "1.7. Flight - Cockpit Check", notes: "Demonstrate proper cockpit check procedures", order: 42),
             
             // MARK: - Flight Activities - Ground Operations
-            ChecklistItem(title: "8. Flight - ATC Clearances", notes: "Demonstrate proper ATC clearance procedures", order: 43),
-            ChecklistItem(title: "9. Flight - Departure Procedures", notes: "Demonstrate proper departure procedures and clearances", order: 44),
-            ChecklistItem(title: "10. Flight - Taxi Operations", notes: "Demonstrate safe taxi operations and runway safety", order: 45),
-            ChecklistItem(title: "11. Flight - Runway Incursion Avoidance", notes: "Demonstrate runway incursion avoidance procedures", order: 46),
-            ChecklistItem(title: "12. Flight - Pre-Takeoff Checks", notes: "Demonstrate proper pre-takeoff checks and procedures", order: 47),
+            ChecklistItem(title: "2.1. Flight - ATC Clearances", notes: "Demonstrate proper ATC clearance procedures", order: 43),
+            ChecklistItem(title: "2.2. Flight - Departure Procedures", notes: "Demonstrate proper departure procedures and clearances", order: 44),
+            ChecklistItem(title: "2.3. Flight - Taxi Operations", notes: "Demonstrate safe taxi operations and runway safety", order: 45),
+            ChecklistItem(title: "2.4. Flight - Runway Incursion Avoidance", notes: "Demonstrate runway incursion avoidance procedures", order: 46),
+            ChecklistItem(title: "2.5. Flight - Pre-Takeoff Checks", notes: "Demonstrate proper pre-takeoff checks and procedures", order: 47),
             
             // MARK: - Flight Activities - Takeoff and Departure
-            ChecklistItem(title: "13. Flight - Normal Takeoff", notes: "Demonstrate normal takeoff procedures", order: 48),
-            ChecklistItem(title: "14. Flight - Short Field Takeoff", notes: "Demonstrate short field takeoff procedures", order: 49),
-            ChecklistItem(title: "15. Flight - Soft Field Takeoff", notes: "Demonstrate soft field takeoff procedures", order: 50),
-            ChecklistItem(title: "16. Flight - Crosswind Takeoff", notes: "Demonstrate crosswind takeoff procedures", order: 51),
-            ChecklistItem(title: "17. Flight - Engine Failure on Takeoff", notes: "Demonstrate engine failure on takeoff procedures", order: 52),
-            ChecklistItem(title: "18. Flight - Rejected Takeoff", notes: "Demonstrate rejected takeoff procedures", order: 53),
+            ChecklistItem(title: "3.1. Flight - Normal Takeoff", notes: "Demonstrate normal takeoff procedures", order: 48),
+            ChecklistItem(title: "3.2. Flight - Short Field Takeoff", notes: "Demonstrate short field takeoff procedures", order: 49),
+            ChecklistItem(title: "3.3. Flight - Soft Field Takeoff", notes: "Demonstrate soft field takeoff procedures", order: 50),
+            ChecklistItem(title: "3.4. Flight - Crosswind Takeoff", notes: "Demonstrate crosswind takeoff procedures", order: 51),
+            ChecklistItem(title: "3.5. Flight - Engine Failure on Takeoff", notes: "Demonstrate engine failure on takeoff procedures", order: 52),
+            ChecklistItem(title: "3.6. Flight - Rejected Takeoff", notes: "Demonstrate rejected takeoff procedures", order: 53),
             
             // MARK: - Flight Activities - En Route Operations
-            ChecklistItem(title: "19. Flight - Climb Procedures", notes: "Demonstrate proper climb procedures and performance", order: 54),
-            ChecklistItem(title: "20. Flight - Cruise Operations", notes: "Demonstrate cruise operations and performance", order: 55),
-            ChecklistItem(title: "21. Flight - Navigation", notes: "Demonstrate navigation skills and procedures", order: 56),
-            ChecklistItem(title: "22. Flight - Communication", notes: "Demonstrate proper communication procedures", order: 57),
-            ChecklistItem(title: "23. Flight - Weather Avoidance", notes: "Demonstrate weather avoidance and decision making", order: 58),
-            ChecklistItem(title: "24. Flight - Fuel Management", notes: "Demonstrate fuel management and planning", order: 59),
-            ChecklistItem(title: "25. Flight - Holding Procedures", notes: "Demonstrate holding procedures (if applicable)", order: 60),
+            ChecklistItem(title: "4.1. Flight - Climb Procedures", notes: "Demonstrate proper climb procedures and performance", order: 54),
+            ChecklistItem(title: "4.2. Flight - Cruise Operations", notes: "Demonstrate cruise operations and performance", order: 55),
+            ChecklistItem(title: "4.3. Flight - Navigation", notes: "Demonstrate navigation skills and procedures", order: 56),
+            ChecklistItem(title: "4.4. Flight - Communication", notes: "Demonstrate proper communication procedures", order: 57),
+            ChecklistItem(title: "4.5. Flight - Weather Avoidance", notes: "Demonstrate weather avoidance and decision making", order: 58),
+            ChecklistItem(title: "4.6. Flight - Fuel Management", notes: "Demonstrate fuel management and planning", order: 59),
+            ChecklistItem(title: "4.7. Flight - Holding Procedures", notes: "Demonstrate holding procedures (if applicable)", order: 60),
             
             // MARK: - Flight Activities - Approach and Landing
-            ChecklistItem(title: "26. Flight - Approach Planning", notes: "Demonstrate approach planning and briefing", order: 61),
-            ChecklistItem(title: "27. Flight - Traffic Pattern", notes: "Demonstrate proper traffic pattern procedures", order: 62),
-            ChecklistItem(title: "28. Flight - Normal Landing", notes: "Demonstrate normal landing procedures", order: 63),
-            ChecklistItem(title: "29. Flight - Short Field Landing", notes: "Demonstrate short field landing procedures", order: 64),
-            ChecklistItem(title: "30. Flight - Soft Field Landing", notes: "Demonstrate soft field landing procedures", order: 65),
-            ChecklistItem(title: "31. Flight - Crosswind Landing", notes: "Demonstrate crosswind landing procedures", order: 66),
-            ChecklistItem(title: "32. Flight - Go-Around Procedures", notes: "Demonstrate go-around procedures", order: 67),
-            ChecklistItem(title: "33. Flight - Stabilized Approaches", notes: "Demonstrate stabilized approach procedures", order: 68),
+            ChecklistItem(title: "5.1. Flight - Approach Planning", notes: "Demonstrate approach planning and briefing", order: 61),
+            ChecklistItem(title: "5.2. Flight - Traffic Pattern", notes: "Demonstrate proper traffic pattern procedures", order: 62),
+            ChecklistItem(title: "5.3. Flight - Normal Landing", notes: "Demonstrate normal landing procedures", order: 63),
+            ChecklistItem(title: "5.4. Flight - Short Field Landing", notes: "Demonstrate short field landing procedures", order: 64),
+            ChecklistItem(title: "5.5. Flight - Soft Field Landing", notes: "Demonstrate soft field landing procedures", order: 65),
+            ChecklistItem(title: "5.6. Flight - Crosswind Landing", notes: "Demonstrate crosswind landing procedures", order: 66),
+            ChecklistItem(title: "5.7. Flight - Go-Around Procedures", notes: "Demonstrate go-around procedures", order: 67),
+            ChecklistItem(title: "5.8. Flight - Stabilized Approaches", notes: "Demonstrate stabilized approach procedures", order: 68),
             
             // MARK: - Flight Activities - Emergency Operations
-            ChecklistItem(title: "34. Flight - Emergency Procedures", notes: "Demonstrate emergency procedures knowledge", order: 69),
-            ChecklistItem(title: "35. Flight - Communication Failures", notes: "Demonstrate communication failure procedures", order: 70),
-            ChecklistItem(title: "36. Flight - Engine Failures", notes: "Demonstrate engine failure procedures", order: 71),
-            ChecklistItem(title: "37. Flight - Electrical Failures", notes: "Demonstrate electrical failure procedures", order: 72),
-            ChecklistItem(title: "38. Flight - Instrument Failures", notes: "Demonstrate instrument failure procedures", order: 73),
-            ChecklistItem(title: "39. Flight - Automation Failures", notes: "Demonstrate automation failure and manual flight procedures", order: 74),
-            ChecklistItem(title: "40. Flight - Emergency Landings", notes: "Demonstrate emergency landing procedures", order: 75),
+            ChecklistItem(title: "6.1. Flight - Emergency Procedures", notes: "Demonstrate emergency procedures knowledge", order: 69),
+            ChecklistItem(title: "6.2. Flight - Communication Failures", notes: "Demonstrate communication failure procedures", order: 70),
+            ChecklistItem(title: "6.3. Flight - Engine Failures", notes: "Demonstrate engine failure procedures", order: 71),
+            ChecklistItem(title: "6.4. Flight - Electrical Failures", notes: "Demonstrate electrical failure procedures", order: 72),
+            ChecklistItem(title: "6.5. Flight - Instrument Failures", notes: "Demonstrate instrument failure procedures", order: 73),
+            ChecklistItem(title: "6.6. Flight - Automation Failures", notes: "Demonstrate automation failure and manual flight procedures", order: 74),
+            ChecklistItem(title: "6.7. Flight - Emergency Landings", notes: "Demonstrate emergency landing procedures", order: 75),
             
             // MARK: - Flight Activities - Advanced Maneuvers
-            ChecklistItem(title: "41. Flight - Steep Turns", notes: "Demonstrate steep turn procedures", order: 76),
-            ChecklistItem(title: "42. Flight - Slow Flight", notes: "Demonstrate slow flight procedures", order: 77),
-            ChecklistItem(title: "43. Flight - Stalls", notes: "Demonstrate stall recognition and recovery", order: 78),
-            ChecklistItem(title: "44. Flight - Spins", notes: "Demonstrate spin recognition and recovery (if applicable)", order: 79),
-            ChecklistItem(title: "45. Flight - Unusual Attitudes", notes: "Demonstrate unusual attitude recovery", order: 80),
-            ChecklistItem(title: "46. Flight - Ground Reference Maneuvers", notes: "Demonstrate ground reference maneuvers", order: 81),
+            ChecklistItem(title: "7.1. Flight - Steep Turns", notes: "Demonstrate steep turn procedures", order: 76),
+            ChecklistItem(title: "7.2. Flight - Slow Flight", notes: "Demonstrate slow flight procedures", order: 77),
+            ChecklistItem(title: "7.3. Flight - Stalls", notes: "Demonstrate stall recognition and recovery", order: 78),
+            ChecklistItem(title: "7.4. Flight - Spins", notes: "Demonstrate spin recognition and recovery (if applicable)", order: 79),
+            ChecklistItem(title: "7.5. Flight - Unusual Attitudes", notes: "Demonstrate unusual attitude recovery", order: 80),
+            ChecklistItem(title: "7.6. Flight - Ground Reference Maneuvers", notes: "Demonstrate ground reference maneuvers", order: 81),
             
             // MARK: - Post-Flight Activities
-            ChecklistItem(title: "1. Post-Flight - After Landing", notes: "Demonstrate proper after landing procedures", order: 82),
-            ChecklistItem(title: "2. Post-Flight - Taxi to Parking", notes: "Demonstrate safe taxi to parking procedures", order: 83),
-            ChecklistItem(title: "3. Post-Flight - Securing Aircraft", notes: "Demonstrate proper aircraft securing procedures", order: 84),
-            ChecklistItem(title: "4. Post-Flight - Equipment Check", notes: "Demonstrate post-flight equipment check", order: 85),
+            ChecklistItem(title: "1.1. Post-Flight - After Landing", notes: "Demonstrate proper after landing procedures", order: 82),
+            ChecklistItem(title: "1.2. Post-Flight - Taxi to Parking", notes: "Demonstrate safe taxi to parking procedures", order: 83),
+            ChecklistItem(title: "1.3. Post-Flight - Securing Aircraft", notes: "Demonstrate proper aircraft securing procedures", order: 84),
+            ChecklistItem(title: "1.4. Post-Flight - Equipment Check", notes: "Demonstrate post-flight equipment check", order: 85),
             
             // MARK: - Post-Review Considerations
-            ChecklistItem(title: "1. Post-Review - Performance Assessment", notes: "Assess pilot performance and identify areas for improvement", order: 86),
-            ChecklistItem(title: "2. Post-Review - Strengths Identified", notes: "Identify pilot strengths and areas of proficiency", order: 87),
-            ChecklistItem(title: "3. Post-Review - Recommendations", notes: "Provide recommendations for continued proficiency", order: 88),
-            ChecklistItem(title: "4. Post-Review - Personal Currency Program", notes: "Update personal currency program and goals", order: 89),
-            ChecklistItem(title: "5. Post-Review - Training Plan", notes: "Develop or update training plan for continued proficiency", order: 90),
-            ChecklistItem(title: "6. Post-Review - Safety Culture", notes: "Discuss safety culture and continuous improvement", order: 91),
-            ChecklistItem(title: "7. Post-Review - Logbook Entry", notes: "Make appropriate logbook entry for flight review completion", order: 92),
-            ChecklistItem(title: "8. Post-Review - Endorsement", notes: "I certify that [Pilot's Full Name], [Pilot Certificate, e.g., Private Pilot], [Certificate Number], has satisfactorily completed the flight review required in §61.56(a) on [Date].", order: 93),
+            ChecklistItem(title: "2.1. Post-Review - Performance Assessment", notes: "Assess pilot performance and identify areas for improvement", order: 86),
+            ChecklistItem(title: "2.2. Post-Review - Strengths Identified", notes: "Identify pilot strengths and areas of proficiency", order: 87),
+            ChecklistItem(title: "2.3. Post-Review - Recommendations", notes: "Provide recommendations for continued proficiency", order: 88),
+            ChecklistItem(title: "2.4. Post-Review - Personal Currency Program", notes: "Update personal currency program and goals", order: 89),
+            ChecklistItem(title: "2.5. Post-Review - Training Plan", notes: "Develop or update training plan for continued proficiency", order: 90),
+            ChecklistItem(title: "2.6. Post-Review - Safety Culture", notes: "Discuss safety culture and continuous improvement", order: 91),
+            ChecklistItem(title: "2.7. Post-Review - Logbook Entry", notes: "Make appropriate logbook entry for flight review completion", order: 92),
+            ChecklistItem(title: "2.8. Post-Review - Endorsement", notes: "I certify that [Pilot's Full Name], [Pilot Certificate, e.g., Private Pilot], [Certificate Number], has satisfactorily completed the flight review required in §61.56(a) on [Date].", order: 93),
         ]
     )
     
@@ -1183,25 +1238,1107 @@ class DefaultTemplates {
     
     // MARK: - Instrument Rating Templates
     
-    static let instrumentRatingBanner = ChecklistTemplate(
-        name: "Instrument Rating Checklists",
+    static let p1L1PreflightAndBasicInstrumentControl = ChecklistTemplate(
+        name: "P1-L1: Pre-flight and Basic Instrument Control",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_instrument_rating_banner",
+        templateIdentifier: "default_p1_l1_preflight_and_basic_instrument_control",
         items: [
-            ChecklistItem(title: "Checklists here soon in Update", notes: "Instrument rating checklists will be available in a future update", order: 0),
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Review & explain the PAVE checklist with emphasis on environmental conditions", order: 0),
+            ChecklistItem(title: "2. Positive Exchange of Flight Controls", notes: "Understands and uses the positive three-step exchange of controls", order: 1),
+            ChecklistItem(title: "3. Collision Avoidance Procedures", notes: "Clear understanding of responsibilities & procedures for visual & Instrument reference", order: 2),
+            ChecklistItem(title: "4. Using the Checklists", notes: "Exercises an effective flow and check process for procedures", order: 3),
+            ChecklistItem(title: "5. Preflight for Instrument Flight", notes: "Perform aircraft inspection with emphasis on systems associated with instrument flight", order: 4),
+            ChecklistItem(title: "6. Checking the Instruments on the Ground", notes: "Systematically checks instruments & systems for proper indications during ground operations", order: 5),
+            ChecklistItem(title: "7. Runway Incursion Avoidance", notes: "Uses airport diagram, notes taxi clearances, requests clarification as needed", order: 6),
+            ChecklistItem(title: "8. Normal Takeoff and Climb", notes: "Completes pre-takeoff checks, checks HI on runway, notes airspeed indications on takeoff roll", order: 7),
+            ChecklistItem(title: "9. Constant Airspeed Climbs", notes: "Smooth transition level to climb, maintains airspeed ±15kts, heading ±15°, bank ±10°", order: 8),
+            ChecklistItem(title: "10. Level-Off from Climb", notes: "Smooth transition climb to level ±100 ft, accelerates to cruise airspeed, trims", order: 9),
+            ChecklistItem(title: "11. Straight and Level", notes: "Maintains airspeed ±15kts, heading ±15°, altitude ±150 ft", order: 10),
+            ChecklistItem(title: "12. Level Standard Rate Turns to Heading", notes: "Maintains ±15kts, target bank angle ±5°, stops on assigned heading ±10°, ±150 ft", order: 11),
+            ChecklistItem(title: "13. Constant Airspeed Descents", notes: "Smooth transition level to descent, maintains airspeed ±15kts, heading ±15°, bank ±10°", order: 12),
+            ChecklistItem(title: "14. Level-Off from Descent", notes: "Smooth transition descent to level ±100 ft, returns to cruise airspeed, trims", order: 13),
+            ChecklistItem(title: "15. Normal Approach and Landing", notes: "Completes pre-landing checks, smooth landing with appropriate crosswind correction", order: 14),
+            ChecklistItem(title: "16. After landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 15),
+            ChecklistItem(title: "17. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 16),
+        ]
+    )
+    
+    static let p1L2ExpandingInstrumentSkills = ChecklistTemplate(
+        name: "P1-L2: Expanding Instrument Skills",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p1_l2_expanding_instrument_skills",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist in identifying & mitigating flight risks, briefs the weather", order: 0),
+            ChecklistItem(title: "2. Controlled Flight into Terrain Awareness", notes: "Briefs local area vertical obstructions & charted maximum elevation figures", order: 1),
+            ChecklistItem(title: "3. Pre-takeoff Calculations", notes: "Briefs Weight & Balance and Takeoff and Landing performance data for conditions", order: 2),
+            ChecklistItem(title: "4. Preflight for Instrument Flight", notes: "Complete aircraft inspection with emphasis on systems associated with instrument flight", order: 3),
+            ChecklistItem(title: "5. Checking the Instruments on the ground", notes: "Systematically checks instruments & systems for proper indications during ground operations", order: 4),
+            ChecklistItem(title: "6. Runway Incursion Avoidance", notes: "Uses airport diagram, notes taxi clearances, requests clarification as needed", order: 5),
+            ChecklistItem(title: "7. Constant Rate Climbs", notes: "Smooth transition level to climb, rate ±200 fpm, heading ±15°, levels ±100 ft", order: 6),
+            ChecklistItem(title: "8. Constant Rate Descents", notes: "Smooth transition level to descent, rate ±200 fpm, heading ±15°", order: 7),
+            ChecklistItem(title: "9. Constant Rate Climbs and Descents with Constant Airspeed", notes: "Notes pitch & power, rate ±200 fpm, airspeed ±15kts, heading ±15°, levels ±100 ft", order: 8),
+            ChecklistItem(title: "10. Level Standard Rate Turns to Headings", notes: "Up to 180° of turn, airspeed ±15kts, heading ±10°, alt ±150 ft, bank angle ±5°", order: 9),
+            ChecklistItem(title: "11. Climbs and Descents While Turning to a Heading", notes: "Maintains airspeed ±15kts, heading ±15°, bank ±10°, levels ±100 ft", order: 10),
+            ChecklistItem(title: "12. Straight and Level While Changing Airspeed", notes: "Maintains ±150 ft, heading ±15°, airspeed ±10kts, correct use of trim", order: 11),
+            ChecklistItem(title: "13. After landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 12),
+            ChecklistItem(title: "14. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 13),
+        ]
+    )
+    
+    static let p1L3UsingTheMagneticCompass = ChecklistTemplate(
+        name: "P1-L3: Using the Magnetic Compass",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p1_l3_using_the_magnetic_compass",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, briefs weight & balance, takeoff & landing performance, & weather", order: 0),
+            ChecklistItem(title: "2. Controlled Flight into Terrain Avoidance", notes: "Briefs local area minimum safe altitudes for IR operations", order: 1),
+            ChecklistItem(title: "3. Automation Management", notes: "Review installed technically advanced systems & application for situation awareness & failures", order: 2),
+            ChecklistItem(title: "4. Task Management", notes: "Review priorities regarding aircraft control, equipment failures, navigation & communications", order: 3),
+            ChecklistItem(title: "5. Preflight for Instrument Flight", notes: "Complete aircraft inspection with emphasis on systems associated with instrument flight", order: 4),
+            ChecklistItem(title: "6. Checking the Instruments on the Ground", notes: "Systematically checks instruments & systems for proper indications during ground operations", order: 5),
+            ChecklistItem(title: "7. Runway Incursion Avoidance", notes: "Uses airport diagram, notes taxi clearances, requests clarification as needed", order: 6),
+            ChecklistItem(title: "8. Constant Rate Climbs and Descents with Constant Airspeed", notes: "Notes pitch & power, rate ±200 fpm, airspeed ±10kts, heading ±10°, levels ±100 ft", order: 7),
+            ChecklistItem(title: "9. Level Standard Rate Turns to Headings", notes: "Up to 180° of turn, alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±10°", order: 8),
+            ChecklistItem(title: "10. Climbs and Descents While Turning to a Heading", notes: "Maintains airspeed ± 10kts, heading ±15°, bank ±10°, heading ±10°, levels ± 100 ft", order: 9),
+            ChecklistItem(title: "11. Straight and Level While Changing Airspeed", notes: "Maintains ±150 ft, heading ±10°, airspeed ±10kts, correct use of trim", order: 10),
+            ChecklistItem(title: "12. Turns to Headings Using Magnetic Compass", notes: "Alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±20°", order: 11),
+            ChecklistItem(title: "13. Timed Turns to Headings Using Magnetic Compass", notes: "Alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±20°", order: 12),
+            ChecklistItem(title: "14. After Landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 13),
+            ChecklistItem(title: "15. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 14),
+        ]
+    )
+    
+    static let p1L4IFRFlightPlansAndClearances = ChecklistTemplate(
+        name: "P1-L4: IFR Flight Plans and Clearances",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p1_l4_ifr_flight_plans_and_clearances",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, briefs weight & balance, takeoff & landing performance, & weather", order: 0),
+            ChecklistItem(title: "2. Enroute Charts", notes: "Review chart symbology for planned route", order: 1),
+            ChecklistItem(title: "3. Flight Plan", notes: "Using route provided, prepares an IFR flight plan to a nearby airport", order: 2),
+            ChecklistItem(title: "4. Situational Awareness", notes: "Review planned route for leg courses, distances, and ETE for an in-flight mental picture", order: 3),
+            ChecklistItem(title: "5. Preflight for Instrument Flight", notes: "Complete aircraft inspection with emphasis on systems associated with instrument flight", order: 4),
+            ChecklistItem(title: "6. Checking the Instruments on the Ground", notes: "Systematically checks instruments & systems for proper indications during ground operations", order: 5),
+            ChecklistItem(title: "7. Copy and Read Back IFR Clearance", notes: "Simulated: requests clearance, copies simple clearance & correctly reads back clearance", order: 6),
+            ChecklistItem(title: "8. Flying an \"ATC\" Route, Vectors and Altitudes", notes: "Conforms to assigned route, vectors, and altitudes in clearance or as assigned by \"ATC\"", order: 7),
+            ChecklistItem(title: "9. Constant Rate Climbs and Descents with Constant Airspeed", notes: "Notes pitch & power, rate ± 200 fpm, airspeed ± 10kts, heading ±10°, levels ± 100 ft", order: 8),
+            ChecklistItem(title: "10. Level Standard Rate Turns to Headings", notes: "Up to 180° of turn, alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±10°", order: 9),
+            ChecklistItem(title: "11. Climbs and Descents While Turning to a Heading", notes: "Maintains airspeed ± 10kts, heading ±15°, bank ±10°, heading ±10°, levels ± 100 ft", order: 10),
+            ChecklistItem(title: "12. Straight and Level While Changing Airspeed", notes: "Maintains ±150 ft, heading ±10°, airspeed ±10kts, correct use of trim", order: 11),
+            ChecklistItem(title: "13. Turns to Headings Using Magnetic Compass", notes: "Alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±20°", order: 12),
+            ChecklistItem(title: "14. Timed Turns to Heading Using Magnetic Compass", notes: "Alt ±150 ft, airspeed ± 10kts, bank angle ±5°, heading ±20°", order: 13),
+            ChecklistItem(title: "15. After landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 14),
+            ChecklistItem(title: "16. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 15),
+        ]
+    )
+    
+    static let p1L5PrimaryFlightInstrumentDisplayFailure = ChecklistTemplate(
+        name: "P1-L5: Primary Flight Instrument/Display Failure",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p1_l5_primary_flight_instrument_display_failure",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (W&B, Performance, Weather), reviews instrument systems", order: 0),
+            ChecklistItem(title: "2. Situational Awareness", notes: "Review aircraft control using standby or partial-panel instruments", order: 1),
+            ChecklistItem(title: "3. Aeronautical Decision Making", notes: "Review managing in-flight risk (CARE ) & decisions regarding primary instrument failure", order: 2),
+            ChecklistItem(title: "4. Automation Management", notes: "Review autopilot use in the event of primary instruments/display failure", order: 3),
+            ChecklistItem(title: "5. Before Instrument Flight Ground Operations", notes: "Complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 4),
+            ChecklistItem(title: "6. Copy and Read Back IFR Clearance", notes: "Simulated: requests clearance, copies simple clearance & correctly reads-back clearance", order: 5),
+            ChecklistItem(title: "7. Straight and Level Using Standby/Partial-Panel Instruments", notes: "Maintains ±150 ft, heading ±15°, airspeed ±10kts", order: 6),
+            ChecklistItem(title: "8. Standard Rate Turns to Headings Standby/Partial-Panel Instruments", notes: "Up to 180° of turn, alt ±150 ft, airspeed ± 10kts, heading ±15°", order: 7),
+            ChecklistItem(title: "9. Constant Airspeed Climbs Standby/Partial-Panel Instruments", notes: "Airspeed ± 15kts, heading ±15°, levels ±200 ft", order: 8),
+            ChecklistItem(title: "10. Constant Airspeed Descents Standby/Partial-Panel Instruments", notes: "Airspeed ± 15kts, heading ±15°, levels ±200 ft", order: 9),
+            ChecklistItem(title: "11. Unusual Attitudes Recovery (Nose High/Low) Full Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 10),
+            ChecklistItem(title: "12. Unusual Attitudes Recovery (Nose High/Low) Standby/Partial-Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 11),
+            ChecklistItem(title: "13. Straight and Level While Changing Airspeed", notes: "Maintains ±150 ft, heading ±10°, airspeed ±10kts, correct use of trim", order: 12),
+            ChecklistItem(title: "14. Timed Turns to Heading Using Magnetic Compass", notes: "Alt ±150 ft, airspeed ±10kts, bank angle ±5°, heading ±20°", order: 13),
+            ChecklistItem(title: "15. After landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 14),
+            ChecklistItem(title: "16. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 15),
+        ]
+    )
+    
+    static let p1L6ReviewOfInstrumentControlAndProgressCheck = ChecklistTemplate(
+        name: "P1-L6: Review of Instrument Control and Progress Check",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p1_l6_review_of_instrument_control_and_progress_check",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs ways to maintain situational awareness & avoid terrain in instrument conditions", order: 1),
+            ChecklistItem(title: "3. Positive Exchange of Flight Controls", notes: "Briefs the positive three-step exchange of controls", order: 2),
+            ChecklistItem(title: "4. Automation Management", notes: "Briefs autopilot use in the event of primary instruments/display failures", order: 3),
+            ChecklistItem(title: "5. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 4),
+            ChecklistItem(title: "6. Copy and Read-back IFR Clearance", notes: "Simulated: requests clearance, copies simple clearance & correctly reads-back clearance", order: 5),
+            ChecklistItem(title: "7. Using the Checklists", notes: "Exercises an effective flow and check process for procedures", order: 6),
+            ChecklistItem(title: "8. Collision Avoidance Procedures", notes: "Clear understanding of responsibilities & procedures for visual & Instrument reference", order: 7),
+            ChecklistItem(title: "9. Constant Rate Climbs and Descents with Constant Airspeed", notes: "Maintains rate ±150 fpm, airspeed ±10 kts, heading ±10°, levels ±100 ft", order: 8),
+            ChecklistItem(title: "10. Straight and Level While Changing Airspeed", notes: "Maintains ±120ft, heading ±10°, airspeed ±10kts, correct use of trim", order: 9),
+            ChecklistItem(title: "11. Level Standard Rate Turns to Headings", notes: "Up to 180° of turn, maintains alt ±120 ft, airspeed ±10kts, bank angle ±5°, heading ±10°", order: 10),
+            ChecklistItem(title: "12. Climbs and Descents While Turning to a Heading", notes: "Maintains airspeed ±10 kts, heading ±10°, bank ±10°, levels ± 100 ft", order: 11),
+            ChecklistItem(title: "13. Straight and Level Using Standby/Partial-Panel Instruments", notes: "Maintains ±150 ft, heading ±15°, airspeed ±10kts", order: 12),
+            ChecklistItem(title: "14. Standard Rate Turns to Headings Standby/Partial-Panel Instruments", notes: "Up to 180° of turn, maintains alt ±150 ft, airspeed ±10kts, heading ±15°", order: 13),
+            ChecklistItem(title: "15. Constant Airspeed Climbs and Descents Standby/Partial-Panel Instruments", notes: "Maintains airspeed ±15 kts, heading ±15°, levels ±200 ft", order: 14),
+            ChecklistItem(title: "16. Timed Turns to Heading Using Magnetic Compass", notes: "Maintains alt ±150 ft, airspeed ±10 kts, bank angle ±5°, heading ±20°", order: 15),
+            ChecklistItem(title: "17. Unusual Attitudes Recovery (Nose High/Low) Standby/Partial-Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 16),
+            ChecklistItem(title: "18. After landing, Taxi, Parking", notes: "Exercises good practices to avoid runway incursions", order: 17),
+            ChecklistItem(title: "19. Postflight Procedures", notes: "Notes equipment operation, conducts postflight inspection, documents discrepancies", order: 18),
+        ]
+    )
+    
+    static let p2L1GPSAndVORForIFR = ChecklistTemplate(
+        name: "P2-L1: GPS and VOR for IFR",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l1_gps_and_vor_for_ifr",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness", notes: "Reviews situational awareness issues with RNAV (GPS) and VOR systems", order: 1),
+            ChecklistItem(title: "3. Controlled Flight into Terrain Awareness", notes: "Briefs charted minimum altitudes and hazards of off-airway routes", order: 2),
+            ChecklistItem(title: "4. Automation Management", notes: "Review autopilot use for instrument flight", order: 3),
+            ChecklistItem(title: "5. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 4),
+            ChecklistItem(title: "6. Using GPS for IFR Flight", notes: "Review certification level, capabilities & limitations of installed GPS equipment", order: 5),
+            ChecklistItem(title: "7. Using VOR for IFR Flight", notes: "Reviews requirements & options for checking whether a VOR is suitable for IFR; does VOR check", order: 6),
+            ChecklistItem(title: "8. GPS Flight Plan", notes: "Enters flight plan into GPS(RNAV) unit & confirms that it matches prebriefed route", order: 7),
+            ChecklistItem(title: "9. GPS Orientation", notes: "Position with GPS, selects appropriate course/altitude to specified route or waypoint", order: 8),
+            ChecklistItem(title: "10. GPS Course Interception and Tracking", notes: "Altitude ±150 ft, airspeed ±10 kts, intercepts and tracks course < full-scale deflection", order: 9),
+            ChecklistItem(title: "11. VOR Tune and Identification", notes: "Determines & selects VOR frequency, identifies station by comparing audio code with chart", order: 10),
+            ChecklistItem(title: "12. VOR Orientation", notes: "Orientation with 1 VOR & position with 2 or more, selects course/altitude to designated VOR", order: 11),
+            ChecklistItem(title: "13. VOR Radial Interception and Tracking", notes: "Altitude ±150 ft, airspeed ±10 kts, intercepts and tracks radial < full-scale deflection", order: 12),
+            ChecklistItem(title: "14. Timed Turns to Heading Using Magnetic Compass", notes: "Maintains alt ±120 ft, airspeed ± 10 kts, heading ±15°", order: 13),
+            ChecklistItem(title: "15. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 14),
+        ]
+    )
+    
+    static let p2L2NDBADFNavigationAndDepartureProcedures = ChecklistTemplate(
+        name: "P2-L2: NDB/ADF Navigation and Departure Procedures",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l2_ndb_adf_navigation_and_departure_procedures",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness", notes: "Reviews situational awareness issues with NDB/ADF and VOR systems and published procedures", order: 1),
+            ChecklistItem(title: "3. Controlled Flight into Terrain Awareness", notes: "Reviews climb requirements and minimum altitudes on published procedures", order: 2),
+            ChecklistItem(title: "4. Single Pilot Resource Management", notes: "Review the resources available for single-pilot IFR operations", order: 3),
+            ChecklistItem(title: "5. Using NDB for IFR Navigation", notes: "Review NBD signals, ADF system operation/limitations & installed instrumentation", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 5),
+            ChecklistItem(title: "7. Instrument Departure Procedure", notes: "Conforms to procedure restrictions, courses, & altitudes", order: 6),
+            ChecklistItem(title: "8. NDB Orientation", notes: "Tunes, identifies & finds bearing to/from NDB, selects heading/altitude for specified route", order: 7),
+            ChecklistItem(title: "9. NDB Bearing Interception and Tracking", notes: "Alt ±150 ft, airspeed ±10 kts, intercepts and tracks ±15° desired bearing inbound/outbound", order: 8),
+            ChecklistItem(title: "10. VOR Orientation", notes: "Orientation with 1 VOR & position with 2 or more, selects course/altitude to designated VOR", order: 9),
+            ChecklistItem(title: "11. Airway Interception and Tracking", notes: "Intercepts & tracks VOR airway, identifies intersection, alt ±120 ft, airspeed ±10 kts, ≤3/4 CDI", order: 10),
+            ChecklistItem(title: "12. Turns, Climbs and Descents Standby/Partial-Panel Instruments", notes: "Alt ±150 ft, airspeed ±15kts, heading ±15°, levels ±150 ft", order: 11),
+            ChecklistItem(title: "13. Unusual Attitudes Recovery (Nose High/Low) Standby/Partial-Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 12),
+            ChecklistItem(title: "14. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 13),
+        ]
+    )
+    
+    static let p2L3BuildingSkillWithGPSVORAndNDBNDBNavigation = ChecklistTemplate(
+        name: "P2-L3: Building Skill with GPS, VOR and NDB/NDB Navigation",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l3_building_skill_with_gps_vor_and_ndb_ndb_navigation",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness", notes: "Briefs situational awareness issues with GPS, NDB & VOR systems and published procedures", order: 1),
+            ChecklistItem(title: "3. Controlled Flight into Terrain Awareness", notes: "Briefs climb requirements and minimum altitudes on published procedures", order: 2),
+            ChecklistItem(title: "4. Single Pilot Resource Management", notes: "Briefs resources available for single-pilot IFR operations", order: 3),
+            ChecklistItem(title: "5. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 5),
+            ChecklistItem(title: "7. Instrument Departure Procedure", notes: "Conforms to procedure restrictions, courses, & altitudes", order: 6),
+            ChecklistItem(title: "8. GPS Course Interception and Tracking", notes: "Altitude ±100 ft, airspeed ±10 kts, intercepts and tracks course ≤3/4CDI", order: 7),
+            ChecklistItem(title: "9. VOR Radial Interception and Tracking", notes: "Intercepts & tracks VOR radial, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 8),
+            ChecklistItem(title: "10. Constant Rate Climbs and Descents while Tracking a VOR Radial", notes: "Rate ±100 fpm, airspeed ±10kts, ≤3/4 CDI, levels ±100 ft", order: 9),
+            ChecklistItem(title: "11. NDB Bearing Interception and Tracking", notes: "Altitude ±100 ft, airspeed ±10 kts, intercepts and tracks ±10° desired bearing inbound/outbound", order: 10),
+            ChecklistItem(title: "12. Airway Interception and Tracking Standby/Partial-Panel", notes: "Intercepts & tracks VOR airway, identifies intersection, alt ±150 ft, airspeed ±10 kts, ≤3/4CDI", order: 11),
+            ChecklistItem(title: "13. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 12),
+        ]
+    )
+    
+    static let p2L4DMEARX = ChecklistTemplate(
+        name: "P2-L4: DME Arcs",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l4_dme_arx",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 1),
+            ChecklistItem(title: "3. Holding Procedures", notes: "Review what ATC expects for holds (concepts, procedures and restrictions)", order: 2),
+            ChecklistItem(title: "4. Situational Awareness", notes: "Review ATC reasons for holds, consequences, alternatives, minimum fuel & emergency fuel", order: 3),
+            ChecklistItem(title: "5. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 5),
+            ChecklistItem(title: "7. DME Arcs Intercepting and Tracking", notes: "Alt ±120 ft, airspeed ±10 kts, heading ±10°, DME ± 1.5 nm, ≤3/4CDI", order: 6),
+            ChecklistItem(title: "8. VOR Radial Interception and Tracking", notes: "Intercepts & tracks VOR radial, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 7),
+            ChecklistItem(title: "9. NDB Bearing Interception and Tracking", notes: "Altitude ±100 ft, airspeed ±10 kts, intercepts and tracks ±10° desired bearing inbound/outbound", order: 8),
+            ChecklistItem(title: "10. GPS Course Interception and Tracking", notes: "Altitude ±100 ft, airspeed ±10 kts, intercepts and tracks course ≤3/4CDI", order: 9),
+            ChecklistItem(title: "11. Turns, Climbs and Descents Standby/Partial-Panel Instruments", notes: "Alt ±150 ft, airspeed ±15 kts, heading ±15°, levels ±150 ft", order: 10),
+            ChecklistItem(title: "12. Unusual Attitudes Recovery (Nose High/Low) Standby/Partial-Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 11),
+            ChecklistItem(title: "13. Airway Interception and Tracking Standby/Partial-Panel", notes: "Intercepts & tracks VOR airway, identifies intersection, alt ±150 ft, airspeed ±10 kts, ≤3/4CDI", order: 12),
+            ChecklistItem(title: "14. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 13),
+        ]
+    )
+    
+    static let p2L5HoldingProcedures = ChecklistTemplate(
+        name: "P2-L5: Holding Procedures",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l5_holding_procedures",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Aeronautical Decision Making", notes: "Review techniques for dealing with ATC imposed changes during a flight, use the CARE checklist", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 3),
+            ChecklistItem(title: "5. Situational Awareness", notes: "Briefs ATC reasons for holds, consequences, alternatives, minimum fuel & emergency fuel", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 5),
+            ChecklistItem(title: "7. Holding at a VOR or an NDB", notes: "Uses recommended entry, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI, wind correction", order: 6),
+            ChecklistItem(title: "8. Holding at a VOR with DME or GPS Waypoint", notes: "Uses recommended entry, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI, wind correction", order: 7),
+            ChecklistItem(title: "9. Non-Published Holding at a VOR or an NDB", notes: "Uses recommended entry, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI, wind correction", order: 8),
+            ChecklistItem(title: "10. Non-Published Holding at a VOR Intersection", notes: "Uses recommended entry, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI, wind correction", order: 9),
+            ChecklistItem(title: "11. Holding at a VOR, NDB or GPS Waypoint Standby/Partial-Panel", notes: "Uses recommended entry, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI, wind correction", order: 10),
+            ChecklistItem(title: "12. Intercepting and Tracking DME Arcs", notes: "Alt ±100 ft, airspeed ±10 kts, headings ±5°, DME ± 1.0 nm, ≤3/4CDI", order: 11),
+            ChecklistItem(title: "13. Airway Interception and Tracking Standby/Partial-Panel", notes: "Intercepts & tracks VOR airway, identifies intersection, alt ±150 ft, airspeed ±10 kts, ≤3/4CDI", order: 12),
+            ChecklistItem(title: "14. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 13),
+        ]
+    )
+    
+    static let p2L6ProgressCheck = ChecklistTemplate(
+        name: "P2-L6: Progress Check",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p2_l6_progress_check",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs ways to maintain situational awareness & avoid terrain in instrument conditions", order: 1),
+            ChecklistItem(title: "3. Positive Exchange of Flight Controls", notes: "Briefs the positive three-step exchange of controls", order: 2),
+            ChecklistItem(title: "4. Automation Management", notes: "Briefs autopilot use in the event of primary instruments/display failures", order: 3),
+            ChecklistItem(title: "5. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 4),
+            ChecklistItem(title: "6. Copy and Read-back IFR Clearance", notes: "Simulated: requests clearance, copies simple clearance & correctly reads-back clearance", order: 5),
+            ChecklistItem(title: "7. Using the Checklists", notes: "Exercises an effective flow and check process for procedures", order: 6),
+            ChecklistItem(title: "8. Collision Avoidance Procedures", notes: "Clear understanding of responsibilities & procedures for visual & Instrument reference", order: 7),
+            ChecklistItem(title: "9. Constant Rate Climbs and Descents with Constant Airspeed", notes: "Maintains rate ±150 fpm, airspeed ±10 kts, heading ±10°, levels ±100 ft", order: 8),
+            ChecklistItem(title: "10. Straight and Level While Changing Airspeed", notes: "Maintains ±120ft, heading ±10°, airspeed ±10kts, correct use of trim", order: 9),
+            ChecklistItem(title: "11. Level Standard Rate Turns to Headings", notes: "Up to 180° of turn, maintains alt ±120 ft, airspeed ±10kts, bank angle ±5°, heading ±10°", order: 10),
+            ChecklistItem(title: "12. Climbs and Descents While Turning to a Heading", notes: "Maintains airspeed ±10 kts, heading ±10°, bank ±10°, levels ± 100 ft", order: 11),
+            ChecklistItem(title: "13. Straight and Level Using Standby/Partial-Panel Instruments", notes: "Maintains ±150 ft, heading ±15°, airspeed ±10kts", order: 12),
+            ChecklistItem(title: "14. Standard Rate Turns to Headings Standby/Partial-Panel Instruments", notes: "Up to 180° of turn, maintains alt ±150 ft, airspeed ±10kts, heading ±15°", order: 13),
+            ChecklistItem(title: "15. Constant Airspeed Climbs and Descents Standby/Partial-Panel Instruments", notes: "Maintains airspeed ±15 kts, heading ±15°, levels ±200 ft", order: 14),
+            ChecklistItem(title: "16. Timed Turns to Heading Using Magnetic Compass", notes: "Maintains alt ±150 ft, airspeed ±10 kts, bank angle ±5°, heading ±20°", order: 15),
+            ChecklistItem(title: "17. Unusual Attitudes Recovery (Nose High/Low) Standby/Partial-Panel", notes: "Returns to stabilized level flight within operating limitations or not entering unsafe conditions", order: 16),
+            ChecklistItem(title: "18. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 17),
+        ]
+    )
+    
+    static let p3L1ILSApproachesAndProcedureTurns = ChecklistTemplate(
+        name: "P3-L1: ILS Approaches and Procedure Turns",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l1_ils_approaches_and_procedure_turns",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Situational Awareness", notes: "Briefs situational awareness issues with ILS approaches and published procedures", order: 1),
+            ChecklistItem(title: "3. Controlled Flight into Terrain Awareness", notes: "Briefs climb requirements and minimum altitudes on published procedures", order: 2),
+            ChecklistItem(title: "4. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 3),
+            ChecklistItem(title: "5. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, taxi, pretakeoff checks with emphasis on instrument flight", order: 5),
+            ChecklistItem(title: "7. ILS Approach Briefing", notes: "Briefs ILS approach procedures, minimums, missed approach procedures, and decision heights", order: 6),
+            ChecklistItem(title: "8. ILS Approach Intercepting and Tracking", notes: "Intercepts & tracks ILS localizer, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 7),
+            ChecklistItem(title: "9. ILS Approach Glideslope Intercepting and Tracking", notes: "Intercepts & tracks ILS glideslope, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 8),
+            ChecklistItem(title: "10. ILS Approach Final Approach", notes: "Maintains ILS localizer & glideslope, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 9),
+            ChecklistItem(title: "11. ILS Approach Missed Approach", notes: "Executes missed approach procedures, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 10),
+            ChecklistItem(title: "12. Procedure Turn", notes: "Executes procedure turn, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 11),
+            ChecklistItem(title: "13. ILS Approach Standby/Partial-Panel", notes: "Intercepts & tracks ILS localizer, alt ±100 ft, airspeed ±10 kts, ≤3/4CDI", order: 12),
+            ChecklistItem(title: "14. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 13),
+        ]
+    )
+    
+    static let p3L2RNAVApproachesWithVerticalGuidance = ChecklistTemplate(
+        name: "P3-L2: RNAV Approaches with Vertical Guidance",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l2_rnav_approaches_with_vertical_guidance",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs navigation systems, backups, minimum altitudes, local minimum safe altitude", order: 3),
+            ChecklistItem(title: "5. Checklist Use", notes: "Briefs how will use checklists during instrument approaches and uses them", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, navigation, taxi, pretakeoff checks for instrument flight", order: 5),
+            ChecklistItem(title: "7. RNAV (GPS) Setup for Approach", notes: "Confirms nav data, calls up & verifies correct procedure/waypoints, notes mode & minima", order: 6),
+            ChecklistItem(title: "8. Approach Briefing", notes: "Procedure, NAVAID, runway, course, min altitude/visibility, missed approach, notes", order: 7),
+            ChecklistItem(title: "9. Terminal Area Arrival Procedure", notes: "Conforms to published procedure, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 8),
+            ChecklistItem(title: "10. RNAV (GPS WAAS) Approach with Vertical Guidance", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 9),
+            ChecklistItem(title: "11. ILS Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 10),
+            ChecklistItem(title: "12. Missed Approach Procedure", notes: "Initiates at DA/DH if no visual reference, +100/-0 ft, a/s ±10 kts, hdg ±10°, ≤3/4CDI", order: 11),
+            ChecklistItem(title: "13. Transition to Landing from Straight-In Approach", notes: "From DH/DA normal rate of descent, normal maneuvering, uses visual glideslope", order: 12),
+            ChecklistItem(title: "14. Intercepting and Tracking DME Arcs", notes: "Alt ±100 ft, airspeed ±10 kts, headings ±5°, DME ±1 nm, ≤3/4CDI", order: 13),
+            ChecklistItem(title: "15. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 14),
+        ]
+    )
+    
+    static let p3L4VORAndNDBApproaches = ChecklistTemplate(
+        name: "P3-L4: VOR and NDB Approaches",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l4_vor_and_ndb_approaches",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
+            ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs navigation systems, backups, minimum altitudes, local minimum safe altitude", order: 3),
+            ChecklistItem(title: "5. Checklist Use", notes: "Uses appropriate checklists during all flight operations", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, navigation, taxi, pretakeoff checks for instrument flight", order: 5),
+            ChecklistItem(title: "7. Approach Briefing", notes: "Procedure, NAVAID, runway, course, min altitude/visibility, missed approach, notes", order: 6),
+            ChecklistItem(title: "8. VOR Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 7),
+            ChecklistItem(title: "9. NDB Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4CDI", order: 8),
+            ChecklistItem(title: "10. Localizer Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2CDI", order: 9),
+            ChecklistItem(title: "11. Missed Approach Procedure", notes: "Initiates at DA/DH/MAP if no visual reference, +100/-0 ft, a/s ±10 kts, hdg ±10°, ≤3/4 CDI", order: 10),
+            ChecklistItem(title: "12. Transition to Landing from Straight-In Approach", notes: "From DH/DA/MDA normal rate of descent, normal maneuvering, uses visual glideslope", order: 11),
+            ChecklistItem(title: "13. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 12),
+        ]
+    )
+    
+    static let p3L5CirclingApproaches = ChecklistTemplate(
+        name: "P3-L5: Circling Approaches",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l5_circling_approaches",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Uses PAVE checklist (Pilot, W&B, Performance, Reserves, Weather, day/night, area lighting)", order: 0),
+            ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs nav systems, backups, min altitudes, local min safe altitude, obstructions near airports", order: 3),
+            ChecklistItem(title: "5. Checklist Use", notes: "Uses appropriate checklists during all flight operations", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, navigation, taxi, pretakeoff checks for instrument flight", order: 5),
+            ChecklistItem(title: "7. Approach Briefing", notes: "Procedure, NAVAID, runway, course, min altitude/visibility, missed approach, notes", order: 6),
+            ChecklistItem(title: "8. ILS or RNAV (GPS WAAS) Circling Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 7),
+            ChecklistItem(title: "9. VOR or NDB Circling Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 8),
+            ChecklistItem(title: "10. Transition to a Landing from Circling Approach", notes: "Maintains MDA +100/-0 ft, normal rate of descent, normal maneuvering, uses visual glideslope", order: 9),
+            ChecklistItem(title: "11. ILS Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2 CDI", order: 10),
+            ChecklistItem(title: "12. LNAV Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2 CDI", order: 11),
+            ChecklistItem(title: "13. Missed Approach Procedure", notes: "Initiates at DA/DH/MAP if no visual reference, +100/-0 ft, a/s ±10 kts, hdg ±10°, ≤ 3/4 CDI", order: 12),
+            ChecklistItem(title: "14. Transition to Landing from Straight-In Approach", notes: "From DH/DA/MDA normal rate of descent, normal maneuvering, uses visual glideslope", order: 13),
+            ChecklistItem(title: "15. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 14),
+        ]
+    )
+    
+    static let p3L6PartialPanelAndUsingTheAutopilotForApproaches = ChecklistTemplate(
+        name: "P3-L6: Partial Panel and Using the Autopilot for Approaches",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l6_partial_panel_and_using_the_autopilot_for_approaches",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, incorporates installed advanced/automated equipment in planning", order: 0),
+            ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs navigation systems, backups, minimum altitudes, local minimum safe altitude", order: 3),
+            ChecklistItem(title: "5. Automation Management", notes: "Understands autopilot functions/modes, clear on failure indications and responses", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, navigation, taxi, pretakeoff checks for instrument flight", order: 5),
+            ChecklistItem(title: "7. Approach Briefing", notes: "Procedure, NAVAID, runway, course, min altitude/visibility, missed approach, notes", order: 6),
+            ChecklistItem(title: "8. ILS Approach Standby/Partial-Panel", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 7),
+            ChecklistItem(title: "9. VOR Approach Standby/Partial-Panel", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 8),
+            ChecklistItem(title: "10. NDB Approach Standby/Partial-Panel", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 9),
+            ChecklistItem(title: "11. LNAV or Localizer Approach Standby/Partial-Panel", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤3/4 CDI", order: 10),
+            ChecklistItem(title: "12. VOR, NDB, LNAV or Localizer Approach Using Autopilot", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2 CDI", order: 11),
+            ChecklistItem(title: "13. ILS Approach Using Autopilot", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2 CDI", order: 12),
+            ChecklistItem(title: "14. Missed Approach Procedure", notes: "Initiates at DA/DH/MAP if no visual reference, +100/-0 ft, a/s ±10 kts, hdg ±10°, ≤3/4 CDI", order: 13),
+            ChecklistItem(title: "15. Transition to a Landing (Straight-in or Circling Approach)", notes: "Maintains MDA +100/-0 ft, normal rate of descent, normal maneuvering, uses visual glideslope", order: 14),
+            ChecklistItem(title: "16. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 15),
+        ]
+    )
+    
+    static let p3L7ProgressCheck = ChecklistTemplate(
+        name: "P3-L7: Progress Check",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p3_l7_progress_check",
+        items: [
+            ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, incorporates installed advanced/automated equipment in planning", order: 0),
+            ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
+            ChecklistItem(title: "3. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 2),
+            ChecklistItem(title: "4. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs navigation systems, backups, minimum altitudes, local minimum safe altitude", order: 3),
+            ChecklistItem(title: "5. Automation Management", notes: "Briefs autopilot functions/modes, failure indications and responses, approach techniques", order: 4),
+            ChecklistItem(title: "6. Before Instrument Flight Ground Operations", notes: "Conducts complete preflight, navigation, taxi, pretakeoff checks for instrument flight", order: 5),
+            ChecklistItem(title: "7. Approach Briefing", notes: "Procedure, NAVAID, runway, course, min altitude/visibility, missed approach, notes", order: 6),
+            ChecklistItem(title: "8. ILS Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2CDI", order: 7),
+            ChecklistItem(title: "9. RNAV (GPS WAAS) Approach with Vertical Guidance", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2CDI", order: 8),
+            ChecklistItem(title: "10. VOR or NDB Circling Approach", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2CDI", order: 9),
+            ChecklistItem(title: "11. LNAV or Localizer Approach Standby/Partial-Panel", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2CDI", order: 10),
+            ChecklistItem(title: "12. VOR, NDB, LNAV or Localizer Approach Using Autopilot", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±10°, ≤1/2CDI", order: 11),
+            ChecklistItem(title: "13. Procedure Turn Course Reversal", notes: "Alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2CDI", order: 12),
+            ChecklistItem(title: "14. Terminal Area Arrival Procedure", notes: "Conforms to published procedure, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2CDI", order: 13),
+            ChecklistItem(title: "15. Holding Pattern Course Reversal", notes: "Correct entry, alt +100/-0 ft after FAF, a/s ±10 kts, heading ±10°, ≤1/2CDI, wind correction", order: 14),
+            ChecklistItem(title: "16. Missed Approach Procedure", notes: "Initiates at DA/DH/MAP if no visual reference, +100/-0 ft, a/s ±10 kts, hdg ±10°, ≤1/2CDI", order: 15),
+            ChecklistItem(title: "17. Transition to a Landing (Straight-in or Circling Approach)", notes: "Maintains MDA +100/-0 ft, normal rate of descent, normal maneuvering, uses visual glideslope", order: 16),
+            ChecklistItem(title: "18. After landing, Taxi, Parking, Postflight", notes: "Exercises good practices to avoid runway incursions, notes & documents discrepancies", order: 17),
+        ]
+    )
+    
+    // Phase 4: Instrument Cross Countries
+    static let p4L1ShortIFRCrossCountry = ChecklistTemplate(
+        name: "P4-L1: Short IFR Cross Country",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p4_l1_short_ifr_cross_country",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan IFR cross country to airport >50nm straight-line distance", order: 0),
+            ChecklistItem(title: "2. En Route ATC Communications", notes: "Experience en route ATC communications and procedures", order: 1),
+            ChecklistItem(title: "3. Navigation Systems", notes: "Practice navigation using various systems during cross-country flight", order: 2),
+            ChecklistItem(title: "4. First Instrument Approach", notes: "Fly first instrument approach at destination airport", order: 3),
+            ChecklistItem(title: "5. Second Instrument Approach", notes: "Fly second instrument approach (different type)", order: 4),
+            ChecklistItem(title: "6. Third Instrument Approach", notes: "Fly third instrument approach (different type)", order: 5),
+            ChecklistItem(title: "7. Cross-Country Navigation", notes: "Demonstrate proficiency in cross-country IFR navigation", order: 6),
+            ChecklistItem(title: "8. ATC Procedures", notes: "Follow proper ATC procedures throughout flight", order: 7),
+            ChecklistItem(title: "9. Weather Considerations", notes: "Plan and execute flight considering weather conditions", order: 8),
+            ChecklistItem(title: "10. Fuel Management", notes: "Proper fuel planning and management for cross-country flight", order: 9),
+        ]
+    )
+    
+    static let p4L2RefiningApproaches = ChecklistTemplate(
+        name: "P4-L2: Refining Approaches",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p4_l2_refining_approaches",
+        items: [
+            ChecklistItem(title: "1. Single Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 0),
+            ChecklistItem(title: "2. Instrument Cockpit Check", notes: "Instrument Rating Airman Certification Standards", order: 1),
+            ChecklistItem(title: "3. ILS Approach", notes: "Instrument Rating Airman Certification Standards", order: 2),
+            ChecklistItem(title: "4. RNAV (GPS WAAS) Approach with Vertical Guidance", notes: "Instrument Rating Airman Certification Standards", order: 3),
+            ChecklistItem(title: "5. NDB (VOR if NDB not available) Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 4),
+            ChecklistItem(title: "6. VOR Approach Standby/Partial-Panel", notes: "Instrument Rating Airman Certification Standards", order: 5),
+            ChecklistItem(title: "7. VOR, NDB, LNAV or Localizer Approach Using Autopilot", notes: "Instrument Rating Airman Certification Standards", order: 6),
+            ChecklistItem(title: "8. PAR or ASR Approach (if available)", notes: "Alt ±100 ft until FAF then +100/-0 ft, airspeed ±10 kts, heading ±5°, ≤1/2 CDI", order: 7),
+            ChecklistItem(title: "9. Procedure Turn Course Reversal", notes: "Alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2 CDI", order: 8),
+            ChecklistItem(title: "10. Terminal Area Arrival Procedure", notes: "Conforms to published procedure, alt ±100 ft, airspeed ±10 kts, heading ±10°, ≤ 1/2 CDI", order: 9),
+            ChecklistItem(title: "11. Lost Communications", notes: "Instrument Rating Airman Certification Standards", order: 10),
+            ChecklistItem(title: "12. Missed Approach", notes: "Instrument Rating Airman Certification Standards", order: 11),
+            ChecklistItem(title: "13. Landing from a Straight-in or Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 12),
+            ChecklistItem(title: "14. Postflight Checking Instruments and Equipment", notes: "Instrument Rating Airman Certification Standards", order: 13),
+        ]
+    )
+    
+    static let p4L3LongIFRCrossCountryProgressCheck = ChecklistTemplate(
+        name: "P4-L3: Long IFR Cross Country Progress Check",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p4_l3_long_ifr_cross_country_progress_check",
+        items: [
+            ChecklistItem(title: "1. Single-Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 0),
+            ChecklistItem(title: "2. Aeronautical Decision Making", notes: "Instrument Rating Airman Certification Standards", order: 1),
+            ChecklistItem(title: "3. Risk Management", notes: "Instrument Rating Airman Certification Standards", order: 2),
+            ChecklistItem(title: "4. Task Management", notes: "Instrument Rating Airman Certification Standards", order: 3),
+            ChecklistItem(title: "5. Situational Awareness", notes: "Instrument Rating Airman Certification Standards", order: 4),
+            ChecklistItem(title: "6. Controlled Flight into Terrain Awareness", notes: "Instrument Rating Airman Certification Standards", order: 5),
+            ChecklistItem(title: "7. Automation Management", notes: "Instrument Rating Airman Certification Standards", order: 6),
+            ChecklistItem(title: "8. Required ATC Reports", notes: "Review all required ATC reports", order: 7),
+            ChecklistItem(title: "9. Cross-Country Flight Planning", notes: "Instrument Rating Airman Certification Standards", order: 8),
+            ChecklistItem(title: "10. Instrument Cockpit Check", notes: "Instrument Rating Airman Certification Standards", order: 9),
+            ChecklistItem(title: "11. ATC Clearances", notes: "Instrument Rating Airman Certification Standards", order: 10),
+            ChecklistItem(title: "12. Compliance with Departure, En Route, and Arrival Procedures and Clearances", notes: "Instrument Rating Airman Certification Standards", order: 11),
+            ChecklistItem(title: "13. Lost Communications", notes: "Instrument Rating Airman Certification Standards", order: 12),
+            ChecklistItem(title: "14. Autopilot Use", notes: "Uses autopilot appropriately; instructor simulated failure to ensure demonstrates manual skill", order: 13),
+            ChecklistItem(title: "15. Instrument approaches (3 approaches, each a different type nav system)", notes: "Instrument Rating Airman Certification Standards", order: 14),
+            ChecklistItem(title: "16. Missed Approach", notes: "Instrument Rating Airman Certification Standards", order: 15),
+            ChecklistItem(title: "17. Landing from a Straight-in or Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 16),
+            ChecklistItem(title: "18. Runway Incursion Avoidance", notes: "Studies airport diagram, anticipates post-landing taxi, aware of hot spots", order: 17),
+            ChecklistItem(title: "19. Postflight Checking Instruments and Equipment", notes: "Instrument Rating Airman Certification Standards", order: 18),
+        ]
+    )
+    
+    // Phase 5: Becoming Instrument Rated
+    static let p5L1AirmanCertificationStandards = ChecklistTemplate(
+        name: "P5-L1: Airman Certification Standards",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p5_l1_airman_certification_standards",
+        items: [
+            ChecklistItem(title: "1. Airman Certification Standards", notes: "Introduction, Appendices, Areas of Operation & Tasks", order: 0),
+            ChecklistItem(title: "2. Positive Aircraft Control", notes: "Instrument Rating Airman Certification Standards", order: 1),
+            ChecklistItem(title: "3. Positive Exchange of Flight Controls", notes: "Instrument Rating Airman Certification Standards", order: 2),
+            ChecklistItem(title: "4. Stall/Spin Awareness", notes: "Instrument Rating Airman Certification Standards", order: 3),
+            ChecklistItem(title: "5. Collision Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 4),
+            ChecklistItem(title: "6. Wake Turbulence Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 5),
+            ChecklistItem(title: "7. Land and Hold Short Operations (LAHSO)", notes: "Instrument Rating Airman Certification Standards", order: 6),
+            ChecklistItem(title: "8. Runway Incursion Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 7),
+            ChecklistItem(title: "9. Checklist Usage", notes: "Instrument Rating Airman Certification Standards", order: 8),
+            ChecklistItem(title: "10. Icing Condition Operational Hazards, Anti-icing and Deicing Equipment", notes: "Instrument Rating Airman Certification Standards", order: 9),
+            ChecklistItem(title: "11. Single-Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 10),
+            ChecklistItem(title: "12. Aeronautical Decision Making", notes: "Instrument Rating Airman Certification Standards", order: 11),
+            ChecklistItem(title: "13. Risk Management", notes: "Instrument Rating Airman Certification Standards", order: 12),
+            ChecklistItem(title: "14. Task Management", notes: "Instrument Rating Airman Certification Standards", order: 13),
+            ChecklistItem(title: "15. Situational Awareness", notes: "Instrument Rating Airman Certification Standards", order: 14),
+            ChecklistItem(title: "16. Controlled Flight into Terrain Awareness", notes: "Instrument Rating Airman Certification Standards", order: 15),
+            ChecklistItem(title: "17. Automation Management", notes: "Instrument Rating Airman Certification Standards", order: 16),
+            ChecklistItem(title: "18. Pilot Qualifications", notes: "Instrument Rating Airman Certification Standards", order: 17),
+            ChecklistItem(title: "19. Weather Information", notes: "Instrument Rating Airman Certification Standards", order: 18),
+            ChecklistItem(title: "20. Cross-Country Flight Planning", notes: "Instrument Rating Airman Certification Standards", order: 19),
+            ChecklistItem(title: "21. Aircraft Systems Related to IFR Operations", notes: "Instrument Rating Airman Certification Standards", order: 20),
+            ChecklistItem(title: "22. Aircraft Flight Instruments and Navigation Equipment", notes: "Instrument Rating Airman Certification Standards", order: 21),
+            ChecklistItem(title: "23. Instrument Cockpit Check", notes: "Instrument Rating Airman Certification Standards", order: 22),
+            ChecklistItem(title: "24. Air Traffic Control Clearances", notes: "Instrument Rating Airman Certification Standards", order: 23),
+        ]
+    )
+    
+    static let p5L2HoningTheEdge = ChecklistTemplate(
+        name: "P5-L2: Honing the Edge",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p5_l2_honing_the_edge",
+        items: [
+            ChecklistItem(title: "25. Compliance with Departure, En Route, and Arrival Procedures and Clearances", notes: "Instrument Rating Airman Certification Standards", order: 0),
+            ChecklistItem(title: "26. Holding Procedures", notes: "Instrument Rating Airman Certification Standards", order: 1),
+            ChecklistItem(title: "27. Basic Instrument Flight Maneuvers", notes: "Instrument Rating Airman Certification Standards", order: 2),
+            ChecklistItem(title: "28. Recovery from Unusual Flight Attitudes", notes: "Instrument Rating Airman Certification Standards", order: 3),
+            ChecklistItem(title: "29. Intercepting and Tracking Navigational Systems and DME Arcs", notes: "Instrument Rating Airman Certification Standards", order: 4),
+            ChecklistItem(title: "30. Nonprecision Approach", notes: "Instrument Rating Airman Certification Standards", order: 5),
+            ChecklistItem(title: "31. Precision Approach", notes: "Instrument Rating Airman Certification Standards", order: 6),
+            ChecklistItem(title: "32. Missed Approach", notes: "Instrument Rating Airman Certification Standards", order: 7),
+            ChecklistItem(title: "33. Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 8),
+            ChecklistItem(title: "34. Landing from a Straight-In or Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 9),
+            ChecklistItem(title: "35. Loss of Communications", notes: "Instrument Rating Airman Certification Standards", order: 10),
+            ChecklistItem(title: "36. Approach with Loss of Primary Flight Instrument Indicators", notes: "Instrument Rating Airman Certification Standards", order: 11),
+            ChecklistItem(title: "37. Postflight Checking Instruments and Equipment", notes: "Instrument Rating Airman Certification Standards", order: 12),
+        ]
+    )
+    
+    static let p5L3PreCheckrideProgressCheck = ChecklistTemplate(
+        name: "P5-L3: Pre-Checkride Progress Check",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_p5_l3_pre_checkride_progress_check",
+        items: [
+            ChecklistItem(title: "1. Airman Certification Standards", notes: "Introduction, Appendices, Areas of Operation & Tasks", order: 0),
+            ChecklistItem(title: "2. Positive Aircraft Control", notes: "Instrument Rating Airman Certification Standards", order: 1),
+            ChecklistItem(title: "3. Positive Exchange of Flight Controls", notes: "Instrument Rating Airman Certification Standards", order: 2),
+            ChecklistItem(title: "4. Stall/Spin Awareness", notes: "Instrument Rating Airman Certification Standards", order: 3),
+            ChecklistItem(title: "5. Collision Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 4),
+            ChecklistItem(title: "6. Wake Turbulence Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 5),
+            ChecklistItem(title: "7. Land and Hold Short Operations (LAHSO)", notes: "Instrument Rating Airman Certification Standards", order: 6),
+            ChecklistItem(title: "8. Runway Incursion Avoidance", notes: "Instrument Rating Airman Certification Standards", order: 7),
+            ChecklistItem(title: "9. Checklist Usage", notes: "Instrument Rating Airman Certification Standards", order: 8),
+            ChecklistItem(title: "10. Icing Condition Operational Hazards, Anti-icing and Deicing Equipment", notes: "Instrument Rating Airman Certification Standards", order: 9),
+            ChecklistItem(title: "11. Single-Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 10),
+            ChecklistItem(title: "12. Aeronautical Decision Making", notes: "Instrument Rating Airman Certification Standards", order: 11),
+            ChecklistItem(title: "13. Risk Management", notes: "Instrument Rating Airman Certification Standards", order: 12),
+            ChecklistItem(title: "14. Task Management", notes: "Instrument Rating Airman Certification Standards", order: 13),
+            ChecklistItem(title: "15. Situational Awareness", notes: "Instrument Rating Airman Certification Standards", order: 14),
+            ChecklistItem(title: "16. Controlled Flight into Terrain Awareness", notes: "Instrument Rating Airman Certification Standards", order: 15),
+            ChecklistItem(title: "17. Automation Management", notes: "Instrument Rating Airman Certification Standards", order: 16),
+            ChecklistItem(title: "18. Pilot Qualifications", notes: "Instrument Rating Airman Certification Standards", order: 17),
+            ChecklistItem(title: "19. Weather Information", notes: "Instrument Rating Airman Certification Standards", order: 18),
+            ChecklistItem(title: "20. Cross-Country Flight Planning", notes: "Instrument Rating Airman Certification Standards", order: 19),
+            ChecklistItem(title: "21. Aircraft Systems Related to IFR Operations", notes: "Instrument Rating Airman Certification Standards", order: 20),
+            ChecklistItem(title: "22. Aircraft Flight Instruments and Navigation Equipment", notes: "Instrument Rating Airman Certification Standards", order: 21),
+            ChecklistItem(title: "23. Instrument Cockpit Check", notes: "Instrument Rating Airman Certification Standards", order: 22),
+            ChecklistItem(title: "24. Air Traffic Control Clearances", notes: "Instrument Rating Airman Certification Standards", order: 23),
+            ChecklistItem(title: "25. Compliance with Departure, En Route, and Arrival Procedures and Clearances", notes: "Instrument Rating Airman Certification Standards", order: 24),
+            ChecklistItem(title: "26. Holding Procedures", notes: "Instrument Rating Airman Certification Standards", order: 25),
+            ChecklistItem(title: "27. Basic Instrument Flight Maneuvers", notes: "Instrument Rating Airman Certification Standards", order: 26),
+            ChecklistItem(title: "28. Recovery from Unusual Flight Attitudes", notes: "Instrument Rating Airman Certification Standards", order: 27),
+            ChecklistItem(title: "29. Intercepting and Tracking Navigational Systems and DME Arcs", notes: "Instrument Rating Airman Certification Standards", order: 28),
+            ChecklistItem(title: "30. Nonprecision Approach", notes: "Instrument Rating Airman Certification Standards", order: 29),
+            ChecklistItem(title: "31. Precision Approach", notes: "Instrument Rating Airman Certification Standards", order: 30),
+            ChecklistItem(title: "32. Missed Approach", notes: "Instrument Rating Airman Certification Standards", order: 31),
+            ChecklistItem(title: "33. Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 32),
+            ChecklistItem(title: "34. Landing from a Straight-In or Circling Approach", notes: "Instrument Rating Airman Certification Standards", order: 33),
+            ChecklistItem(title: "35. Loss of Communications", notes: "Instrument Rating Airman Certification Standards", order: 34),
+            ChecklistItem(title: "36. Approach with Loss of Primary Flight Instrument Indicators", notes: "Instrument Rating Airman Certification Standards", order: 35),
+            ChecklistItem(title: "37. Postflight Checking Instruments and Equipment", notes: "Instrument Rating Airman Certification Standards", order: 36),
         ]
     )
     
     // MARK: - Commercial Rating Templates
     
-    static let commercialRatingBanner = ChecklistTemplate(
-        name: "Commercial Rating Checklists",
+    // Stage 1: Learning Professional Cross-Country and Night Procedures
+    static let c1L1DualCrossCountry = ChecklistTemplate(
+        name: "C1L1: Dual Cross-Country",
         category: "Commercial",
-        phase: "Commercial Rating",
-        templateIdentifier: "default_commercial_rating_banner",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l1_dual_cross_country",
         items: [
-            ChecklistItem(title: "Checklists here soon in Update", notes: "Commercial rating checklists will be available in a future update", order: 0),
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Professional cross-country planning techniques", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection/Checklist Use", notes: "Comprehensive preflight inspection procedures", order: 1),
+            ChecklistItem(title: "3. Location of Fire Extinguisher", notes: "Identify and verify fire extinguisher location", order: 2),
+            ChecklistItem(title: "4. Doors and Safety Belts", notes: "Check doors and safety belt security", order: 3),
+            ChecklistItem(title: "5. Engine Starting and Warm-up", notes: "Proper engine starting and warm-up procedures", order: 4),
+            ChecklistItem(title: "6. Use of ATIS", notes: "Obtain and use ATIS information", order: 5),
+            ChecklistItem(title: "7. Taxiing", notes: "Safe taxiing procedures and communications", order: 6),
+            ChecklistItem(title: "8. Before Takeoff Check and Engine Runup", notes: "Complete before takeoff checklist and engine runup", order: 7),
+            ChecklistItem(title: "9. Normal and Crosswind Takeoff and Climb", notes: "Execute normal and crosswind takeoffs and climbs", order: 8),
+            ChecklistItem(title: "10. Controlled Airports/High Density Airport Operations", notes: "Operate safely at controlled and high density airports", order: 9),
+            ChecklistItem(title: "11. Departure", notes: "Execute proper departure procedures", order: 10),
+            ChecklistItem(title: "12. Opening/Closing Flight Plans", notes: "Open and close flight plans appropriately", order: 11),
+            ChecklistItem(title: "13. Use of Approach and Departure Control", notes: "Communicate with approach and departure control", order: 12),
+            ChecklistItem(title: "14. Course Interception", notes: "Intercept and maintain assigned courses", order: 13),
+            ChecklistItem(title: "15. Pilotage/Dead Reckoning", notes: "Navigate using pilotage and dead reckoning", order: 14),
+            ChecklistItem(title: "16. Attitude Instrument Flying (IR)", notes: "Maintain aircraft control using instruments only", order: 15),
+            ChecklistItem(title: "17. Intercepting and Tracking VOR Courses (IR)", notes: "Intercept and track VOR courses using instruments", order: 16),
+            ChecklistItem(title: "18. Intercepting and Tracking ADF/GPS Courses (IR)", notes: "Intercept and track ADF/GPS courses using instruments", order: 17),
+            ChecklistItem(title: "19. Power Settings and Mixture Control", notes: "Proper power settings and mixture control", order: 18),
+            ChecklistItem(title: "20. Diversion to an Alternate", notes: "Execute diversion procedures to alternate airport", order: 19),
+            ChecklistItem(title: "21. Lost Procedures", notes: "Execute lost procedures and navigation recovery", order: 20),
+            ChecklistItem(title: "22. Simulated System and Engine Failures", notes: "Handle simulated system and engine failures", order: 21),
+            ChecklistItem(title: "23. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and estimated time of arrival", order: 22),
+            ChecklistItem(title: "24. Position Fix by Navigation Facilities", notes: "Determine position using navigation facilities", order: 23),
+            ChecklistItem(title: "25. Flight on Federal Airways", notes: "Navigate on federal airways", order: 24),
+            ChecklistItem(title: "26. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 25),
+            ChecklistItem(title: "27. At Least One Landing More Than 100 nm from Departure Airport", notes: "Complete landing at airport >100 nm from departure", order: 26),
+            ChecklistItem(title: "28. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 27),
+            ChecklistItem(title: "29. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 28),
+            ChecklistItem(title: "30. Parking and Securing", notes: "Proper parking and aircraft securing procedures", order: 29),
+            ChecklistItem(title: "31. Postflight Procedures", notes: "Complete postflight procedures and documentation", order: 30),
+        ]
+    )
+    
+    static let c1L2DualLocalNight = ChecklistTemplate(
+        name: "C1L2: Dual Local, Night",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l2_dual_local_night",
+        items: [
+            ChecklistItem(title: "1. Night Flight", notes: "Understand and apply night flight procedures", order: 0),
+            ChecklistItem(title: "2. Normal and Crosswind Takeoffs and Climbs", notes: "Execute night takeoffs and climbs", order: 1),
+            ChecklistItem(title: "3. Constant Airspeed Climbs", notes: "Maintain constant airspeed during climbs", order: 2),
+            ChecklistItem(title: "4. Constant Airspeed Descents", notes: "Maintain constant airspeed during descents", order: 3),
+            ChecklistItem(title: "5. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 4),
+            ChecklistItem(title: "6. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 5),
+            ChecklistItem(title: "7. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 6),
+            ChecklistItem(title: "8. Local VFR Navigation", notes: "Navigate locally using VFR procedures", order: 7),
+            ChecklistItem(title: "9. Normal Approaches and Landings With/Without Landing Light", notes: "Execute night landings with and without landing light", order: 8),
+        ]
+    )
+    
+    static let c1L3PICCrossCountry = ChecklistTemplate(
+        name: "C1L3: PIC Cross-Country",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l3_pic_cross_country",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan cross-country flight as PIC", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection", order: 1),
+            ChecklistItem(title: "3. Checklist Use", notes: "Use checklists throughout flight", order: 2),
+            ChecklistItem(title: "4. Normal and Crosswind Takeoff and Climb", notes: "Execute takeoffs and climbs", order: 3),
+            ChecklistItem(title: "5. Departure", notes: "Execute departure procedures", order: 4),
+            ChecklistItem(title: "6. Opening Flight Plan", notes: "Open flight plan with appropriate facility", order: 5),
+            ChecklistItem(title: "7. Radar Services", notes: "Use radar services when available", order: 6),
+            ChecklistItem(title: "8. Course Interception", notes: "Intercept and maintain assigned courses", order: 7),
+            ChecklistItem(title: "9. Pilotage", notes: "Navigate using pilotage techniques", order: 8),
+            ChecklistItem(title: "10. Dead Reckoning", notes: "Navigate using dead reckoning", order: 9),
+            ChecklistItem(title: "11. VOR Navigation", notes: "Navigate using VOR systems", order: 10),
+            ChecklistItem(title: "12. ADF Navigation (if aircraft equipped)", notes: "Navigate using ADF systems if equipped", order: 11),
+            ChecklistItem(title: "13. GPS Navigation (if aircraft equipped)", notes: "Navigate using GPS systems if equipped", order: 12),
+            ChecklistItem(title: "14. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 13),
+            ChecklistItem(title: "15. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and ETA", order: 14),
+            ChecklistItem(title: "16. Position Fix by Navigation Facilities", notes: "Determine position using navigation aids", order: 15),
+            ChecklistItem(title: "17. Flight on Federal Airways", notes: "Navigate on federal airways", order: 16),
+            ChecklistItem(title: "18. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 17),
+            ChecklistItem(title: "19. At Least One Landing More Than 100 nm from Departure Airport", notes: "Complete landing at airport >100 nm from departure", order: 18),
+            ChecklistItem(title: "20. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 19),
+            ChecklistItem(title: "21. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 20),
+            ChecklistItem(title: "22. Closing Your Flight Plan", notes: "Close flight plan upon completion", order: 21),
+            ChecklistItem(title: "23. Parking and Securing", notes: "Proper parking and aircraft securing", order: 22),
+        ]
+    )
+    
+    static let c1L4DualCrossCountryNight = ChecklistTemplate(
+        name: "C1L4: Dual Cross-Country, Night",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l4_dual_cross_country_night",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan night cross-country flight", order: 0),
+            ChecklistItem(title: "2. Pilotage", notes: "Navigate using pilotage at night", order: 1),
+            ChecklistItem(title: "3. Dead Reckoning", notes: "Navigate using dead reckoning at night", order: 2),
+            ChecklistItem(title: "4. Attitude Instrument Flying (IR)", notes: "Maintain aircraft control using instruments only", order: 3),
+            ChecklistItem(title: "5. Intercepting and Tracking Navigation Systems (IR)", notes: "Intercept and track navigation systems using instruments", order: 4),
+            ChecklistItem(title: "6. Emergency Operations", notes: "Handle emergency operations at night", order: 5),
+            ChecklistItem(title: "7. Go-Around", notes: "Execute go-around procedures at night", order: 6),
+            ChecklistItem(title: "8. Use of Unfamiliar Airports", notes: "Operate at unfamiliar airports at night", order: 7),
+            ChecklistItem(title: "9. Collision Avoidance Precautions", notes: "Maintain collision avoidance at night", order: 8),
+            ChecklistItem(title: "10. Diversion to Alternate", notes: "Execute diversion to alternate airport at night", order: 9),
+            ChecklistItem(title: "11. Lost Procedures", notes: "Execute lost procedures at night", order: 10),
+            ChecklistItem(title: "12. Normal Approaches and Landings With/Without Landing Light", notes: "Execute night landings with and without landing light", order: 11),
+        ]
+    )
+    
+    static let c1L5SoloLocalNight = ChecklistTemplate(
+        name: "C1L5: Solo Local, Night",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l5_solo_local_night",
+        items: [
+            ChecklistItem(title: "1. Normal and Crosswind Takeoffs and Climbs", notes: "Execute solo night takeoffs and climbs", order: 0),
+            ChecklistItem(title: "2. Constant Airspeed Climbs", notes: "Maintain constant airspeed during climbs", order: 1),
+            ChecklistItem(title: "3. Constant Airspeed Descents", notes: "Maintain constant airspeed during descents", order: 2),
+            ChecklistItem(title: "4. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 3),
+            ChecklistItem(title: "5. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 4),
+            ChecklistItem(title: "6. Local VFR Navigation", notes: "Navigate locally using VFR procedures at night", order: 5),
+            ChecklistItem(title: "7. Normal Approaches and Landings With Landing Light", notes: "Execute night landings with landing light", order: 6),
+        ]
+    )
+    
+    static let c1L6PICCrossCountry = ChecklistTemplate(
+        name: "C1L6: PIC Cross-Country",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l6_pic_cross_country",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan cross-country flight as PIC", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection", order: 1),
+            ChecklistItem(title: "3. Checklist Use", notes: "Use checklists throughout flight", order: 2),
+            ChecklistItem(title: "4. Normal and Crosswind Takeoff and Climb", notes: "Execute takeoffs and climbs", order: 3),
+            ChecklistItem(title: "5. Departure", notes: "Execute departure procedures", order: 4),
+            ChecklistItem(title: "6. Opening Flight Plan", notes: "Open flight plan with appropriate facility", order: 5),
+            ChecklistItem(title: "7. Radar Services", notes: "Use radar services when available", order: 6),
+            ChecklistItem(title: "8. Course Interception", notes: "Intercept and maintain assigned courses", order: 7),
+            ChecklistItem(title: "9. Pilotage", notes: "Navigate using pilotage techniques", order: 8),
+            ChecklistItem(title: "10. Dead Reckoning", notes: "Navigate using dead reckoning", order: 9),
+            ChecklistItem(title: "11. VOR Navigation", notes: "Navigate using VOR systems", order: 10),
+            ChecklistItem(title: "12. ADF Navigation (if aircraft equipped)", notes: "Navigate using ADF systems if equipped", order: 11),
+            ChecklistItem(title: "13. GPS Navigation (if aircraft equipped)", notes: "Navigate using GPS systems if equipped", order: 12),
+            ChecklistItem(title: "14. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 13),
+            ChecklistItem(title: "15. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and ETA", order: 14),
+            ChecklistItem(title: "16. Position Fix by Navigation Facilities", notes: "Determine position using navigation aids", order: 15),
+            ChecklistItem(title: "17. Flight on Federal Airways", notes: "Navigate on federal airways", order: 16),
+            ChecklistItem(title: "18. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 17),
+            ChecklistItem(title: "19. At Least One Landing More Than 100 nm from Departure Airport", notes: "Complete landing at airport >100 nm from departure", order: 18),
+            ChecklistItem(title: "20. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 19),
+            ChecklistItem(title: "21. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 20),
+            ChecklistItem(title: "22. Closing Your Flight Plan", notes: "Close flight plan upon completion", order: 21),
+            ChecklistItem(title: "23. Parking and Securing", notes: "Proper parking and aircraft securing", order: 22),
+        ]
+    )
+    
+    static let c1L7SoloLocalNight = ChecklistTemplate(
+        name: "C1L7: Solo Local, Night",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l7_solo_local_night",
+        items: [
+            ChecklistItem(title: "1. Normal and Crosswind Takeoffs and Climbs", notes: "Execute solo night takeoffs and climbs", order: 0),
+            ChecklistItem(title: "2. Constant Airspeed Climbs", notes: "Maintain constant airspeed during climbs", order: 1),
+            ChecklistItem(title: "3. Constant Airspeed Descents", notes: "Maintain constant airspeed during descents", order: 2),
+            ChecklistItem(title: "4. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 3),
+            ChecklistItem(title: "5. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 4),
+            ChecklistItem(title: "6. Local VFR Navigation", notes: "Navigate locally using VFR procedures at night", order: 5),
+            ChecklistItem(title: "7. Normal Approaches and Landings With Landing Light", notes: "Execute night landings with landing light", order: 6),
+        ]
+    )
+    
+    static let c1L8SoloCrossCountryNight = ChecklistTemplate(
+        name: "C1L8: Solo Cross-Country, Night",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l8_solo_cross_country_night",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan solo night cross-country flight", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection", order: 1),
+            ChecklistItem(title: "3. Checklist Use", notes: "Use checklists throughout flight", order: 2),
+            ChecklistItem(title: "4. Normal and Crosswind Takeoff and Climb", notes: "Execute takeoffs and climbs", order: 3),
+            ChecklistItem(title: "5. Departure", notes: "Execute departure procedures", order: 4),
+            ChecklistItem(title: "6. Opening Flight Plan", notes: "Open flight plan with appropriate facility", order: 5),
+            ChecklistItem(title: "7. Radar Services", notes: "Use radar services when available", order: 6),
+            ChecklistItem(title: "8. Course Interception", notes: "Intercept and maintain assigned courses", order: 7),
+            ChecklistItem(title: "9. Pilotage", notes: "Navigate using pilotage techniques", order: 8),
+            ChecklistItem(title: "10. Dead Reckoning", notes: "Navigate using dead reckoning", order: 9),
+            ChecklistItem(title: "11. VOR Navigation", notes: "Navigate using VOR systems", order: 10),
+            ChecklistItem(title: "12. ADF Navigation (if aircraft equipped)", notes: "Navigate using ADF systems if equipped", order: 11),
+            ChecklistItem(title: "13. GPS Navigation (if aircraft equipped)", notes: "Navigate using GPS systems if equipped", order: 12),
+            ChecklistItem(title: "14. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 13),
+            ChecklistItem(title: "15. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and ETA", order: 14),
+            ChecklistItem(title: "16. Position Fix by Navigation Facilities", notes: "Determine position using navigation aids", order: 15),
+            ChecklistItem(title: "17. Flight on Federal Airways", notes: "Navigate on federal airways", order: 16),
+            ChecklistItem(title: "18. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 17),
+            ChecklistItem(title: "19. At Least One Leg a Straight-Line Distance More Than 250 nm", notes: "Complete leg >250 nm straight-line distance", order: 18),
+            ChecklistItem(title: "20. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 19),
+            ChecklistItem(title: "21. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 20),
+            ChecklistItem(title: "22. Closing Your Flight Plan", notes: "Close flight plan upon completion", order: 21),
+            ChecklistItem(title: "23. Parking and Securing", notes: "Proper parking and aircraft securing", order: 22),
+        ]
+    )
+    
+    static let c1L9PICCrossCountry = ChecklistTemplate(
+        name: "C1L9: PIC Cross-Country",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l9_pic_cross_country",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan cross-country flight as PIC", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection", order: 1),
+            ChecklistItem(title: "3. Checklist Use", notes: "Use checklists throughout flight", order: 2),
+            ChecklistItem(title: "4. Normal and Crosswind Takeoff and Climb", notes: "Execute takeoffs and climbs", order: 3),
+            ChecklistItem(title: "5. Departure", notes: "Execute departure procedures", order: 4),
+            ChecklistItem(title: "6. Opening Flight Plan", notes: "Open flight plan with appropriate facility", order: 5),
+            ChecklistItem(title: "7. Radar Services", notes: "Use radar services when available", order: 6),
+            ChecklistItem(title: "8. Course Interception", notes: "Intercept and maintain assigned courses", order: 7),
+            ChecklistItem(title: "9. Pilotage", notes: "Navigate using pilotage techniques", order: 8),
+            ChecklistItem(title: "10. Dead Reckoning", notes: "Navigate using dead reckoning", order: 9),
+            ChecklistItem(title: "11. VOR Navigation", notes: "Navigate using VOR systems", order: 10),
+            ChecklistItem(title: "12. ADF Navigation (if aircraft equipped)", notes: "Navigate using ADF systems if equipped", order: 11),
+            ChecklistItem(title: "13. GPS Navigation (if aircraft equipped)", notes: "Navigate using GPS systems if equipped", order: 12),
+            ChecklistItem(title: "14. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 13),
+            ChecklistItem(title: "15. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and ETA", order: 14),
+            ChecklistItem(title: "16. Position Fix by Navigation Facilities", notes: "Determine position using navigation aids", order: 15),
+            ChecklistItem(title: "17. Flight on Federal Airways", notes: "Navigate on federal airways", order: 16),
+            ChecklistItem(title: "18. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 17),
+            ChecklistItem(title: "19. At Least One Landing More Than 100 nm from Departure Airport", notes: "Complete landing at airport >100 nm from departure", order: 18),
+            ChecklistItem(title: "20. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 19),
+            ChecklistItem(title: "21. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 20),
+            ChecklistItem(title: "22. Closing Your Flight Plan", notes: "Close flight plan upon completion", order: 21),
+            ChecklistItem(title: "23. Parking and Securing", notes: "Proper parking and aircraft securing", order: 22),
+        ]
+    )
+    
+    static let c1L10ProgressCheck = ChecklistTemplate(
+        name: "C1L10: Progress Check",
+        category: "Commercial",
+        phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
+        templateIdentifier: "default_c1_l10_progress_check",
+        items: [
+            ChecklistItem(title: "1. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 0),
+            ChecklistItem(title: "2. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 1),
+            ChecklistItem(title: "3. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 2),
+            ChecklistItem(title: "4. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 3),
+            ChecklistItem(title: "5. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 4),
+            ChecklistItem(title: "6. Partial Panel (IR)", notes: "Maintain aircraft control with partial panel", order: 5),
+            ChecklistItem(title: "7. Cross-Country Flight Planning", notes: "Plan cross-country flight", order: 6),
+            ChecklistItem(title: "8. Pilotage", notes: "Navigate using pilotage techniques", order: 7),
+            ChecklistItem(title: "9. Dead Reckoning", notes: "Navigate using dead reckoning", order: 8),
+            ChecklistItem(title: "10. Attitude Instrument Flying (IR)", notes: "Maintain aircraft control using instruments only", order: 9),
+            ChecklistItem(title: "11. VOR Navigation (IR)", notes: "Navigate using VOR systems with instruments", order: 10),
+            ChecklistItem(title: "12. ADF Navigation (IR) (if equipped)", notes: "Navigate using ADF systems with instruments if equipped", order: 11),
+            ChecklistItem(title: "13. GPS Navigation (IR) (if equipped)", notes: "Navigate using GPS systems with instruments if equipped", order: 12),
+            ChecklistItem(title: "14. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 13),
+            ChecklistItem(title: "15. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 14),
+            ChecklistItem(title: "16. Diversion to an Alternate", notes: "Execute diversion procedures to alternate airport", order: 15),
+            ChecklistItem(title: "17. Lost Procedures", notes: "Execute lost procedures and navigation recovery", order: 16),
+            ChecklistItem(title: "18. Simulated System Failures", notes: "Handle simulated system failures", order: 17),
+            ChecklistItem(title: "19. Simulated Engine Failure", notes: "Handle simulated engine failure", order: 18),
+            ChecklistItem(title: "20. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and estimated time of arrival", order: 19),
+            ChecklistItem(title: "21. Position Fix by Navigation Facilities", notes: "Determine position using navigation facilities", order: 20),
+            ChecklistItem(title: "22. Flight on Federal Airways", notes: "Navigate on federal airways", order: 21),
+            ChecklistItem(title: "23. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 22),
+            ChecklistItem(title: "24. At Least One Landing More Than 100 nm from Departure Airport", notes: "Complete landing at airport >100 nm from departure", order: 23),
+            ChecklistItem(title: "25. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 24),
+            ChecklistItem(title: "26. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 25),
+            ChecklistItem(title: "27. Closing Your Flight Plan", notes: "Close flight plan upon completion", order: 26),
+            ChecklistItem(title: "28. Parking and Securing", notes: "Proper parking and aircraft securing", order: 27),
+        ]
+    )
+    
+    // Stage 2: Flying Complex Airplanes and Commercial Maneuvers
+    static let c2L1DualLocalComplex = ChecklistTemplate(
+        name: "C2L1: Dual Local, Complex Aircraft",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l1_dual_local_complex",
+        items: [
+            ChecklistItem(title: "1. Complex Airplane Performance and Limitations", notes: "Understand complex airplane performance and limitations", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection of complex aircraft", order: 1),
+            ChecklistItem(title: "3. Engine Starting and Taxiing", notes: "Start engine and taxi complex aircraft", order: 2),
+            ChecklistItem(title: "4. Before Takeoff Check", notes: "Complete before takeoff checklist", order: 3),
+            ChecklistItem(title: "5. Normal and Crosswind Takeoff and Climb", notes: "Execute normal and crosswind takeoffs and climbs", order: 4),
+            ChecklistItem(title: "6. Use of Retractable Landing Gear", notes: "Operate retractable landing gear system", order: 5),
+            ChecklistItem(title: "7. Climbs and Descents", notes: "Execute climbs and descents in complex aircraft", order: 6),
+            ChecklistItem(title: "8. Power Settings and Mixture Leaning", notes: "Proper power settings and mixture leaning", order: 7),
+            ChecklistItem(title: "9. Use of Constant Speed Propeller", notes: "Operate constant speed propeller system", order: 8),
+            ChecklistItem(title: "10. Maneuvering During Slow Flight", notes: "Maneuver aircraft during slow flight", order: 9),
+            ChecklistItem(title: "11. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 10),
+            ChecklistItem(title: "12. Parking and Securing", notes: "Proper parking and aircraft securing", order: 11),
+        ]
+    )
+    
+    static let c2L2DualLocalComplex = ChecklistTemplate(
+        name: "C2L2: Dual Local, Complex Aircraft",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l2_dual_local_complex",
+        items: [
+            ChecklistItem(title: "1. Approach to Landing Stalls", notes: "Execute approach to landing stalls", order: 0),
+            ChecklistItem(title: "2. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 1),
+            ChecklistItem(title: "3. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 2),
+            ChecklistItem(title: "4. Go-Around", notes: "Execute go-around procedures", order: 3),
+            ChecklistItem(title: "5. Straight and Level Altitude Flight (IR)", notes: "Maintain straight and level flight using instruments only", order: 4),
+            ChecklistItem(title: "6. Standard Rate Turns (IR)", notes: "Execute standard rate turns using instruments only", order: 5),
+            ChecklistItem(title: "7. Climbs and Climbing Turns (IR)", notes: "Execute climbs and climbing turns using instruments only", order: 6),
+            ChecklistItem(title: "8. Descents and Descending Turns (IR)", notes: "Execute descents and descending turns using instruments only", order: 7),
+            ChecklistItem(title: "9. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 8),
+            ChecklistItem(title: "10. Maneuvering During Slow Flight (IR)", notes: "Maneuver aircraft during slow flight using instruments only", order: 9),
+            ChecklistItem(title: "11. Complex Airplane Performance and Limitations", notes: "Understand complex airplane performance and limitations", order: 10),
+            ChecklistItem(title: "12. Preflight Inspection", notes: "Conduct comprehensive preflight inspection of complex aircraft", order: 11),
+            ChecklistItem(title: "13. Engine Starting and Taxiing", notes: "Start engine and taxi complex aircraft", order: 12),
+            ChecklistItem(title: "14. Before Takeoff Check", notes: "Complete before takeoff checklist", order: 13),
+            ChecklistItem(title: "15. Normal and Crosswind Takeoff and Climb", notes: "Execute normal and crosswind takeoffs and climbs", order: 14),
+            ChecklistItem(title: "16. Use of Retractable Landing Gear", notes: "Operate retractable landing gear system", order: 15),
+            ChecklistItem(title: "17. Climbs and Descents", notes: "Execute climbs and descents in complex aircraft", order: 16),
+            ChecklistItem(title: "18. Power Settings and Mixture Leaning", notes: "Proper power settings and mixture leaning", order: 17),
+            ChecklistItem(title: "19. Use of Constant Speed Propeller", notes: "Operate constant speed propeller system", order: 18),
+            ChecklistItem(title: "20. Maneuvering During Slow Flight", notes: "Maneuver aircraft during slow flight", order: 19),
+            ChecklistItem(title: "21. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 20),
+            ChecklistItem(title: "22. Parking and Securing", notes: "Proper parking and aircraft securing", order: 21),
+        ]
+    )
+    
+    static let c2L3SteepTurns = ChecklistTemplate(
+        name: "C2L3: Steep Turns",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l3_steep_turns",
+        items: [
+            ChecklistItem(title: "1. Steep Turns", notes: "Execute steep turns to commercial standards", order: 0),
+            ChecklistItem(title: "2. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 1),
+            ChecklistItem(title: "3. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 2),
+            ChecklistItem(title: "4. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 3),
+            ChecklistItem(title: "5. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 4),
+            ChecklistItem(title: "6. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 5),
+            ChecklistItem(title: "7. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 6),
+            ChecklistItem(title: "8. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 7),
+            ChecklistItem(title: "9. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 8),
+            ChecklistItem(title: "10. Intercepting and Tracking Navigation Systems Partial Panel (IR)", notes: "Intercept and track navigation systems with partial panel", order: 9),
+        ]
+    )
+    
+    static let c2L4Chandelles = ChecklistTemplate(
+        name: "C2L4: Chandelles",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l4_chandelles",
+        items: [
+            ChecklistItem(title: "1. Chandelles", notes: "Execute chandelles to commercial standards", order: 0),
+            ChecklistItem(title: "2. Steep Turns", notes: "Execute steep turns to commercial standards", order: 1),
+            ChecklistItem(title: "3. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 2),
+            ChecklistItem(title: "4. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 3),
+            ChecklistItem(title: "5. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 4),
+            ChecklistItem(title: "6. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 5),
+            ChecklistItem(title: "7. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 6),
+            ChecklistItem(title: "8. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 7),
+            ChecklistItem(title: "9. Intercepting and Tracking Navigation Systems (IR)", notes: "Intercept and track navigation systems using instruments", order: 8),
+        ]
+    )
+    
+    static let c2L5LazyEights = ChecklistTemplate(
+        name: "C2L5: Lazy Eights",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l5_lazy_eights",
+        items: [
+            ChecklistItem(title: "1. Lazy Eights", notes: "Execute lazy eights to commercial standards", order: 0),
+            ChecklistItem(title: "2. Chandelles", notes: "Execute chandelles to commercial standards", order: 1),
+            ChecklistItem(title: "3. Steep Turns", notes: "Execute steep turns to commercial standards", order: 2),
+            ChecklistItem(title: "4. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 3),
+            ChecklistItem(title: "5. Intercepting and Tracking Navigation Systems (IR)", notes: "Intercept and track navigation systems using instruments", order: 4),
+            ChecklistItem(title: "6. Partial Panel (IR)", notes: "Maintain aircraft control with partial panel", order: 5),
+            ChecklistItem(title: "7. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 6),
+        ]
+    )
+    
+    static let c2L6EightsOnPylons = ChecklistTemplate(
+        name: "C2L6: Eights On Pylons",
+        category: "Commercial",
+        phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
+        templateIdentifier: "default_c2_l6_eights_on_pylons",
+        items: [
+            ChecklistItem(title: "1. Eights On Pylons", notes: "Execute eights on pylons to commercial standards", order: 0),
+            ChecklistItem(title: "2. Chandelles", notes: "Execute chandelles to commercial standards", order: 1),
+            ChecklistItem(title: "3. Steep Turns", notes: "Execute steep turns to commercial standards", order: 2),
+            ChecklistItem(title: "4. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 3),
+            ChecklistItem(title: "5. Lazy Eights", notes: "Execute lazy eights to commercial standards", order: 4),
+            ChecklistItem(title: "6. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 5),
+            ChecklistItem(title: "7. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 6),
+            ChecklistItem(title: "8. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 7),
+            ChecklistItem(title: "9. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 8),
+            ChecklistItem(title: "10. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 9),
+            ChecklistItem(title: "11. Attitude Instrument Flying (IR)", notes: "Maintain aircraft control using instruments only", order: 10),
+            ChecklistItem(title: "12. Intercepting and Tracking Navigation Systems Partial Panel (IR)", notes: "Intercept and track navigation systems with partial panel", order: 11),
+            ChecklistItem(title: "13. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 12),
+        ]
+    )
+    
+    // Stage 3: Preparing for Commercial Pilot Check Ride
+    static let c3L1DualLocal = ChecklistTemplate(
+        name: "C3L1: Dual Local",
+        category: "Commercial",
+        phase: "Stage 3: Preparing for Commercial Pilot Check Ride",
+        templateIdentifier: "default_c3_l1_dual_local",
+        items: [
+            ChecklistItem(title: "1. Chandelles", notes: "Execute chandelles to commercial standards", order: 0),
+            ChecklistItem(title: "2. Steep Turns", notes: "Execute steep turns to commercial standards", order: 1),
+            ChecklistItem(title: "3. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 2),
+            ChecklistItem(title: "4. Lazy Eights", notes: "Execute lazy eights to commercial standards", order: 3),
+            ChecklistItem(title: "5. Eights On Pylons", notes: "Execute eights on pylons to commercial standards", order: 4),
+            ChecklistItem(title: "6. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 5),
+            ChecklistItem(title: "7. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 6),
+            ChecklistItem(title: "8. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 7),
+            ChecklistItem(title: "9. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 8),
+            ChecklistItem(title: "10. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 9),
+            ChecklistItem(title: "11. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 10),
+            ChecklistItem(title: "12. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 11),
+            ChecklistItem(title: "13. Intercepting and Tracking Navigation Systems (IR)", notes: "Intercept and track navigation systems using instruments", order: 12),
+            ChecklistItem(title: "14. Partial Panel (IR)", notes: "Maintain aircraft control with partial panel", order: 13),
+            ChecklistItem(title: "15. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 14),
+        ]
+    )
+    
+    static let c3L2FinalProgressCheck = ChecklistTemplate(
+        name: "C3L2: Final Progress Check",
+        category: "Commercial",
+        phase: "Stage 3: Preparing for Commercial Pilot Check Ride",
+        templateIdentifier: "default_c3_l2_final_progress_check",
+        items: [
+            ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan cross-country flight to commercial standards", order: 0),
+            ChecklistItem(title: "2. Preflight Inspection", notes: "Conduct comprehensive preflight inspection", order: 1),
+            ChecklistItem(title: "3. Checklist Use", notes: "Use checklists throughout flight", order: 2),
+            ChecklistItem(title: "4. Doors and Safety Belts", notes: "Check doors and safety belt security", order: 3),
+            ChecklistItem(title: "5. Engine Starting and Warm-up", notes: "Proper engine starting and warm-up procedures", order: 4),
+            ChecklistItem(title: "6. Use of ATIS", notes: "Obtain and use ATIS information", order: 5),
+            ChecklistItem(title: "7. Taxiing", notes: "Safe taxiing procedures and communications", order: 6),
+            ChecklistItem(title: "8. Before Takeoff Check and Engine Runup", notes: "Complete before takeoff checklist and engine runup", order: 7),
+            ChecklistItem(title: "9. Normal and Crosswind Takeoff and Climb", notes: "Execute normal and crosswind takeoffs and climbs", order: 8),
+            ChecklistItem(title: "10. Controlled Airports", notes: "Operate safely at controlled airports", order: 9),
+            ChecklistItem(title: "11. Departure", notes: "Execute proper departure procedures", order: 10),
+            ChecklistItem(title: "12. Course Interception", notes: "Intercept and maintain assigned courses", order: 11),
+            ChecklistItem(title: "13. Pilotage", notes: "Navigate using pilotage techniques", order: 12),
+            ChecklistItem(title: "14. Dead Reckoning", notes: "Navigate using dead reckoning", order: 13),
+            ChecklistItem(title: "15. VOR Navigation (IR)", notes: "Navigate using VOR systems with instruments", order: 14),
+            ChecklistItem(title: "16. ADF Navigation (IR) (if aircraft eq.)", notes: "Navigate using ADF systems with instruments if equipped", order: 15),
+            ChecklistItem(title: "17. GPS Navigation (IR) (if aircraft eq.)", notes: "Navigate using GPS systems with instruments if equipped", order: 16),
+            ChecklistItem(title: "18. ILS/NDB or VOR Approach (IR)", notes: "Execute ILS/NDB or VOR approach using instruments", order: 17),
+            ChecklistItem(title: "19. Partial Panel (IR)", notes: "Maintain aircraft control with partial panel", order: 18),
+            ChecklistItem(title: "20. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 19),
+            ChecklistItem(title: "21. Power Settings and Mixture Control", notes: "Proper power and mixture management", order: 20),
+            ChecklistItem(title: "22. Diversion to an Alternate", notes: "Execute diversion procedures to alternate airport", order: 21),
+            ChecklistItem(title: "23. Lost Procedures", notes: "Execute lost procedures and navigation recovery", order: 22),
+            ChecklistItem(title: "24. Use of Retractable Landing Gear", notes: "Operate retractable landing gear system", order: 23),
+            ChecklistItem(title: "25. Simulated System Failures", notes: "Handle simulated system failures", order: 24),
+            ChecklistItem(title: "26. Simulated Engine Failure", notes: "Handle simulated engine failure", order: 25),
+            ChecklistItem(title: "27. Estimates of Ground Speed and ETA", notes: "Calculate ground speed and estimated time of arrival", order: 26),
+            ChecklistItem(title: "28. Position Fix by Navigation Facilities", notes: "Determine position using navigation facilities", order: 27),
+            ChecklistItem(title: "29. Flight on Federal Airways", notes: "Navigate on federal airways", order: 28),
+            ChecklistItem(title: "30. CTAF (FSS or UNICOM) Airports", notes: "Communicate at CTAF airports", order: 29),
+            ChecklistItem(title: "31. Straight and Level Altitude Flight (IR)", notes: "Maintain straight and level flight using instruments only", order: 30),
+            ChecklistItem(title: "32. Standard Rate Turns (IR)", notes: "Execute standard rate turns using instruments only", order: 31),
+            ChecklistItem(title: "33. Climbs and Climbing Turns (IR)", notes: "Execute climbs and climbing turns using instruments only", order: 32),
+            ChecklistItem(title: "34. Descents and Descending Turns (IR)", notes: "Execute descents and descending turns using instruments only", order: 33),
+            ChecklistItem(title: "35. Recovery from Unusual Attitudes (IR)", notes: "Recover from unusual attitudes using instruments only", order: 34),
+            ChecklistItem(title: "36. Maneuvering During Slow Flight (IR)", notes: "Maneuver aircraft during slow flight using instruments only", order: 35),
+            ChecklistItem(title: "37. Power Off Stall (approach to landing stall)", notes: "Execute power off stalls with proper recovery", order: 36),
+            ChecklistItem(title: "38. Power On Stall (takeoff and departure stall)", notes: "Execute power on stalls with proper recovery", order: 37),
+            ChecklistItem(title: "39. Short Field Takeoff and Climb", notes: "Execute short field takeoff and climb", order: 38),
+            ChecklistItem(title: "40. Soft Field Takeoff and Climb", notes: "Execute soft field takeoff and climb", order: 39),
+            ChecklistItem(title: "41. Short Field Approach and Landing", notes: "Execute short field approach and landing", order: 40),
+            ChecklistItem(title: "42. Soft Field Approach and Landing", notes: "Execute soft field approach and landing", order: 41),
+            ChecklistItem(title: "43. Power Off 180° Approach and Landing", notes: "Execute power off 180° approach and landing", order: 42),
+            ChecklistItem(title: "44. Normal and Crosswind Landing", notes: "Execute normal and crosswind landings", order: 43),
+            ChecklistItem(title: "45. Collision Avoidance Procedures", notes: "Maintain collision avoidance awareness", order: 44),
+            ChecklistItem(title: "46. Chandelles", notes: "Execute chandelles to commercial standards", order: 45),
+            ChecklistItem(title: "47. Steep Turns", notes: "Execute steep turns to commercial standards", order: 46),
+            ChecklistItem(title: "48. Steep Spirals", notes: "Execute steep spirals to commercial standards", order: 47),
+            ChecklistItem(title: "49. Lazy Eights", notes: "Execute lazy eights to commercial standards", order: 48),
+            ChecklistItem(title: "50. Eights On Pylons", notes: "Execute eights on pylons to commercial standards", order: 49),
+            ChecklistItem(title: "51. Parking and Securing", notes: "Proper parking and aircraft securing", order: 50),
+            ChecklistItem(title: "52. Postflight Procedures", notes: "Complete postflight procedures and documentation", order: 51),
         ]
     )
 }

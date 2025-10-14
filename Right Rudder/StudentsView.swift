@@ -18,7 +18,31 @@ struct StudentsView: View {
     
     enum SortOption: String, CaseIterable {
         case lastName = "Last Name"
+        case category = "Category"
         case manual = "Manual"
+    }
+    
+    struct StudentGroup {
+        let category: String
+        let students: [Student]
+    }
+    
+    private var groupedStudents: [StudentGroup] {
+        let grouped = Dictionary(grouping: students) { $0.primaryCategory }
+        return grouped.map { StudentGroup(category: $0.key, students: $0.value.sorted { $0.sortKey < $1.sortKey }) }
+            .sorted { $0.category < $1.category }
+    }
+    
+    @ViewBuilder
+    private func categoryHeader(for category: String) -> some View {
+        HStack {
+            Text(category)
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
     }
     
     var body: some View {
@@ -29,11 +53,24 @@ struct StudentsView: View {
     
     private var studentsList: some View {
         List {
-            ForEach(Array(students.enumerated()), id: \.element.id) { index, student in
-                studentRow(index: index, student: student)
+            if sortOption == .lastName {
+                // Simple list for alphabetical sort (no dividers)
+                ForEach(Array(students.enumerated()), id: \.element.id) { index, student in
+                    studentRow(index: index, student: student)
+                }
+                .onDelete(perform: deleteStudents)
+            } else {
+                // Group students by category for sectioned display (Category and Manual sort)
+                ForEach(groupedStudents, id: \.category) { group in
+                    Section(header: categoryHeader(for: group.category)) {
+                        ForEach(Array(group.students.enumerated()), id: \.element.id) { index, student in
+                            studentRow(index: index, student: student)
+                        }
+                        .onDelete(perform: deleteStudents)
+                        .onMove(perform: sortOption == .manual ? moveStudents : { _, _ in })
+                    }
+                }
             }
-            .onDelete(perform: deleteStudents)
-            .onMove(perform: sortOption == .manual ? moveStudents : { _, _ in })
         }
         .navigationTitle("Students")
         .navigationBarTitleDisplayMode(.large)
@@ -54,6 +91,10 @@ struct StudentsView: View {
         Menu {
             Button("Alphabetical Sort") {
                 sortOption = .lastName
+                sortStudents()
+            }
+            Button("Category Sort") {
+                sortOption = .category
                 sortStudents()
             }
             Button("Manual Sort") {
@@ -95,7 +136,7 @@ struct StudentsView: View {
             NavigationLink(destination: StudentDetailView(student: student)) {
                 HStack(alignment: .center) {
                     Text(student.displayName)
-                        .font(.system(size: 20, weight: .medium))
+                        .font(.system(size: 22, weight: .medium))
                         .fontWeight(.medium)
                     
                     Spacer()
@@ -106,9 +147,11 @@ struct StudentsView: View {
                             .frame(width: 40, height: 40)
                             .clipShape(Circle())
                             .clipped()
+                            .offset(x: -3) // Shift photo left by 3 points
+                            .id("photo-\(student.id)") // Add ID for better memory management
                     }
                 }
-                .frame(height: 50) // Fixed row height
+                .frame(height: 35) // Fixed row height (reduced by 10% from 39)
             }
         }
         .adaptiveRowBackgroundModifier(for: index)
@@ -119,6 +162,18 @@ struct StudentsView: View {
         case .lastName:
             // Use the already sorted query result
             students = allStudents
+        case .category:
+            // Sort by category first, then by last name within each category
+            students = allStudents.sorted { student1, student2 in
+                let category1 = student1.primaryCategory
+                let category2 = student2.primaryCategory
+                
+                if category1 != category2 {
+                    return category1 < category2
+                } else {
+                    return student1.sortKey < student2.sortKey
+                }
+            }
         case .manual:
             // For manual sorting, maintain the current order
             students = allStudents
@@ -133,8 +188,22 @@ struct StudentsView: View {
     
     private func deleteStudents(offsets: IndexSet) {
         withAnimation {
-            for index in offsets {
-                modelContext.delete(students[index])
+            if sortOption == .lastName {
+                // For alphabetical sort, use the regular students array
+                for index in offsets {
+                    modelContext.delete(students[index])
+                }
+            } else {
+                // For category and manual sort, we need to find the actual student in the grouped data
+                var studentIndex = 0
+                for group in groupedStudents {
+                    for student in group.students {
+                        if offsets.contains(studentIndex) {
+                            modelContext.delete(student)
+                        }
+                        studentIndex += 1
+                    }
+                }
             }
         }
     }
@@ -144,5 +213,6 @@ struct StudentsView: View {
     StudentsView()
         .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
+
 
 

@@ -17,6 +17,16 @@ struct RightRudderApp: App {
     @State private var shouldShowWhatsNew = false
     
     init() {
+        // Set up memory pressure handling
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("Memory warning received - clearing caches")
+            ImageOptimizationService.shared.clearCache()
+        }
+        
         do {
             // Initialize with CloudKit support
             print("Initializing ModelContainer with CloudKit support...")

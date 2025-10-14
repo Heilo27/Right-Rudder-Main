@@ -12,8 +12,6 @@ struct ChecklistTemplateDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var template: ChecklistTemplate
     @State private var showingEditTemplate = false
-    @State private var newItemTitle = ""
-    @State private var newItemNotes = ""
 
     init(template: ChecklistTemplate) {
         self._template = State(initialValue: template)
@@ -32,7 +30,7 @@ struct ChecklistTemplateDetailView: View {
             }
             
             Section("Items") {
-                    ForEach((template.items ?? []).sorted { $0.order < $1.order }) { item in
+                ForEach((template.items ?? []).sorted { $0.order < $1.order }) { item in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title)
                             .font(.subheadline)
@@ -42,20 +40,6 @@ struct ChecklistTemplateDetailView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                }
-                .onDelete(perform: deleteItems)
-                
-                HStack {
-                    TextField("New item title", text: $newItemTitle)
-                    Button("Add") {
-                        addItem()
-                    }
-                    .disabled(newItemTitle.isEmpty)
-                }
-                
-                if !newItemTitle.isEmpty {
-                    TextField("Notes (optional)", text: $newItemNotes, axis: .vertical)
-                        .lineLimit(2...4)
                 }
             }
         }
@@ -73,23 +57,6 @@ struct ChecklistTemplateDetailView: View {
         }
     }
     
-    private var sortedItems: [ChecklistItem] {
-        (template.items ?? []).sorted { $0.order < $1.order }
-    }
-    
-    private func addItem() {
-        let item = ChecklistItem(
-            title: newItemTitle,
-            notes: newItemNotes.isEmpty ? nil : newItemNotes
-        )
-        template.items?.append(item)
-        newItemTitle = ""
-        newItemNotes = ""
-    }
-    
-    private func deleteItems(offsets: IndexSet) {
-        template.items?.remove(atOffsets: offsets)
-    }
 }
 
 #Preview {
