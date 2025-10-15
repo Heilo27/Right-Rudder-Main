@@ -10,19 +10,28 @@ import SwiftData
 
 class SmartTemplateUpdateService {
     
-    private static let templateVersion = "1.4.7.3" // Increment this when templates change
+    static let templateVersion = "1.4.7.11" // Increment this when templates change
+    
+    /// Force update all templates (useful for debugging or major changes)
+    static func forceUpdateAllTemplates(modelContext: ModelContext) {
+        print("Force updating all templates...")
+        
+        // Clear the version check to force update
+        let userDefaults = UserDefaults.standard
+        userDefaults.removeObject(forKey: "lastTemplateUpdateVersion")
+        
+        // Run the update
+        updateDefaultTemplates(modelContext: modelContext)
+    }
     
     /// Updates default templates while preserving user customizations
     static func updateDefaultTemplates(modelContext: ModelContext) {
-        print("Starting smart template update...")
-        
         do {
             // Check if we've already updated to this version
             let userDefaults = UserDefaults.standard
             let lastUpdateVersion = userDefaults.string(forKey: "lastTemplateUpdateVersion")
             
             if lastUpdateVersion == templateVersion {
-                print("Templates already up to date (version \(templateVersion))")
                 return
             }
             
@@ -30,34 +39,21 @@ class SmartTemplateUpdateService {
             let descriptor = FetchDescriptor<ChecklistTemplate>()
             let existingTemplates = try modelContext.fetch(descriptor)
             
-            print("Found \(existingTemplates.count) existing templates")
-            
             // Delete ALL templates with templateIdentifier (default templates)
             // This ensures a clean slate for default templates
             let defaultTemplatesToDelete = existingTemplates.filter { $0.templateIdentifier != nil }
-            print("Deleting ALL \(defaultTemplatesToDelete.count) existing default templates (clean slate approach)")
             
             for template in defaultTemplatesToDelete {
-                print("Deleting default template: \(template.name)")
                 modelContext.delete(template)
-            }
-            
-            // Report on user-created templates (those without templateIdentifier)
-            let userTemplates = existingTemplates.filter { $0.templateIdentifier == nil }
-            print("Preserving \(userTemplates.count) user-created templates")
-            for template in userTemplates {
-                print("Preserved user-created template: \(template.name)")
             }
             
             // Get all new default templates
             let newTemplates = getAllDefaultTemplates()
-            print("Adding \(newTemplates.count) new default templates")
             
             var addedCount = 0
             
             for newTemplate in newTemplates {
                 guard let templateIdentifier = newTemplate.templateIdentifier else {
-                    print("Warning: New template '\(newTemplate.name)' has no templateIdentifier")
                     continue
                 }
                 
@@ -67,13 +63,10 @@ class SmartTemplateUpdateService {
                            (template.isUserCreated || template.isUserModified)
                 }
                 
-                if let userTemplate = existingUserTemplate {
-                    let reason = userTemplate.isUserCreated ? "user-created" : "user-modified"
-                    print("Skipping new template '\(newTemplate.name)' - preserving \(reason) version")
+                if existingUserTemplate != nil {
                     continue
                 }
                 
-                print("Adding new template: \(newTemplate.name) (ID: \(templateIdentifier))")
                 modelContext.insert(newTemplate)
                 addedCount += 1
             }
@@ -84,10 +77,13 @@ class SmartTemplateUpdateService {
             // Save changes
             try modelContext.save()
             
+            // Update all student checklists to match new template versions
+            StudentChecklistUpdateService.updateStudentChecklists(modelContext: modelContext)
+            
             // Mark this version as completed
             userDefaults.set(templateVersion, forKey: "lastTemplateUpdateVersion")
             
-            print("Smart template update completed: \(defaultTemplatesToDelete.count) deleted, \(addedCount) added")
+            print("Template update: \(addedCount) templates updated")
             
         } catch {
             print("Error during smart template update: \(error)")

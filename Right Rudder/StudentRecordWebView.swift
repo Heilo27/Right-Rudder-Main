@@ -349,11 +349,11 @@ struct StudentRecordWebView: View {
             let expirationInfo = document.expirationDate != nil ? 
                 "<div class=\"document-date\">Expires: \(document.expirationDate!.formatted(date: .abbreviated, time: .omitted))</div>" : ""
             
-            // Convert image data to base64 for embedding in HTML
+            // Use optimized image display instead of base64 embedding
             let imageHTML: String
-            if let imageData = document.fileData {
-                let base64String = imageData.base64EncodedString()
-                imageHTML = "<img src=\"data:image/jpeg;base64,\(base64String)\" style=\"max-width:100%;height:auto;border-radius:4px;margin-bottom:8px;\" alt=\"\(document.filename)\">"
+            if document.fileData != nil {
+                // Create a placeholder that doesn't load the full image into memory
+                imageHTML = "<div style=\"text-align:center;color:#666;font-style:italic;margin:20px 0;padding:40px;border:2px dashed #ccc;border-radius:8px;\">📄 Document: \(document.filename)<br><small>Click to view full document</small></div>"
             } else {
                 imageHTML = "<div style=\"text-align:center;color:#666;font-style:italic;margin:20px 0;\">No image data available</div>"
             }

@@ -17,6 +17,9 @@ struct RightRudderApp: App {
     @State private var shouldShowWhatsNew = false
     
     init() {
+        // Initialize memory monitoring
+        _ = MemoryMonitor.shared
+        
         // Set up memory pressure handling
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,

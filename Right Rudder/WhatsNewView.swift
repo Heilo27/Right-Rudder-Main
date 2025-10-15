@@ -11,38 +11,45 @@ struct WhatsNewView: View {
     @State private var isActive = false
     @State private var currentPage = 0
     @State private var opacity = 0.0
+    @State private var autoAdvanceTimer: Timer?
     @Environment(\.modelContext) private var modelContext
     
     private let features = [
         FeatureItem(
-            icon: "checkmark.circle.fill",
-            title: "Comprehensive Flight Reviews",
-            description: "New BiAnnual Flight Review checklist with 94 detailed items covering all FAA AC 61-98E requirements",
+            icon: "icloud.and.arrow.up",
+            title: "CloudKit Student Sharing",
+            description: "Share student profiles and checklists with students via secure CloudKit sharing. Students can view their progress and upload documents.",
             color: .blue
         ),
         FeatureItem(
-            icon: "airplane.circle.fill",
-            title: "Instrument Proficiency Check",
-            description: "Complete IPC checklist with 44 items based on FAA guidance, including 3-P Risk Management Process",
+            icon: "doc.text.fill",
+            title: "Student Document Management",
+            description: "Students can upload and manage required documents: Pilot Certificate, Medical Certificate, Passport/Birth Certificate, and LogBook with expiration tracking.",
             color: .green
         ),
         FeatureItem(
-            icon: "paintbrush.fill",
-            title: "UI Improvements",
-            description: "Light and Dark mode improvements for legibility, Student ID photo, High contrast color scheme",
+            icon: "bell.badge.fill",
+            title: "Push Notifications",
+            description: "Real-time notifications when instructors add comments or updates. Students receive instant alerts about their training progress.",
             color: .orange
         ),
         FeatureItem(
-            icon: "list.bullet.clipboard",
-            title: "Improved Organization",
-            description: "Logical section grouping, better organization and navigation, streamlined user experience",
+            icon: "checkmark.circle.fill",
+            title: "Enhanced Flight Reviews",
+            description: "New Biennial Flight Review checklist with 94 detailed items covering all FAA AC 61-98E requirements and comprehensive IPC checklists.",
             color: .purple
         ),
         FeatureItem(
-            icon: "doc.text.magnifyingglass",
-            title: "FAA Compliance",
-            description: "All checklists meet official FAA requirements and include proper regulatory references",
+            icon: "paintbrush.fill",
+            title: "Improved UI & Accessibility",
+            description: "Enhanced Light/Dark mode support, high contrast color schemes, better legibility, and streamlined navigation for all users.",
             color: .red
+        ),
+        FeatureItem(
+            icon: "square.and.arrow.up",
+            title: "Template Sharing & Export",
+            description: "Share custom checklist templates with other instructors and export student records as PDFs for record keeping.",
+            color: .indigo
         )
     ]
     
@@ -66,12 +73,12 @@ struct WhatsNewView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.blue)
                         
-                        Text("What's New in v1.4")
+                        Text("What's New in v1.5")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text("Major Updates & New Features")
+                        Text("Major CloudKit Integration & Student Features")
                             .font(.title2)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
@@ -142,7 +149,8 @@ struct WhatsNewView: View {
                 
                 // Add a small delay to ensure SwiftData is fully initialized
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    DefaultDataService.initializeDefaultData(modelContext: modelContext)
+                    // Force update templates to ensure instrument templates are available
+                    DefaultDataService.forceUpdateTemplates(modelContext: modelContext)
                 }
                 
                 // Animate in
@@ -151,11 +159,16 @@ struct WhatsNewView: View {
                 }
                 
                 // Auto-advance pages
-                Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { _ in
+                autoAdvanceTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { _ in
                     withAnimation(.easeInOut(duration: 0.5)) {
                         self.currentPage = (self.currentPage + 1) % self.features.count
                     }
                 }
+            }
+            .onDisappear {
+                // Clean up timer to prevent memory leaks
+                autoAdvanceTimer?.invalidate()
+                autoAdvanceTimer = nil
             }
         }
     }

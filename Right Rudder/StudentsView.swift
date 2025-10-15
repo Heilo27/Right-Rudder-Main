@@ -29,7 +29,9 @@ struct StudentsView: View {
     
     private var groupedStudents: [StudentGroup] {
         let grouped = Dictionary(grouping: students) { $0.primaryCategory }
-        return grouped.map { StudentGroup(category: $0.key, students: $0.value.sorted { $0.sortKey < $1.sortKey }) }
+        return grouped.map { StudentGroup(category: $0.key, students: $0.value.sorted { 
+            sortOption == .manual ? $0.customOrder < $1.customOrder : $0.sortKey < $1.sortKey 
+        }) }
             .sorted { $0.category < $1.category }
     }
     
@@ -59,15 +61,21 @@ struct StudentsView: View {
                     studentRow(index: index, student: student)
                 }
                 .onDelete(perform: deleteStudents)
+            } else if sortOption == .manual {
+                // Simple list for manual sort (no dividers, with drag handles)
+                ForEach(Array(students.enumerated()), id: \.element.id) { index, student in
+                    studentRow(index: index, student: student)
+                }
+                .onDelete(perform: deleteStudents)
+                .onMove(perform: moveStudents)
             } else {
-                // Group students by category for sectioned display (Category and Manual sort)
+                // Group students by category for sectioned display (Category sort only)
                 ForEach(groupedStudents, id: \.category) { group in
                     Section(header: categoryHeader(for: group.category)) {
                         ForEach(Array(group.students.enumerated()), id: \.element.id) { index, student in
                             studentRow(index: index, student: student)
                         }
                         .onDelete(perform: deleteStudents)
-                        .onMove(perform: sortOption == .manual ? moveStudents : { _, _ in })
                     }
                 }
             }
@@ -83,6 +91,7 @@ struct StudentsView: View {
             AddStudentView()
         }
         .onAppear {
+            initializeCustomOrderIfNeeded()
             sortStudents()
         }
     }
@@ -157,6 +166,21 @@ struct StudentsView: View {
         .adaptiveRowBackgroundModifier(for: index)
     }
     
+    private func initializeCustomOrderIfNeeded() {
+        // Initialize custom order for students that don't have it set
+        let studentsNeedingOrder = allStudents.filter { $0.customOrder == 0 }
+        if !studentsNeedingOrder.isEmpty {
+            for (index, student) in studentsNeedingOrder.enumerated() {
+                student.customOrder = index
+            }
+            do {
+                try modelContext.save()
+            } catch {
+                print("Failed to initialize custom order: \(error)")
+            }
+        }
+    }
+    
     private func sortStudents() {
         switch sortOption {
         case .lastName:
@@ -175,34 +199,43 @@ struct StudentsView: View {
                 }
             }
         case .manual:
-            // For manual sorting, maintain the current order
-            students = allStudents
+            // For manual sorting, use the custom order field
+            students = allStudents.sorted { $0.customOrder < $1.customOrder }
         }
     }
     
     private func moveStudents(from source: IndexSet, to destination: Int) {
-        withAnimation {
-            students.move(fromOffsets: source, toOffset: destination)
+        // Move items in the students array
+        students.move(fromOffsets: source, toOffset: destination)
+        
+        // Update custom order values to persist the manual sorting
+        for (index, student) in students.enumerated() {
+            student.customOrder = index
+        }
+        
+        // Save the changes to the database
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save student order: \(error)")
         }
     }
     
     private func deleteStudents(offsets: IndexSet) {
-        withAnimation {
-            if sortOption == .lastName {
-                // For alphabetical sort, use the regular students array
-                for index in offsets {
-                    modelContext.delete(students[index])
-                }
-            } else {
-                // For category and manual sort, we need to find the actual student in the grouped data
-                var studentIndex = 0
-                for group in groupedStudents {
-                    for student in group.students {
-                        if offsets.contains(studentIndex) {
-                            modelContext.delete(student)
-                        }
-                        studentIndex += 1
+        if sortOption == .lastName || sortOption == .manual {
+            // For alphabetical and manual sort, use the regular students array
+            for index in offsets {
+                modelContext.delete(students[index])
+            }
+        } else {
+            // For category sort, we need to find the actual student in the grouped data
+            var studentIndex = 0
+            for group in groupedStudents {
+                for student in group.students {
+                    if offsets.contains(studentIndex) {
+                        modelContext.delete(student)
                     }
+                    studentIndex += 1
                 }
             }
         }

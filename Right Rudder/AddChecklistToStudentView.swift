@@ -146,19 +146,9 @@ struct AddChecklistToStudentView: View {
         }
     }
     
-    // Helper function to extract lesson number from P1 template names
-    private static let lessonNumberRegex = try? NSRegularExpression(pattern: "P1-L(\\d+)")
-    
+    // Use shared utility for lesson number extraction
     private func extractLessonNumber(from templateName: String) -> Int? {
-        guard let regex = Self.lessonNumberRegex else { return nil }
-        
-        let range = NSRange(location: 0, length: templateName.utf16.count)
-        guard let match = regex.firstMatch(in: templateName, range: range),
-              let numberRange = Range(match.range(at: 1), in: templateName) else {
-            return nil
-        }
-        
-        return Int(templateName[numberRange])
+        return TemplateSortingUtilities.extractLessonNumber(from: templateName)
     }
     
     private var availableCategories: [String] {
@@ -221,33 +211,16 @@ struct AddChecklistToStudentView: View {
         } else if phase == "Phase 1" {
             return sortPhase1Templates(templates)
         } else {
-            return templates.sorted { $0.name < $1.name }
+            return sortPhase1Templates(templates)
         }
     }
     
     private func sortFirstStepsTemplates(_ templates: [ChecklistTemplate]) -> [ChecklistTemplate] {
-        return templates.sorted { template1, template2 in
-            if template1.name == "Student Onboard/Training Overview" {
-                return true
-            }
-            if template2.name == "Student Onboard/Training Overview" {
-                return false
-            }
-            return template1.name < template2.name
-        }
+        return TemplateSortingUtilities.sortFirstStepsTemplates(templates)
     }
     
     private func sortPhase1Templates(_ templates: [ChecklistTemplate]) -> [ChecklistTemplate] {
-        return templates.sorted { template1, template2 in
-            let lesson1 = extractLessonNumber(from: template1.name)
-            let lesson2 = extractLessonNumber(from: template2.name)
-            
-            if let num1 = lesson1, let num2 = lesson2 {
-                return num1 < num2
-            }
-            
-            return template1.name < template2.name
-        }
+        return TemplateSortingUtilities.sortTemplatesByLessonNumber(templates)
     }
     
     private func sortPhaseGroups(_ phaseGroups: [PhaseGroup], phaseOrder: [String]) -> [PhaseGroup] {
@@ -277,7 +250,6 @@ struct AddChecklistToStudentView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             let templateItems = template.items ?? []
             let studentChecklistItems = templateItems.map { templateItem in
-                print("Creating StudentChecklistItem: '\(templateItem.title)' -> order: \(templateItem.order)")
                 return StudentChecklistItem(
                     templateItemId: templateItem.id,
                     title: templateItem.title,
@@ -291,6 +263,10 @@ struct AddChecklistToStudentView: View {
                 templateName: template.name,
                 items: studentChecklistItems
             )
+            
+            // Set template version tracking for automatic updates
+            studentChecklist.templateVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
+            studentChecklist.templateIdentifier = template.templateIdentifier
             
             DispatchQueue.main.async {
                 if self.student.checklists == nil {
@@ -329,11 +305,17 @@ struct AddChecklistToStudentView: View {
                     )
                 }
                 
-                return StudentChecklist(
+                let studentChecklist = StudentChecklist(
                     templateId: template.id,
                     templateName: template.name,
                     items: studentChecklistItems
                 )
+                
+                // Set template version tracking for automatic updates
+                studentChecklist.templateVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
+                studentChecklist.templateIdentifier = template.templateIdentifier
+                
+                return studentChecklist
             }
             
             DispatchQueue.main.async {
@@ -356,29 +338,63 @@ struct AddChecklistToStudentView: View {
         }
     }
     
+    // Use shared utility for lesson info extraction
+    private func extractLessonInfo(from name: String) -> (phase: String, lesson: String) {
+        return TemplateSortingUtilities.extractLessonInfo(from: name)
+    }
+    
     private func deleteAllTemplatesInPhase(_ templates: [ChecklistTemplate]) {
-        // Process on background queue for better performance
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Get template IDs for this phase
-            let templateIds = Set(templates.map { $0.id })
+        #if DEBUG
+        print("Delete All button pressed for \(templates.count) templates")
+        #endif
+        
+        // Find and delete checklists that match any template in this phase
+        guard let checklists = student.checklists else { return }
+        
+        // Match by category and lesson number instead of exact name
+        // This works with both old (P1L5) and new (I1-L5) formats
+        let checklistsToDelete = checklists.filter { checklist in
+            let checklistName = checklist.templateName
             
-            DispatchQueue.main.async {
-                // Filter out checklists that match any template in this phase
-                if let checklists = self.student.checklists {
-                    self.student.checklists = checklists.filter { checklist in
-                        !templateIds.contains(checklist.templateId)
-                    }
-                }
+            // Check if this checklist matches any template in this phase
+            return templates.contains { template in
+                // Extract lesson info from both names for comparison
+                let checklistLesson = extractLessonInfo(from: checklistName)
+                let templateLesson = extractLessonInfo(from: template.name)
                 
-                // Save the context to persist changes and trigger UI updates
-                do {
-                    try self.modelContext.save()
-                    // Force a refresh of the student object to trigger UI updates
-                    self.student.lastModified = Date()
-                } catch {
-                    print("Failed to save after deleting student checklists: \(error)")
-                }
+                return checklistLesson.phase == templateLesson.phase && 
+                       checklistLesson.lesson == templateLesson.lesson
             }
+        }
+        
+        if checklistsToDelete.isEmpty { return }
+        
+        // Delete from database
+        for checklist in checklistsToDelete {
+            modelContext.delete(checklist)
+        }
+        
+        // Update the student's checklists array
+        student.checklists = checklists.filter { checklist in
+            let checklistName = checklist.templateName
+            
+            // Keep checklists that don't match any template in this phase
+            return !templates.contains { template in
+                let checklistLesson = extractLessonInfo(from: checklistName)
+                let templateLesson = extractLessonInfo(from: template.name)
+                
+                return checklistLesson.phase == templateLesson.phase && 
+                       checklistLesson.lesson == templateLesson.lesson
+            }
+        }
+        
+        // Save the context to persist changes and trigger UI updates
+        do {
+            try modelContext.save()
+            // Force a refresh of the student object to trigger UI updates
+            student.lastModified = Date()
+        } catch {
+            print("Failed to save after deleting student checklists: \(error)")
         }
     }
 }

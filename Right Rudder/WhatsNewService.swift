@@ -8,7 +8,7 @@
 import Foundation
 
 class WhatsNewService {
-    private static let currentAppVersion = "1.4.6"
+    private static let currentAppVersion = "1.5.0"
     private static let lastShownVersionKey = "lastShownWhatsNewVersion"
     
     /// Determines if the "What's New" screen should be shown

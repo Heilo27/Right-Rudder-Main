@@ -15,6 +15,12 @@ class DefaultDataService {
         // Use smart template update service to preserve user customizations
         SmartTemplateUpdateService.updateDefaultTemplates(modelContext: modelContext)
         
-                print("Default data initialization completed successfully")
+        print("Default data initialization completed successfully")
+    }
+    
+    /// Force update all templates (useful for debugging)
+    static func forceUpdateTemplates(modelContext: ModelContext) {
+        print("Force updating templates...")
+        SmartTemplateUpdateService.forceUpdateAllTemplates(modelContext: modelContext)
     }
 }

@@ -972,38 +972,39 @@ class DefaultTemplates {
         instrumentProficiencyCheck,
         
         // Instrument Rating - Phase 1
-        p1L1PreflightAndBasicInstrumentControl,
-        p1L2ExpandingInstrumentSkills,
-        p1L3UsingTheMagneticCompass,
-        p1L4IFRFlightPlansAndClearances,
-        p1L5PrimaryFlightInstrumentDisplayFailure,
-        p1L6ReviewOfInstrumentControlAndProgressCheck,
+        i1L1PreflightAndBasicInstrumentControl,
+        i1L2ExpandingInstrumentSkills,
+        i1L3UsingTheMagneticCompass,
+        i1L4IFRFlightPlansAndClearances,
+        i1L5PrimaryFlightInstrumentDisplayFailure,
+        i1L6ReviewOfInstrumentControlAndProgressCheck,
         
         // Instrument Rating - Phase 2
-        p2L1GPSAndVORForIFR,
-        p2L2NDBADFNavigationAndDepartureProcedures,
-        p2L3BuildingSkillWithGPSVORAndNDBNDBNavigation,
-        p2L4DMEARX,
-        p2L5HoldingProcedures,
-        p2L6ProgressCheck,
+        i2L1GPSAndVORForIFR,
+        i2L2NDBADFNavigationAndDepartureProcedures,
+        i2L3BuildingSkillWithGPSVORAndNDBNDBNavigation,
+        i2L4DMEARX,
+        i2L5HoldingProcedures,
+        i2L6ProgressCheck,
         
         // Instrument Rating - Phase 3
-        p3L1ILSApproachesAndProcedureTurns,
-        p3L2RNAVApproachesWithVerticalGuidance,
-        p3L4VORAndNDBApproaches,
-        p3L5CirclingApproaches,
-        p3L6PartialPanelAndUsingTheAutopilotForApproaches,
-        p3L7ProgressCheck,
+        i3L1ILSApproachesAndProcedureTurns,
+        i3L2RNAVApproachesWithVerticalGuidance,
+        i3L4VORAndNDBApproaches,
+        i3L5CirclingApproaches,
+        i3L6PartialPanelAndUsingTheAutopilotForApproaches,
+        i3L7ProgressCheck,
         
         // Instrument Rating - Phase 4
-        p4L1ShortIFRCrossCountry,
-        p4L2RefiningApproaches,
-        p4L3LongIFRCrossCountryProgressCheck,
+        i4L1ShortIFRCrossCountry,
+        i4L2RefiningApproaches,
+        i4L3LongIFRCrossCountryProgressCheck,
         
         // Instrument Rating - Phase 5
-        p5L1AirmanCertificationStandards,
-        p5L2HoningTheEdge,
-        p5L3PreCheckrideProgressCheck,
+        i5L1AirmanCertificationStandards,
+        i5L2HoningTheEdge,
+        i5L3PreCheckrideProgressCheck,
+        i5L4Endorsements,
         
           // Commercial Rating - Stage 1: Learning Professional Cross-Country and Night Procedures
           c1L1DualCrossCountry,
@@ -1028,6 +1029,7 @@ class DefaultTemplates {
           // Commercial Rating - Stage 3: Preparing for Commercial Pilot Check Ride
           c3L1DualLocal,
           c3L2FinalProgressCheck,
+          c3L3Endorsements,
         ]
     }
     
@@ -1238,11 +1240,11 @@ class DefaultTemplates {
     
     // MARK: - Instrument Rating Templates
     
-    static let p1L1PreflightAndBasicInstrumentControl = ChecklistTemplate(
-        name: "P1-L1: Pre-flight and Basic Instrument Control",
+    static let i1L1PreflightAndBasicInstrumentControl = ChecklistTemplate(
+        name: "I1-L1: Pre-flight and Basic Instrument Control",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l1_preflight_and_basic_instrument_control",
+        templateIdentifier: "default_i1_l1_preflight_and_basic_instrument_control",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Review & explain the PAVE checklist with emphasis on environmental conditions", order: 0),
             ChecklistItem(title: "2. Positive Exchange of Flight Controls", notes: "Understands and uses the positive three-step exchange of controls", order: 1),
@@ -1264,11 +1266,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p1L2ExpandingInstrumentSkills = ChecklistTemplate(
-        name: "P1-L2: Expanding Instrument Skills",
+    static let i1L2ExpandingInstrumentSkills = ChecklistTemplate(
+        name: "I1-L2: Expanding Instrument Skills",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l2_expanding_instrument_skills",
+        templateIdentifier: "default_i1_l2_expanding_instrument_skills",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist in identifying & mitigating flight risks, briefs the weather", order: 0),
             ChecklistItem(title: "2. Controlled Flight into Terrain Awareness", notes: "Briefs local area vertical obstructions & charted maximum elevation figures", order: 1),
@@ -1287,11 +1289,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p1L3UsingTheMagneticCompass = ChecklistTemplate(
-        name: "P1-L3: Using the Magnetic Compass",
+    static let i1L3UsingTheMagneticCompass = ChecklistTemplate(
+        name: "I1-L3: Using the Magnetic Compass",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l3_using_the_magnetic_compass",
+        templateIdentifier: "default_i1_l3_using_the_magnetic_compass",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, briefs weight & balance, takeoff & landing performance, & weather", order: 0),
             ChecklistItem(title: "2. Controlled Flight into Terrain Avoidance", notes: "Briefs local area minimum safe altitudes for IR operations", order: 1),
@@ -1311,11 +1313,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p1L4IFRFlightPlansAndClearances = ChecklistTemplate(
-        name: "P1-L4: IFR Flight Plans and Clearances",
+    static let i1L4IFRFlightPlansAndClearances = ChecklistTemplate(
+        name: "I1-L4: IFR Flight Plans and Clearances",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l4_ifr_flight_plans_and_clearances",
+        templateIdentifier: "default_i1_l4_ifr_flight_plans_and_clearances",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, briefs weight & balance, takeoff & landing performance, & weather", order: 0),
             ChecklistItem(title: "2. Enroute Charts", notes: "Review chart symbology for planned route", order: 1),
@@ -1336,11 +1338,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p1L5PrimaryFlightInstrumentDisplayFailure = ChecklistTemplate(
-        name: "P1-L5: Primary Flight Instrument/Display Failure",
+    static let i1L5PrimaryFlightInstrumentDisplayFailure = ChecklistTemplate(
+        name: "I1-L5: Primary Flight Instrument/Display Failure",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l5_primary_flight_instrument_display_failure",
+        templateIdentifier: "default_i1_l5_primary_flight_instrument_display_failure",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (W&B, Performance, Weather), reviews instrument systems", order: 0),
             ChecklistItem(title: "2. Situational Awareness", notes: "Review aircraft control using standby or partial-panel instruments", order: 1),
@@ -1361,11 +1363,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p1L6ReviewOfInstrumentControlAndProgressCheck = ChecklistTemplate(
-        name: "P1-L6: Review of Instrument Control and Progress Check",
+    static let i1L6ReviewOfInstrumentControlAndProgressCheck = ChecklistTemplate(
+        name: "I1-L6: Review of Instrument Control and Progress Check",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p1_l6_review_of_instrument_control_and_progress_check",
+        templateIdentifier: "default_i1_l6_review_of_instrument_control_and_progress_check",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs ways to maintain situational awareness & avoid terrain in instrument conditions", order: 1),
@@ -1389,11 +1391,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L1GPSAndVORForIFR = ChecklistTemplate(
-        name: "P2-L1: GPS and VOR for IFR",
+    static let i2L1GPSAndVORForIFR = ChecklistTemplate(
+        name: "I2-L1: GPS and VOR for IFR",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l1_gps_and_vor_for_ifr",
+        templateIdentifier: "default_i2_l1_gps_and_vor_for_ifr",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness", notes: "Reviews situational awareness issues with RNAV (GPS) and VOR systems", order: 1),
@@ -1413,11 +1415,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L2NDBADFNavigationAndDepartureProcedures = ChecklistTemplate(
-        name: "P2-L2: NDB/ADF Navigation and Departure Procedures",
+    static let i2L2NDBADFNavigationAndDepartureProcedures = ChecklistTemplate(
+        name: "I2-L2: NDB/ADF Navigation and Departure Procedures",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l2_ndb_adf_navigation_and_departure_procedures",
+        templateIdentifier: "default_i2_l2_ndb_adf_navigation_and_departure_procedures",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness", notes: "Reviews situational awareness issues with NDB/ADF and VOR systems and published procedures", order: 1),
@@ -1436,11 +1438,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L3BuildingSkillWithGPSVORAndNDBNDBNavigation = ChecklistTemplate(
-        name: "P2-L3: Building Skill with GPS, VOR and NDB/NDB Navigation",
+    static let i2L3BuildingSkillWithGPSVORAndNDBNDBNavigation = ChecklistTemplate(
+        name: "I2-L3: Building Skill with GPS, VOR and NDB/NDB Navigation",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l3_building_skill_with_gps_vor_and_ndb_ndb_navigation",
+        templateIdentifier: "default_i2_l3_building_skill_with_gps_vor_and_ndb_ndb_navigation",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness", notes: "Briefs situational awareness issues with GPS, NDB & VOR systems and published procedures", order: 1),
@@ -1458,11 +1460,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L4DMEARX = ChecklistTemplate(
-        name: "P2-L4: DME Arcs",
+    static let i2L4DMEARX = ChecklistTemplate(
+        name: "I2-L4: DME Arcs",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l4_dme_arx",
+        templateIdentifier: "default_i2_l4_dme_arx",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Task Management", notes: "Briefs priorities of aircraft control, navigation & communications", order: 1),
@@ -1481,11 +1483,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L5HoldingProcedures = ChecklistTemplate(
-        name: "P2-L5: Holding Procedures",
+    static let i2L5HoldingProcedures = ChecklistTemplate(
+        name: "I2-L5: Holding Procedures",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l5_holding_procedures",
+        templateIdentifier: "default_i2_l5_holding_procedures",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Aeronautical Decision Making", notes: "Review techniques for dealing with ATC imposed changes during a flight, use the CARE checklist", order: 1),
@@ -1504,11 +1506,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p2L6ProgressCheck = ChecklistTemplate(
-        name: "P2-L6: Progress Check",
+    static let i2L6ProgressCheck = ChecklistTemplate(
+        name: "I2-L6: Progress Check",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p2_l6_progress_check",
+        templateIdentifier: "default_i2_l6_progress_check",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness and Controlled Flight into Terrain Awareness", notes: "Briefs ways to maintain situational awareness & avoid terrain in instrument conditions", order: 1),
@@ -1531,11 +1533,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L1ILSApproachesAndProcedureTurns = ChecklistTemplate(
-        name: "P3-L1: ILS Approaches and Procedure Turns",
+    static let i3L1ILSApproachesAndProcedureTurns = ChecklistTemplate(
+        name: "I3-L1: ILS Approaches and Procedure Turns",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l1_ils_approaches_and_procedure_turns",
+        templateIdentifier: "default_i3_l1_ils_approaches_and_procedure_turns",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Situational Awareness", notes: "Briefs situational awareness issues with ILS approaches and published procedures", order: 1),
@@ -1554,11 +1556,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L2RNAVApproachesWithVerticalGuidance = ChecklistTemplate(
-        name: "P3-L2: RNAV Approaches with Vertical Guidance",
+    static let i3L2RNAVApproachesWithVerticalGuidance = ChecklistTemplate(
+        name: "I3-L2: RNAV Approaches with Vertical Guidance",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l2_rnav_approaches_with_vertical_guidance",
+        templateIdentifier: "default_i3_l2_rnav_approaches_with_vertical_guidance",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
@@ -1578,11 +1580,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L4VORAndNDBApproaches = ChecklistTemplate(
-        name: "P3-L4: VOR and NDB Approaches",
+    static let i3L4VORAndNDBApproaches = ChecklistTemplate(
+        name: "I3-L4: VOR and NDB Approaches",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l4_vor_and_ndb_approaches",
+        templateIdentifier: "default_i3_l4_vor_and_ndb_approaches",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist (Pilot, W&B, Performance, Reserves, Weather)", order: 0),
             ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
@@ -1600,11 +1602,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L5CirclingApproaches = ChecklistTemplate(
-        name: "P3-L5: Circling Approaches",
+    static let i3L5CirclingApproaches = ChecklistTemplate(
+        name: "I3-L5: Circling Approaches",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l5_circling_approaches",
+        templateIdentifier: "default_i3_l5_circling_approaches",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Uses PAVE checklist (Pilot, W&B, Performance, Reserves, Weather, day/night, area lighting)", order: 0),
             ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
@@ -1624,11 +1626,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L6PartialPanelAndUsingTheAutopilotForApproaches = ChecklistTemplate(
-        name: "P3-L6: Partial Panel and Using the Autopilot for Approaches",
+    static let i3L6PartialPanelAndUsingTheAutopilotForApproaches = ChecklistTemplate(
+        name: "I3-L6: Partial Panel and Using the Autopilot for Approaches",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l6_partial_panel_and_using_the_autopilot_for_approaches",
+        templateIdentifier: "default_i3_l6_partial_panel_and_using_the_autopilot_for_approaches",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, incorporates installed advanced/automated equipment in planning", order: 0),
             ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
@@ -1649,11 +1651,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p3L7ProgressCheck = ChecklistTemplate(
-        name: "P3-L7: Progress Check",
+    static let i3L7ProgressCheck = ChecklistTemplate(
+        name: "I3-L7: Progress Check",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p3_l7_progress_check",
+        templateIdentifier: "default_i3_l7_progress_check",
         items: [
             ChecklistItem(title: "1. Managing Risk for Instrument Flight", notes: "Employs PAVE checklist, incorporates installed advanced/automated equipment in planning", order: 0),
             ChecklistItem(title: "2. Single Pilot Resource Management", notes: "Briefs the resources available for single-pilot IFR operations", order: 1),
@@ -1677,11 +1679,11 @@ class DefaultTemplates {
     )
     
     // Phase 4: Instrument Cross Countries
-    static let p4L1ShortIFRCrossCountry = ChecklistTemplate(
-        name: "P4-L1: Short IFR Cross Country",
+    static let i4L1ShortIFRCrossCountry = ChecklistTemplate(
+        name: "I4-L1: Short IFR Cross Country",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p4_l1_short_ifr_cross_country",
+        templateIdentifier: "default_i4_l1_short_ifr_cross_country",
         items: [
             ChecklistItem(title: "1. Cross-Country Flight Planning", notes: "Plan IFR cross country to airport >50nm straight-line distance", order: 0),
             ChecklistItem(title: "2. En Route ATC Communications", notes: "Experience en route ATC communications and procedures", order: 1),
@@ -1696,11 +1698,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p4L2RefiningApproaches = ChecklistTemplate(
-        name: "P4-L2: Refining Approaches",
+    static let i4L2RefiningApproaches = ChecklistTemplate(
+        name: "I4-L2: Refining Approaches",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p4_l2_refining_approaches",
+        templateIdentifier: "default_i4_l2_refining_approaches",
         items: [
             ChecklistItem(title: "1. Single Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 0),
             ChecklistItem(title: "2. Instrument Cockpit Check", notes: "Instrument Rating Airman Certification Standards", order: 1),
@@ -1719,11 +1721,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p4L3LongIFRCrossCountryProgressCheck = ChecklistTemplate(
-        name: "P4-L3: Long IFR Cross Country Progress Check",
+    static let i4L3LongIFRCrossCountryProgressCheck = ChecklistTemplate(
+        name: "I4-L3: Long IFR Cross Country Progress Check",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p4_l3_long_ifr_cross_country_progress_check",
+        templateIdentifier: "default_i4_l3_long_ifr_cross_country_progress_check",
         items: [
             ChecklistItem(title: "1. Single-Pilot Resource Management", notes: "Instrument Rating Airman Certification Standards", order: 0),
             ChecklistItem(title: "2. Aeronautical Decision Making", notes: "Instrument Rating Airman Certification Standards", order: 1),
@@ -1748,11 +1750,11 @@ class DefaultTemplates {
     )
     
     // Phase 5: Becoming Instrument Rated
-    static let p5L1AirmanCertificationStandards = ChecklistTemplate(
-        name: "P5-L1: Airman Certification Standards",
+    static let i5L1AirmanCertificationStandards = ChecklistTemplate(
+        name: "I5-L1: Airman Certification Standards",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p5_l1_airman_certification_standards",
+        templateIdentifier: "default_i5_l1_airman_certification_standards",
         items: [
             ChecklistItem(title: "1. Airman Certification Standards", notes: "Introduction, Appendices, Areas of Operation & Tasks", order: 0),
             ChecklistItem(title: "2. Positive Aircraft Control", notes: "Instrument Rating Airman Certification Standards", order: 1),
@@ -1781,11 +1783,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p5L2HoningTheEdge = ChecklistTemplate(
-        name: "P5-L2: Honing the Edge",
+    static let i5L2HoningTheEdge = ChecklistTemplate(
+        name: "I5-L2: Honing the Edge",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p5_l2_honing_the_edge",
+        templateIdentifier: "default_i5_l2_honing_the_edge",
         items: [
             ChecklistItem(title: "25. Compliance with Departure, En Route, and Arrival Procedures and Clearances", notes: "Instrument Rating Airman Certification Standards", order: 0),
             ChecklistItem(title: "26. Holding Procedures", notes: "Instrument Rating Airman Certification Standards", order: 1),
@@ -1803,11 +1805,11 @@ class DefaultTemplates {
         ]
     )
     
-    static let p5L3PreCheckrideProgressCheck = ChecklistTemplate(
-        name: "P5-L3: Pre-Checkride Progress Check",
+    static let i5L3PreCheckrideProgressCheck = ChecklistTemplate(
+        name: "I5-L3: Pre-Checkride Progress Check",
         category: "Instrument",
         phase: "Instrument Rating",
-        templateIdentifier: "default_p5_l3_pre_checkride_progress_check",
+        templateIdentifier: "default_i5_l3_pre_checkride_progress_check",
         items: [
             ChecklistItem(title: "1. Airman Certification Standards", notes: "Introduction, Appendices, Areas of Operation & Tasks", order: 0),
             ChecklistItem(title: "2. Positive Aircraft Control", notes: "Instrument Rating Airman Certification Standards", order: 1),
@@ -1849,11 +1851,24 @@ class DefaultTemplates {
         ]
     )
     
+    static let i5L4Endorsements = ChecklistTemplate(
+        name: "I5-L4: Endorsements",
+        category: "Instrument",
+        phase: "Instrument Rating",
+        templateIdentifier: "default_i5_l4_endorsements",
+        items: [
+            ChecklistItem(title: "1. Instrument Rating Knowledge Test Endorsement", notes: "I certify that [Student Name] has received the required training of §61.65 and has satisfactorily completed the required knowledge test review. I have determined that [Student Name] is prepared for the knowledge test.", order: 0),
+            ChecklistItem(title: "2. Instrument Rating Practical Test Endorsement", notes: "I certify that [Student Name] has received the required training of §61.65 and has satisfactorily completed the required practical test review. I have determined that [Student Name] is prepared for the practical test.", order: 1),
+            ChecklistItem(title: "3. Instrument Rating Training Endorsement", notes: "I certify that [Student Name] has received the required training of §61.65 and has satisfactorily completed the required instrument training. I have determined that [Student Name] is prepared for instrument operations.", order: 2),
+            ChecklistItem(title: "4. Cross-Country Flight Training Endorsement", notes: "I certify that [Student Name] has received the required training of §61.65(c) and has satisfactorily completed the required cross-country flight training. I have determined that [Student Name] is prepared for cross-country instrument operations.", order: 3),
+        ]
+    )
+    
     // MARK: - Commercial Rating Templates
     
     // Stage 1: Learning Professional Cross-Country and Night Procedures
     static let c1L1DualCrossCountry = ChecklistTemplate(
-        name: "C1L1: Dual Cross-Country",
+        name: "C1-L1: Dual Cross-Country",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l1_dual_cross_country",
@@ -1893,7 +1908,7 @@ class DefaultTemplates {
     )
     
     static let c1L2DualLocalNight = ChecklistTemplate(
-        name: "C1L2: Dual Local, Night",
+        name: "C1-L2: Dual Local, Night",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l2_dual_local_night",
@@ -1911,7 +1926,7 @@ class DefaultTemplates {
     )
     
     static let c1L3PICCrossCountry = ChecklistTemplate(
-        name: "C1L3: PIC Cross-Country",
+        name: "C1-L3: PIC Cross-Country",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l3_pic_cross_country",
@@ -1943,7 +1958,7 @@ class DefaultTemplates {
     )
     
     static let c1L4DualCrossCountryNight = ChecklistTemplate(
-        name: "C1L4: Dual Cross-Country, Night",
+        name: "C1-L4: Dual Cross-Country, Night",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l4_dual_cross_country_night",
@@ -1964,7 +1979,7 @@ class DefaultTemplates {
     )
     
     static let c1L5SoloLocalNight = ChecklistTemplate(
-        name: "C1L5: Solo Local, Night",
+        name: "C1-L5: Solo Local, Night",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l5_solo_local_night",
@@ -1980,7 +1995,7 @@ class DefaultTemplates {
     )
     
     static let c1L6PICCrossCountry = ChecklistTemplate(
-        name: "C1L6: PIC Cross-Country",
+        name: "C1-L6: PIC Cross-Country",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l6_pic_cross_country",
@@ -2012,7 +2027,7 @@ class DefaultTemplates {
     )
     
     static let c1L7SoloLocalNight = ChecklistTemplate(
-        name: "C1L7: Solo Local, Night",
+        name: "C1-L7: Solo Local, Night",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l7_solo_local_night",
@@ -2028,7 +2043,7 @@ class DefaultTemplates {
     )
     
     static let c1L8SoloCrossCountryNight = ChecklistTemplate(
-        name: "C1L8: Solo Cross-Country, Night",
+        name: "C1-L8: Solo Cross-Country, Night",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l8_solo_cross_country_night",
@@ -2060,7 +2075,7 @@ class DefaultTemplates {
     )
     
     static let c1L9PICCrossCountry = ChecklistTemplate(
-        name: "C1L9: PIC Cross-Country",
+        name: "C1-L9: PIC Cross-Country",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l9_pic_cross_country",
@@ -2092,7 +2107,7 @@ class DefaultTemplates {
     )
     
     static let c1L10ProgressCheck = ChecklistTemplate(
-        name: "C1L10: Progress Check",
+        name: "C1-L10: Progress Check",
         category: "Commercial",
         phase: "Stage 1: Learning Professional Cross-Country and Night Procedures",
         templateIdentifier: "default_c1_l10_progress_check",
@@ -2130,7 +2145,7 @@ class DefaultTemplates {
     
     // Stage 2: Flying Complex Airplanes and Commercial Maneuvers
     static let c2L1DualLocalComplex = ChecklistTemplate(
-        name: "C2L1: Dual Local, Complex Aircraft",
+        name: "C2-L1: Dual Local, Complex Aircraft",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l1_dual_local_complex",
@@ -2151,7 +2166,7 @@ class DefaultTemplates {
     )
     
     static let c2L2DualLocalComplex = ChecklistTemplate(
-        name: "C2L2: Dual Local, Complex Aircraft",
+        name: "C2-L2: Dual Local, Complex Aircraft",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l2_dual_local_complex",
@@ -2182,7 +2197,7 @@ class DefaultTemplates {
     )
     
     static let c2L3SteepTurns = ChecklistTemplate(
-        name: "C2L3: Steep Turns",
+        name: "C2-L3: Steep Turns",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l3_steep_turns",
@@ -2201,7 +2216,7 @@ class DefaultTemplates {
     )
     
     static let c2L4Chandelles = ChecklistTemplate(
-        name: "C2L4: Chandelles",
+        name: "C2-L4: Chandelles",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l4_chandelles",
@@ -2219,7 +2234,7 @@ class DefaultTemplates {
     )
     
     static let c2L5LazyEights = ChecklistTemplate(
-        name: "C2L5: Lazy Eights",
+        name: "C2-L5: Lazy Eights",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l5_lazy_eights",
@@ -2235,7 +2250,7 @@ class DefaultTemplates {
     )
     
     static let c2L6EightsOnPylons = ChecklistTemplate(
-        name: "C2L6: Eights On Pylons",
+        name: "C2-L6: Eights On Pylons",
         category: "Commercial",
         phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers",
         templateIdentifier: "default_c2_l6_eights_on_pylons",
@@ -2258,7 +2273,7 @@ class DefaultTemplates {
     
     // Stage 3: Preparing for Commercial Pilot Check Ride
     static let c3L1DualLocal = ChecklistTemplate(
-        name: "C3L1: Dual Local",
+        name: "C3-L1: Dual Local",
         category: "Commercial",
         phase: "Stage 3: Preparing for Commercial Pilot Check Ride",
         templateIdentifier: "default_c3_l1_dual_local",
@@ -2282,7 +2297,7 @@ class DefaultTemplates {
     )
     
     static let c3L2FinalProgressCheck = ChecklistTemplate(
-        name: "C3L2: Final Progress Check",
+        name: "C3-L2: Final Progress Check",
         category: "Commercial",
         phase: "Stage 3: Preparing for Commercial Pilot Check Ride",
         templateIdentifier: "default_c3_l2_final_progress_check",
@@ -2339,6 +2354,21 @@ class DefaultTemplates {
             ChecklistItem(title: "50. Eights On Pylons", notes: "Execute eights on pylons to commercial standards", order: 49),
             ChecklistItem(title: "51. Parking and Securing", notes: "Proper parking and aircraft securing", order: 50),
             ChecklistItem(title: "52. Postflight Procedures", notes: "Complete postflight procedures and documentation", order: 51),
+        ]
+    )
+    
+    static let c3L3Endorsements = ChecklistTemplate(
+        name: "C3-L3: Endorsements",
+        category: "Commercial",
+        phase: "Stage 3: Preparing for Commercial Pilot Check Ride",
+        templateIdentifier: "default_c3_l3_endorsements",
+        items: [
+            ChecklistItem(title: "1. Commercial Pilot Knowledge Test Endorsement", notes: "I certify that [Student Name] has received the required training of §61.123 and has satisfactorily completed the required knowledge test review. I have determined that [Student Name] is prepared for the knowledge test.", order: 0),
+            ChecklistItem(title: "2. Commercial Pilot Practical Test Endorsement", notes: "I certify that [Student Name] has received the required training of §61.123 and has satisfactorily completed the required practical test review. I have determined that [Student Name] is prepared for the practical test.", order: 1),
+            ChecklistItem(title: "3. Complex Aircraft Endorsement", notes: "I certify that [Student Name] has received the required training of §61.31(e) and has satisfactorily completed the required complex aircraft training. I have determined that [Student Name] is prepared for complex aircraft operations.", order: 2),
+            ChecklistItem(title: "4. High-Performance Aircraft Endorsement", notes: "I certify that [Student Name] has received the required training of §61.31(f) and has satisfactorily completed the required high-performance aircraft training. I have determined that [Student Name] is prepared for high-performance aircraft operations.", order: 3),
+            ChecklistItem(title: "5. Tailwheel Endorsement", notes: "I certify that [Student Name] has received the required training of §61.31(i) and has satisfactorily completed the required tailwheel training. I have determined that [Student Name] is prepared for tailwheel operations.", order: 4),
+            ChecklistItem(title: "6. High-Altitude Endorsement", notes: "I certify that [Student Name] has received the required training of §61.31(g) and has satisfactorily completed the required high-altitude training. I have determined that [Student Name] is prepared for high-altitude operations.", order: 5),
         ]
     )
 }

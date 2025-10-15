@@ -158,6 +158,13 @@ struct PreSoloTrainingView: View {
         for (index, item) in sortedItems.enumerated() {
             item.order = index
         }
+        
+        // Save the changes to the database
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save checklist item order: \(error)")
+        }
     }
     
     private func loadTemplate() {

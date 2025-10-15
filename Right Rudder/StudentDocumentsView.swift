@@ -511,7 +511,11 @@ struct DocumentDetailView: View {
         print("DocumentDetailView: Loading document with \(fileData.count) bytes, filename: \(document.filename)")
         
         DispatchQueue.global(qos: .userInitiated).async {
-            let image = UIImage(data: fileData)
+            // Use autoreleasepool to manage memory during image processing
+            let image = autoreleasepool {
+                UIImage(data: fileData)
+            }
+            
             DispatchQueue.main.async {
                 if let image = image {
                     print("DocumentDetailView: Successfully loaded image")

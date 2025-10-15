@@ -179,24 +179,25 @@ struct ChecklistTemplatesView: View {
     }
     
     private var filteredTemplates: [ChecklistTemplate] {
-        templates.filter { $0.category == selectedCategory }
-            .sorted { $0.name < $1.name }
+        let filtered = templates.filter { $0.category == selectedCategory }
+        
+        // Use custom sorting for templates with lesson numbers
+        return filtered.sorted { template1, template2 in
+            let lesson1 = extractLessonNumber(from: template1.name)
+            let lesson2 = extractLessonNumber(from: template2.name)
+            
+            if let num1 = lesson1, let num2 = lesson2 {
+                return num1 < num2
+            }
+            
+            // Fallback to alphabetical for templates without lesson numbers
+            return template1.name < template2.name
+        }
     }
     
-    // Helper function to extract lesson number from P1 template names
-    // Optimized: Compiles regex once as a static property
-    private static let lessonNumberRegex = try? NSRegularExpression(pattern: "P1-L(\\d+)")
-    
+    // Use shared utility for lesson number extraction
     private func extractLessonNumber(from templateName: String) -> Int? {
-        guard let regex = Self.lessonNumberRegex else { return nil }
-        
-        let range = NSRange(location: 0, length: templateName.utf16.count)
-        guard let match = regex.firstMatch(in: templateName, range: range),
-              let numberRange = Range(match.range(at: 1), in: templateName) else {
-            return nil
-        }
-        
-        return Int(templateName[numberRange])
+        return TemplateSortingUtilities.extractLessonNumber(from: templateName)
     }
     
     private var phaseGroups: [PhaseGroup] {
@@ -227,64 +228,72 @@ struct ChecklistTemplatesView: View {
     }
     
     private func createInstrumentPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {
-        let phase1Templates = templates.filter { template in
-            template.name.contains("P1L") || template.name.contains("P1-L")
-        }
-        let phase2Templates = templates.filter { template in
-            template.name.contains("P2L") || template.name.contains("P2-L")
-        }
-        let phase3Templates = templates.filter { template in
-            template.name.contains("P3L") || template.name.contains("P3-L")
-        }
-        let phase4Templates = templates.filter { template in
-            template.name.contains("P4L") || template.name.contains("P4-L")
-        }
-        let phase5Templates = templates.filter { template in
-            template.name.contains("P5L") || template.name.contains("P5-L")
-        }
-        
+        // Single pass filtering for better performance
         var phaseGroups: [PhaseGroup] = []
+        var phase1Templates: [ChecklistTemplate] = []
+        var phase2Templates: [ChecklistTemplate] = []
+        var phase3Templates: [ChecklistTemplate] = []
+        var phase4Templates: [ChecklistTemplate] = []
+        var phase5Templates: [ChecklistTemplate] = []
+        
+        for template in templates {
+            if template.name.contains("I1-L") {
+                phase1Templates.append(template)
+            } else if template.name.contains("I2-L") {
+                phase2Templates.append(template)
+            } else if template.name.contains("I3-L") {
+                phase3Templates.append(template)
+            } else if template.name.contains("I4-L") {
+                phase4Templates.append(template)
+            } else if template.name.contains("I5-L") {
+                phase5Templates.append(template)
+            }
+        }
         
         if !phase1Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Phase 1: Basic instrument control and skills", templates: phase1Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Phase 1: Basic instrument control and skills", templates: sortPhase1Templates(phase1Templates)))
         }
         if !phase2Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Phase 2: Navigation systems and procedures", templates: phase2Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Phase 2: Navigation systems and procedures", templates: sortPhase1Templates(phase2Templates)))
         }
         if !phase3Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Phase 3: Instrument approaches and advanced procedures", templates: phase3Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Phase 3: Instrument approaches and advanced procedures", templates: sortPhase1Templates(phase3Templates)))
         }
         if !phase4Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Phase 4: Instrument Cross Countries", templates: phase4Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Phase 4: Instrument Cross Countries", templates: sortPhase1Templates(phase4Templates)))
         }
         if !phase5Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Phase 5: Becoming Instrument Rated", templates: phase5Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Phase 5: Becoming Instrument Rated", templates: sortPhase1Templates(phase5Templates)))
         }
         
         return phaseGroups
     }
     
     private func createCommercialPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {
-        let stage1Templates = templates.filter { template in
-            template.name.contains("C1L") || template.name.contains("C1-L")
-        }
-        let stage2Templates = templates.filter { template in
-            template.name.contains("C2L") || template.name.contains("C2-L")
-        }
-        let stage3Templates = templates.filter { template in
-            template.name.contains("C3L") || template.name.contains("C3-L")
-        }
-        
+        // Single pass filtering for better performance
         var phaseGroups: [PhaseGroup] = []
+        var stage1Templates: [ChecklistTemplate] = []
+        var stage2Templates: [ChecklistTemplate] = []
+        var stage3Templates: [ChecklistTemplate] = []
+        
+        for template in templates {
+            if template.name.contains("C1L") || template.name.contains("C1-L") {
+                stage1Templates.append(template)
+            } else if template.name.contains("C2L") || template.name.contains("C2-L") {
+                stage2Templates.append(template)
+            } else if template.name.contains("C3L") || template.name.contains("C3-L") {
+                stage3Templates.append(template)
+            }
+        }
         
         if !stage1Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Stage 1: Learning Professional Cross-Country and Night Procedures", templates: stage1Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Stage 1: Learning Professional Cross-Country and Night Procedures", templates: sortPhase1Templates(stage1Templates)))
         }
         if !stage2Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers", templates: stage2Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Stage 2: Flying Complex Airplanes and Commercial Maneuvers", templates: sortPhase1Templates(stage2Templates)))
         }
         if !stage3Templates.isEmpty {
-            phaseGroups.append(PhaseGroup(phase: "Stage 3: Preparing for Commercial Pilot Check Ride", templates: stage3Templates.sorted { $0.name < $1.name }))
+            phaseGroups.append(PhaseGroup(phase: "Stage 3: Preparing for Commercial Pilot Check Ride", templates: sortPhase1Templates(stage3Templates)))
         }
         
         return phaseGroups
@@ -293,36 +302,17 @@ struct ChecklistTemplatesView: View {
     private func sortTemplatesForPhase(_ templates: [ChecklistTemplate], phase: String) -> [ChecklistTemplate] {
         if phase == "First Steps" {
             return sortFirstStepsTemplates(templates)
-        } else if phase == "Phase 1" {
-            return sortPhase1Templates(templates)
         } else {
-            return templates.sorted { $0.name < $1.name }
+            return sortPhase1Templates(templates)
         }
     }
     
     private func sortFirstStepsTemplates(_ templates: [ChecklistTemplate]) -> [ChecklistTemplate] {
-        return templates.sorted { template1, template2 in
-            if template1.name == "Student Onboard/Training Overview" {
-                return true
-            }
-            if template2.name == "Student Onboard/Training Overview" {
-                return false
-            }
-            return template1.name < template2.name
-        }
+        return TemplateSortingUtilities.sortFirstStepsTemplates(templates)
     }
     
     private func sortPhase1Templates(_ templates: [ChecklistTemplate]) -> [ChecklistTemplate] {
-        return templates.sorted { template1, template2 in
-            let lesson1 = extractLessonNumber(from: template1.name)
-            let lesson2 = extractLessonNumber(from: template2.name)
-            
-            if let num1 = lesson1, let num2 = lesson2 {
-                return num1 < num2
-            }
-            
-            return template1.name < template2.name
-        }
+        return TemplateSortingUtilities.sortTemplatesByLessonNumber(templates)
     }
     
     private func sortPhaseGroups(_ phaseGroups: [PhaseGroup], phaseOrder: [String]) -> [PhaseGroup] {

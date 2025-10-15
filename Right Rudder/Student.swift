@@ -58,6 +58,10 @@ class StudentChecklist {
     var instructorComments: String?
     var dualGivenHours: Double = 0.0
     
+    // Template version tracking for automatic updates
+    var templateVersion: String? // Track which template version this checklist is based on
+    var templateIdentifier: String? // For reliable matching to default templates
+    
     // CloudKit sync attributes
     var cloudKitRecordID: String?
     var lastModified: Date = Date()
@@ -86,6 +90,7 @@ class Student {
     var backgroundNotes: String?
     var profilePhotoData: Data?
     var createdAt: Date = Date()
+    var customOrder: Int = 0  // For manual sorting
     
     // Instructor information (entered by student in companion app)
     var instructorName: String?
@@ -124,9 +129,12 @@ class Student {
                templateName.contains("ils") || templateName.contains("vor") || 
                templateName.contains("gps") || templateName.contains("ndb") ||
                templateName.contains("approach") || templateName.contains("holding") ||
-               templateName.contains("cross country") || templateName.contains("p4l") ||
-               templateName.contains("p5l") || templateName.contains("p1l") ||
-               templateName.contains("p2l") || templateName.contains("p3l") {
+               templateName.contains("cross country") || templateName.contains("i1-l") ||
+               templateName.contains("i2-l") || templateName.contains("i3-l") ||
+               templateName.contains("i4-l") || templateName.contains("i5-l") ||
+               templateName.contains("p4l") || templateName.contains("p5l") ||
+               templateName.contains("p1l") || templateName.contains("p2l") ||
+               templateName.contains("p3l") {
                 categoryCounts["Instrument", default: 0] += 1
             } else if templateName.contains("commercial") || templateName.contains("cpl") {
                 categoryCounts["Commercial", default: 0] += 1
