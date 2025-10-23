@@ -31,7 +31,7 @@ struct ReceiveTemplatesView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    Text("Import lesson templates from other Right Rudder users or create new templates from CSV files")
+                    Text("Import lesson checklists from other Right Rudder users or create new lessons from CSV files")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -52,7 +52,7 @@ struct ReceiveTemplatesView: View {
                                 Text("Import Lesson File")
                                     .font(.headline)
                                     .foregroundColor(.white)
-                                Text("Select a Right Rudder template file or CSV file")
+                                Text("Select a Right Rudder lesson file or CSV file")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
                             }
@@ -72,10 +72,10 @@ struct ReceiveTemplatesView: View {
                                 .font(.title2)
                                 .foregroundColor(.white)
                             VStack(alignment: .leading) {
-                                Text("Generate Template File")
+                                Text("Generate Lesson File")
                                     .font(.headline)
                                     .foregroundColor(.white)
-                                Text("Create a CSV template for organizing new checklists")
+                                Text("Create a CSV file for organizing new lessons")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
                             }
@@ -99,7 +99,7 @@ struct ReceiveTemplatesView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Import Templates")
+            .navigationTitle("Import Lessons")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

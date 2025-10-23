@@ -56,7 +56,7 @@ struct AddChecklistToStudentView: View {
                             Text(category)
                                 .font(.headline)
                                 .foregroundColor(.primary)
-                            Text("\(templatesInCategory(category).count) templates")
+                            Text("\(templatesInCategory(category).count) lessons")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

@@ -19,7 +19,7 @@ struct ChecklistTemplateDetailView: View {
 
     var body: some View {
         Form {
-            Section("Template Information") {
+            Section("Lesson Information") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(template.name)
                         .font(.headline)
@@ -43,7 +43,7 @@ struct ChecklistTemplateDetailView: View {
                 }
             }
         }
-        .navigationTitle("Template Details")
+        .navigationTitle("Lesson Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

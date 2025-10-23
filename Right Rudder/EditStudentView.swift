@@ -27,6 +27,15 @@ struct EditStudentView: View {
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var capturedImage: UIImage?
+    @State private var selectedCategory: String
+    @State private var isInactive: Bool
+    @State private var hasChanges: Bool = false
+    
+    // Store original values for comparison
+    private let originalCategory: String
+    private let originalInactive: Bool
+    
+    private let categories = ["PPL", "IFR", "CPL", "CFI", "Review"]
 
     init(student: Student) {
         self._student = State(initialValue: student)
@@ -38,6 +47,12 @@ struct EditStudentView: View {
         self._ftnNumber = State(initialValue: student.ftnNumber.isEmpty ? "Enter FTN number (optional)" : student.ftnNumber)
         self._biography = State(initialValue: student.biography ?? "")
         self._backgroundNotes = State(initialValue: student.backgroundNotes ?? "")
+        self._selectedCategory = State(initialValue: student.assignedCategory ?? "PPL")
+        self._isInactive = State(initialValue: student.isInactive)
+        
+        // Store original values for comparison
+        self.originalCategory = student.assignedCategory ?? "PPL"
+        self.originalInactive = student.isInactive
     }
 
     var body: some View {
@@ -71,6 +86,21 @@ struct EditStudentView: View {
                         .lineLimit(3...6)
                     TextField("Background Notes", text: $backgroundNotes, axis: .vertical)
                         .lineLimit(3...6)
+                }
+                
+                Section("Student Category") {
+                    Picker("Training Category", selection: $selectedCategory) {
+                        ForEach(categories, id: \.self) { category in
+                            Text(category).tag(category)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: selectedCategory) { checkForChanges() }
+                }
+                
+                Section("Status") {
+                    Toggle("Inactive Student", isOn: $isInactive)
+                        .foregroundColor(isInactive ? .red : .primary)
                 }
                 
                 Section("ID Photo") {
@@ -161,11 +191,42 @@ struct EditStudentView: View {
                 student.profilePhotoData = image.jpegData(compressionQuality: 0.8)
             }
         }
+        .onChange(of: firstName) { checkForChanges() }
+        .onChange(of: lastName) { checkForChanges() }
+        .onChange(of: email) { checkForChanges() }
+        .onChange(of: telephone) { checkForChanges() }
+        .onChange(of: homeAddress) { checkForChanges() }
+        .onChange(of: ftnNumber) { checkForChanges() }
+        .onChange(of: biography) { checkForChanges() }
+        .onChange(of: backgroundNotes) { checkForChanges() }
+        .onChange(of: selectedCategory) { checkForChanges() }
+        .onChange(of: isInactive) { checkForChanges() }
     }
     
     private var isFormValid: Bool {
-        !firstName.isEmpty && !lastName.isEmpty && !email.isEmpty && !telephone.isEmpty && 
-        homeAddress != "Enter home address (optional)" && ftnNumber != "Enter FTN number (optional)"
+        // Check basic required fields
+        guard !firstName.isEmpty && !lastName.isEmpty && !email.isEmpty && !telephone.isEmpty else {
+            return false
+        }
+        
+        // Only check for changes if basic fields are valid
+        return hasChanges
+    }
+    
+    private func checkForChanges() {
+        let categoryChanged = selectedCategory != originalCategory
+        let inactiveChanged = isInactive != originalInactive
+        
+        hasChanges = firstName != student.firstName ||
+                    lastName != student.lastName ||
+                    email != student.email ||
+                    telephone != student.telephone ||
+                    (homeAddress == "Enter home address (optional)" ? "" : homeAddress) != student.homeAddress ||
+                    (ftnNumber == "Enter FTN number (optional)" ? "" : ftnNumber) != student.ftnNumber ||
+                    (biography.isEmpty ? nil : biography) != student.biography ||
+                    (backgroundNotes.isEmpty ? nil : backgroundNotes) != student.backgroundNotes ||
+                    categoryChanged ||
+                    inactiveChanged
     }
     
     private func saveStudent() {
@@ -177,6 +238,8 @@ struct EditStudentView: View {
         student.ftnNumber = ftnNumber == "Enter FTN number (optional)" ? "" : ftnNumber
         student.biography = biography.isEmpty ? nil : biography
         student.backgroundNotes = backgroundNotes.isEmpty ? nil : backgroundNotes
+        student.assignedCategory = selectedCategory
+        student.isInactive = isInactive
         
         dismiss()
     }

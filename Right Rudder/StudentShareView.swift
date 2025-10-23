@@ -204,10 +204,13 @@ struct StudentShareView: View {
     }
     
     private func createShare() async {
+        print("🎯 UI: Starting share creation for student: \(student.displayName)")
         isGeneratingShare = true
         errorMessage = nil
         
+        print("🎯 UI: Calling shareService.createShareForStudent...")
         if let url = await shareService.createShareForStudent(student, modelContext: modelContext) {
+            print("🎯 UI: Share creation returned URL: \(url)")
             shareURL = url
             hasActiveShare = true
             showShareSheet = true
@@ -219,6 +222,8 @@ struct StudentShareView: View {
             // Start periodic checking for acceptance
             startMonitoringForAcceptance()
         } else {
+            print("🎯 UI: Share creation returned nil")
+            print("🎯 UI: Error message: \(shareService.errorMessage ?? "No error message")")
             errorMessage = shareService.errorMessage ?? "Failed to create share"
         }
         

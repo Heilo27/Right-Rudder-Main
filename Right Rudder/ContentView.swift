@@ -25,16 +25,23 @@ struct ContentView: View {
             ChecklistTemplatesView()
                 .tabItem {
                     Image(systemName: "list.bullet.clipboard")
-                    Text("Templates")
+                    Text("Lessons")
                 }
                 .tag(1)
+            
+            EndorsementGeneratorView()
+                .tabItem {
+                    Image(systemName: "signature")
+                    Text("Endorsement")
+                }
+                .tag(2)
             
             SettingsView()
                 .tabItem {
                     Image(systemName: "gear")
                     Text("Settings")
                 }
-                .tag(2)
+                .tag(3)
             
         }
         .onAppear {

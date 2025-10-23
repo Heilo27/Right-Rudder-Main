@@ -12,12 +12,23 @@ struct InstructorInfoView: View {
     
     @AppStorage("instructorName") private var instructorName: String = ""
     @AppStorage("instructorCFINumber") private var instructorCFINumber: String = ""
-    @AppStorage("instructorCFIExpiration") private var instructorCFIExpiration: String = ""
+    @AppStorage("instructorCFIExpirationDateString") private var instructorCFIExpirationDateString: String = ""
+    @AppStorage("instructorCFIHasExpiration") private var instructorCFIHasExpiration: Bool = false
     
     @State private var tempInstructorName: String = ""
     @State private var tempInstructorCFINumber: String = ""
-    @State private var tempInstructorCFIExpiration: String = ""
+    @State private var tempInstructorCFIExpirationDate: Date = Date()
+    @State private var tempInstructorCFIHasExpiration: Bool = false
     @State private var showingSavedAlert = false
+    
+    private var instructorCFIExpirationDate: Date {
+        if instructorCFIExpirationDateString.isEmpty {
+            return Date()
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: instructorCFIExpirationDateString) ?? Date()
+    }
     
     var body: some View {
         NavigationView {
@@ -56,11 +67,22 @@ struct InstructorInfoView: View {
                     .padding(.vertical, 4)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("CFI Expiration Date (Optional)")
+                        Toggle("CFI Has Expiration Date", isOn: $tempInstructorCFIHasExpiration)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        TextField("e.g., 12/31/2025", text: $tempInstructorCFIExpiration)
-                            .keyboardType(.default)
+                        
+                        if tempInstructorCFIHasExpiration {
+                            DatePicker("CFI Expiration Date", selection: $tempInstructorCFIExpirationDate, displayedComponents: .date)
+                                .font(.caption)
+                        } else {
+                            DatePicker("CFI Recent Experience Date", selection: $tempInstructorCFIExpirationDate, displayedComponents: .date)
+                                .font(.caption)
+                        }
+                        
+                        Text(getCFIDateDescription())
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .italic()
                     }
                     .padding(.vertical, 4)
                 }
@@ -86,12 +108,20 @@ struct InstructorInfoView: View {
                         }
                     }
                     
-                    if !instructorCFIExpiration.isEmpty {
+                    if instructorCFIHasExpiration {
                         HStack {
                             Text("CFI Expiration:")
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text(instructorCFIExpiration)
+                            Text(formatDate(instructorCFIExpirationDate))
+                                .fontWeight(.medium)
+                        }
+                    } else {
+                        HStack {
+                            Text("CFI Recent Experience:")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatDate(instructorCFIExpirationDate))
                                 .fontWeight(.medium)
                         }
                     }
@@ -136,20 +166,54 @@ struct InstructorInfoView: View {
     private func loadExistingInfo() {
         tempInstructorName = instructorName
         tempInstructorCFINumber = instructorCFINumber
-        tempInstructorCFIExpiration = instructorCFIExpiration
+        tempInstructorCFIExpirationDate = instructorCFIExpirationDate
+        tempInstructorCFIHasExpiration = instructorCFIHasExpiration
     }
     
     private func saveInstructorInfo() {
         instructorName = tempInstructorName
         instructorCFINumber = tempInstructorCFINumber
-        instructorCFIExpiration = tempInstructorCFIExpiration
         
-        print("Instructor information saved: \(instructorName), CFI: \(instructorCFINumber), Expiration: \(instructorCFIExpiration)")
+        // Convert date to string for storage
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        instructorCFIExpirationDateString = formatter.string(from: tempInstructorCFIExpirationDate)
+        
+        instructorCFIHasExpiration = tempInstructorCFIHasExpiration
+        
+        print("Instructor information saved: \(instructorName), CFI: \(instructorCFINumber), Expiration: \(instructorCFIHasExpiration ? "Yes" : "No"), Date: \(instructorCFIExpirationDateString)")
         showingSavedAlert = true
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd/yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func getCFIDateDescription() -> String {
+        let now = Date()
+        let calendar = Calendar.current
+        let monthsAgo = calendar.date(byAdding: .month, value: -24, to: now) ?? now
+        
+        if tempInstructorCFIHasExpiration {
+            if tempInstructorCFIExpirationDate > now {
+                return "Expiration Date: Certificate expires on this date"
+            } else {
+                return "Expiration Date: Certificate has expired"
+            }
+        } else {
+            if tempInstructorCFIExpirationDate >= monthsAgo {
+                return "Recent Experience: Valid within 24 months"
+            } else {
+                return "Recent Experience: Expired (over 24 months old)"
+            }
+        }
     }
 }
 
 #Preview {
     InstructorInfoView()
 }
+
 

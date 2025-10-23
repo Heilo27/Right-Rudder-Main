@@ -15,6 +15,7 @@ struct RightRudderApp: App {
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     @StateObject private var pushNotificationService = PushNotificationService.shared
     @State private var shouldShowWhatsNew = false
+    @State private var shouldShowCFIWarning = false
     
     init() {
         // Initialize memory monitoring
@@ -99,7 +100,11 @@ struct RightRudderApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if shouldShowWhatsNew {
+                if shouldShowCFIWarning {
+                    CFIExpirationWarningView {
+                        shouldShowCFIWarning = false
+                    }
+                } else if shouldShowWhatsNew {
                     WhatsNewView()
                 } else {
                     SplashScreenView()
@@ -112,8 +117,13 @@ struct RightRudderApp: App {
                     await pushNotificationService.subscribeToInstructorComments()
                 }
                 
-                // Check if we should show What's New screen
-                shouldShowWhatsNew = WhatsNewService.shouldShowWhatsNew()
+                // Check if we should show CFI warning
+                shouldShowCFIWarning = CFIExpirationWarningService.shared.shouldShowWarning()
+                
+                // Check if we should show What's New screen (only if no CFI warning)
+                if !shouldShowCFIWarning {
+                    shouldShowWhatsNew = WhatsNewService.shouldShowWhatsNew()
+                }
             }
             .onOpenURL { url in
                 handleIncomingURL(url)

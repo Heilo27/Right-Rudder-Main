@@ -86,7 +86,7 @@ struct AddStudentView: View {
     
     private var isFormValid: Bool {
         !firstName.isEmpty && !lastName.isEmpty && !email.isEmpty && !telephone.isEmpty && 
-        homeAddress != "Enter home address" && ftnNumber != "Enter FTN number"
+        homeAddress != "Enter home address (optional)" && ftnNumber != "Enter FTN number (optional)"
     }
     
     private func saveStudent() {
@@ -95,8 +95,8 @@ struct AddStudentView: View {
             lastName: lastName,
             email: email,
             telephone: telephone,
-            homeAddress: homeAddress == "Enter home address" ? "" : homeAddress,
-            ftnNumber: ftnNumber == "Enter FTN number" ? "" : ftnNumber
+            homeAddress: homeAddress == "Enter home address (optional)" ? "" : homeAddress,
+            ftnNumber: ftnNumber == "Enter FTN number (optional)" ? "" : ftnNumber
         )
         student.biography = biography.isEmpty ? nil : biography
         student.backgroundNotes = backgroundNotes.isEmpty ? nil : backgroundNotes
@@ -104,6 +104,10 @@ struct AddStudentView: View {
         // Automatically add instructor information from settings
         student.instructorName = instructorName.isEmpty ? nil : instructorName
         student.instructorCFINumber = instructorCFINumber.isEmpty ? nil : instructorCFINumber
+        
+        // Set default values for new fields
+        student.assignedCategory = "PPL"  // Default to PPL for new students
+        student.isInactive = false  // New students are active by default
         
         modelContext.insert(student)
         dismiss()

@@ -29,8 +29,8 @@ struct EditChecklistTemplateView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Template Information") {
-                    TextField("Template Name", text: $templateName)
+                Section("Lesson Information") {
+                    TextField("Lesson Name", text: $templateName)
                     Text("Category: \(template.category)")
                         .foregroundColor(.secondary)
                 }
@@ -77,7 +77,7 @@ struct EditChecklistTemplateView: View {
                     }
                 }
             }
-            .navigationTitle("Edit Template")
+            .navigationTitle("Edit Lesson")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

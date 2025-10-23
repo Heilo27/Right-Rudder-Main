@@ -20,8 +20,8 @@ struct AddChecklistTemplateView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Template Name")) {
-                    TextField("Enter template name", text: $templateName)
+                Section(header: Text("Lesson Name")) {
+                    TextField("Enter lesson name", text: $templateName)
                         .autocapitalization(.words)
                 }
                 
@@ -45,7 +45,7 @@ struct AddChecklistTemplateView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("New Template")
+            .navigationTitle("New Lesson")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

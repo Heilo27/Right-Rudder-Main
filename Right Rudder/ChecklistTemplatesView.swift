@@ -21,11 +21,11 @@ struct ChecklistTemplatesView: View {
                 categoryPicker
                 templatesList
             }
-            .navigationTitle("Checklist Templates")
+            .navigationTitle("Lessons")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button("Add new Checklist") {
+                        Button("Add new Lesson") {
                             showingAddTemplate = true
                         }
                         
@@ -164,7 +164,7 @@ struct ChecklistTemplatesView: View {
                 Text(template.name)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                Text("\(template.items?.count ?? 0) items")
+                Text("\(template.items?.count ?? 0) tasks")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

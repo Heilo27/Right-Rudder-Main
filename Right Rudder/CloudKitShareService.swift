@@ -14,6 +14,9 @@ class CloudKitShareService: ObservableObject {
     private let database: CKDatabase
     private let customZoneName = "SharedStudentsZone"
     
+    // Cache for the custom zone to avoid repeated checks
+    private var cachedZone: CKRecordZone?
+    
     init() {
         self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
         self.database = container.privateCloudDatabase
@@ -21,12 +24,18 @@ class CloudKitShareService: ObservableObject {
     
     /// Creates or fetches the custom zone needed for sharing
     private func ensureCustomZoneExists() async throws -> CKRecordZone {
+        // Return cached zone if available
+        if let cachedZone = cachedZone {
+            return cachedZone
+        }
+        
         let zoneID = CKRecordZone.ID(zoneName: customZoneName, ownerName: CKCurrentUserDefaultName)
         
         do {
             // Try to fetch existing zone
             let zone = try await database.recordZone(for: zoneID)
             print("Custom zone already exists: \(customZoneName)")
+            cachedZone = zone
             return zone
         } catch {
             // Zone doesn't exist, create it
@@ -34,19 +43,29 @@ class CloudKitShareService: ObservableObject {
             let zone = CKRecordZone(zoneID: zoneID)
             let savedZone = try await database.save(zone)
             print("Custom zone created successfully")
+            cachedZone = savedZone
             return savedZone
         }
     }
     
     /// Creates a CKShare for a specific student and returns the share URL
     func createShareForStudent(_ student: Student, modelContext: ModelContext) async -> URL? {
+        print("🚀 STARTING SHARE CREATION for student: \(student.displayName)")
+        print("  - Student ID: \(student.id)")
+        print("  - CloudKit Record ID: \(student.cloudKitRecordID ?? "none")")
+        print("  - Container: \(container.containerIdentifier ?? "unknown")")
+        print("  - Database: \(database.databaseScope.rawValue)")
         isSharing = true
         errorMessage = nil
         
         do {
             // Check CloudKit availability first
+            print("🔍 Checking CloudKit account status...")
             let accountStatus = try await container.accountStatus()
+            print("✅ CloudKit account status: \(accountStatus.rawValue)")
+            
             guard accountStatus == .available else {
+                print("❌ CloudKit account not available: \(accountStatus.rawValue)")
                 errorMessage = "iCloud account not available. Please sign in to iCloud in Settings."
                 isSharing = false
                 return nil
@@ -108,8 +127,22 @@ class CloudKitShareService: ObservableObject {
             
             // Configure share permissions
             share[CKShare.SystemFieldKey.title] = "Student Profile: \(student.displayName)" as CKRecordValue
-            share[CKShare.SystemFieldKey.shareType] = "com.heiloprojects.rightrudder.student" as CKRecordValue
-            share.publicPermission = .none
+            share[CKShare.SystemFieldKey.shareType] = "com.apple.cloudkit.share" as CKRecordValue
+            
+            // Add version information to help with compatibility
+            share["appVersion"] = "1.5" as CKRecordValue
+            share["appIdentifier"] = "com.heiloprojects.rightrudder.student" as CKRecordValue
+            
+            print("Using Apple CloudKit share type: com.apple.cloudkit.share")
+            print("Added version info: 1.5")
+            
+            // CRITICAL: Set public permission to readOnly to allow share URL access
+            share.publicPermission = .readOnly  // Change from .none to .readOnly
+            
+            print("Share configuration:")
+            print("  - Public Permission: \(share.publicPermission.rawValue)")
+            print("  - Root Record: \(studentRecord.recordID.recordName)")
+            print("  - Zone: \(studentRecord.recordID.zoneID.zoneName)")
             
             print("Saving share and record together")
             // Save both the share and the record using the modify API
@@ -132,7 +165,20 @@ class CloudKitShareService: ObservableObject {
                         print("Found saved share!")
                     }
                 case .failure(let error):
-                    print("Failed to save record \(recordID.recordName): \(error)")
+                    print("❌ Failed to save record \(recordID.recordName): \(error)")
+                    if let ckError = error as? CKError {
+                        print("CloudKit error details:")
+                        print("  - Error Code: \(ckError.errorCode)")
+                        print("  - Description: \(ckError.localizedDescription)")
+                        print("  - Retry After: \(ckError.retryAfterSeconds ?? 0)")
+                        if let underlyingError = ckError.errorUserInfo[NSUnderlyingErrorKey] as? Error {
+                            print("  - Underlying error: \(underlyingError)")
+                        }
+                        if let partialErrors = ckError.partialErrorsByItemID {
+                            print("  - Partial errors: \(partialErrors)")
+                        }
+                    }
+                    throw error // Re-throw to stop share creation if save fails
                 }
             }
             
@@ -147,6 +193,18 @@ class CloudKitShareService: ObservableObject {
             }
             
             print("Share URL: \(shareURL.absoluteString)")
+            print("Share Record ID: \(finalShare.recordID.recordName)")
+            print("Share Zone: \(finalShare.recordID.zoneID.zoneName)")
+            print("Share Public Permission: \(finalShare.publicPermission)")
+            print("Share Participants: \(finalShare.participants.count)")
+            
+            // Additional debugging information
+            print("=== SHARE DEBUG INFO ===")
+            print("Student Record ID: \(studentRecord.recordID.recordName)")
+            print("Student Record Zone: \(studentRecord.recordID.zoneID.zoneName)")
+            print("Share Title: \(finalShare[CKShare.SystemFieldKey.title] as? String ?? "No title")")
+            print("Share Type: \(finalShare[CKShare.SystemFieldKey.shareType] as? String ?? "No type")")
+            print("=========================")
             
             // Update student's CloudKit record ID
             student.cloudKitRecordID = studentRecord.recordID.recordName
@@ -161,17 +219,25 @@ class CloudKitShareService: ObservableObject {
             return shareURL
             
         } catch let error as CKError {
-            print("CloudKit error: \(error)")
-            print("Error code: \(error.errorCode)")
-            print("Error description: \(error.localizedDescription)")
+            print("❌ CLOUDKIT ERROR during share creation:")
+            print("  - Error: \(error)")
+            print("  - Error code: \(error.errorCode)")
+            print("  - Description: \(error.localizedDescription)")
+            print("  - Retry after: \(error.retryAfterSeconds ?? 0)")
             if let underlyingError = error.errorUserInfo[NSUnderlyingErrorKey] as? Error {
-                print("Underlying error: \(underlyingError)")
+                print("  - Underlying error: \(underlyingError)")
+            }
+            if let partialErrors = error.partialErrorsByItemID {
+                print("  - Partial errors: \(partialErrors)")
             }
             errorMessage = "CloudKit error: \(error.localizedDescription)"
             isSharing = false
             return nil
         } catch {
-            print("Failed to create share: \(error)")
+            print("❌ GENERAL ERROR during share creation:")
+            print("  - Error: \(error)")
+            print("  - Type: \(type(of: error))")
+            print("  - Description: \(error.localizedDescription)")
             errorMessage = "Failed to create share: \(error.localizedDescription)"
             isSharing = false
             return nil
@@ -199,6 +265,19 @@ class CloudKitShareService: ObservableObject {
             print("Failed to remove share: \(error)")
             errorMessage = "Failed to remove share: \(error.localizedDescription)"
             return false
+        }
+    }
+    
+    /// Validates a share URL and provides debugging information
+    func validateShareURL(_ url: URL) async -> (isValid: Bool, error: String?) {
+        // For now, we'll assume the URL is valid if it's a proper CloudKit share URL
+        // The actual validation will happen when the student app tries to accept the share
+        if url.absoluteString.contains("icloud.com/share") {
+            print("Share URL appears to be valid CloudKit share URL")
+            return (true, nil)
+        } else {
+            print("Share URL does not appear to be a valid CloudKit share URL")
+            return (false, "Invalid share URL format")
         }
     }
     

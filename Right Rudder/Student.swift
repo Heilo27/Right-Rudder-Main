@@ -91,6 +91,8 @@ class Student {
     var profilePhotoData: Data?
     var createdAt: Date = Date()
     var customOrder: Int = 0  // For manual sorting
+    var assignedCategory: String? = nil  // Manual category assignment
+    var isInactive: Bool = false  // Inactive student status
     
     // Instructor information (entered by student in companion app)
     var instructorName: String?
@@ -114,51 +116,9 @@ class Student {
         checklists?.reduce(0.0) { $0 + $1.dualGivenHours } ?? 0.0
     }
     
-    // Determine primary training category based on checklists
+    // Determine primary training category - use manual assignment if set, otherwise default to PPL
     var primaryCategory: String {
-        guard let checklists = checklists, !checklists.isEmpty else { return "PPL" }
-        
-        // Count categories from all checklists based on template names
-        var categoryCounts: [String: Int] = [:]
-        
-        for checklist in checklists {
-            let templateName = checklist.templateName.lowercased()
-            
-            // More comprehensive pattern matching for better categorization
-            if templateName.contains("instrument") || templateName.contains("ifr") || 
-               templateName.contains("ils") || templateName.contains("vor") || 
-               templateName.contains("gps") || templateName.contains("ndb") ||
-               templateName.contains("approach") || templateName.contains("holding") ||
-               templateName.contains("cross country") || templateName.contains("i1-l") ||
-               templateName.contains("i2-l") || templateName.contains("i3-l") ||
-               templateName.contains("i4-l") || templateName.contains("i5-l") ||
-               templateName.contains("p4l") || templateName.contains("p5l") ||
-               templateName.contains("p1l") || templateName.contains("p2l") ||
-               templateName.contains("p3l") {
-                categoryCounts["Instrument", default: 0] += 1
-            } else if templateName.contains("commercial") || templateName.contains("cpl") {
-                categoryCounts["Commercial", default: 0] += 1
-            } else if templateName.contains("review") || templateName.contains("flight review") ||
-                      templateName.contains("biannual") || templateName.contains("biennial") ||
-                      templateName.contains("ipc") || templateName.contains("proficiency") {
-                categoryCounts["Reviews", default: 0] += 1
-            } else if templateName.contains("ppl") || templateName.contains("private pilot") ||
-                      templateName.contains("solo") || templateName.contains("cross country") ||
-                      templateName.contains("maneuver") || templateName.contains("landing") ||
-                      templateName.contains("takeoff") || templateName.contains("stall") ||
-                      templateName.contains("emergency") || templateName.contains("night") ||
-                      templateName.contains("phase 1") || templateName.contains("phase 2") ||
-                      templateName.contains("phase 3") || templateName.contains("phase 4") {
-                categoryCounts["PPL", default: 0] += 1
-            } else {
-                // Default to PPL for unrecognized templates
-                categoryCounts["PPL", default: 0] += 1
-            }
-        }
-        
-        // Return the category with the most checklists, default to PPL if tied
-        let maxCategory = categoryCounts.max(by: { $0.value < $1.value })?.key ?? "PPL"
-        return maxCategory
+        return assignedCategory ?? "PPL"
     }
     
     init(firstName: String, lastName: String, email: String, telephone: String, homeAddress: String, ftnNumber: String) {

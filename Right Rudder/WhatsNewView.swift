@@ -47,8 +47,8 @@ struct WhatsNewView: View {
         ),
         FeatureItem(
             icon: "square.and.arrow.up",
-            title: "Template Sharing & Export",
-            description: "Share custom checklist templates with other instructors and export student records as PDFs for record keeping.",
+            title: "Lesson Sharing & Export",
+            description: "Share custom lesson checklists with other instructors and export student records as PDFs for record keeping.",
             color: .indigo
         )
     ]

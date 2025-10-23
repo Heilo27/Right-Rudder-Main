@@ -72,7 +72,7 @@ struct ShareTemplatesView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    Text("Select the checklist templates you want to share with other Right Rudder users")
+                    Text("Select the lesson checklists you want to share with other Right Rudder users")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -83,7 +83,7 @@ struct ShareTemplatesView: View {
                 // Template list
                 List {
                     if !userCreatedTemplates.isEmpty {
-                        Section("Your Custom Templates") {
+                        Section("Your Custom Lessons") {
                             ForEach(userCreatedTemplates) { template in
                                 TemplateRow(
                                     template: template,
@@ -95,7 +95,7 @@ struct ShareTemplatesView: View {
                     }
                     
                     if !userModifiedTemplates.isEmpty {
-                        Section("Modified Templates") {
+                        Section("Modified Lessons") {
                             ForEach(userModifiedTemplates) { template in
                                 TemplateRow(
                                     template: template,
@@ -107,7 +107,7 @@ struct ShareTemplatesView: View {
                     }
                     
                     if !defaultTemplates.isEmpty {
-                        Section("Default Templates") {
+                        Section("Default Lessons") {
                             ForEach(defaultTemplates) { template in
                                 TemplateRow(
                                     template: template,
@@ -165,7 +165,7 @@ struct ShareTemplatesView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Image(systemName: "square.and.arrow.up")
-                                Text("Share Selected Templates")
+                                Text("Share Selected Lessons")
                             }
                         }
                         .frame(maxWidth: .infinity)
