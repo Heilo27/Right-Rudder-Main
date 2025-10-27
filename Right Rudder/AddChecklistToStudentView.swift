@@ -12,6 +12,7 @@ struct AddChecklistToStudentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: String? = nil
+    @StateObject private var cloudKitShareService = CloudKitShareService()
     
     let student: Student
     let templates: [ChecklistTemplate]
@@ -26,6 +27,9 @@ struct AddChecklistToStudentView: View {
         }
         .navigationTitle(selectedCategory == nil ? "Select Category" : "Add Checklist")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            cloudKitShareService.setModelContext(modelContext)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 if selectedCategory != nil {
@@ -279,6 +283,11 @@ struct AddChecklistToStudentView: View {
                     try self.modelContext.save()
                     // Force a refresh of the student object to trigger UI updates
                     self.student.lastModified = Date()
+                    
+                    // Trigger automatic sync to shared zone
+                    Task {
+                        await self.cloudKitShareService.syncStudentChecklistsToSharedZone(self.student, modelContext: self.modelContext)
+                    }
                 } catch {
                     print("Failed to save student checklist: \(error)")
                 }
@@ -329,6 +338,11 @@ struct AddChecklistToStudentView: View {
                     try self.modelContext.save()
                     // Force a refresh of the student object to trigger UI updates
                     self.student.lastModified = Date()
+                    
+                    // Trigger automatic sync to shared zone
+                    Task {
+                        await self.cloudKitShareService.syncStudentChecklistsToSharedZone(self.student, modelContext: self.modelContext)
+                    }
                 } catch {
                     print("Failed to save student checklists: \(error)")
                 }

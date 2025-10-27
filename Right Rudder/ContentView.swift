@@ -10,7 +10,6 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var students: [Student]
     @State private var selectedTab = 0
 
     var body: some View {

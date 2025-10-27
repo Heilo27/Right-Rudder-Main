@@ -73,7 +73,7 @@ struct WhatsNewView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.blue)
                         
-                        Text("What's New in v1.5")
+                        Text("What's New in v1.6")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)

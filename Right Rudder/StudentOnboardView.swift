@@ -10,8 +10,8 @@ import SwiftData
 
 struct StudentOnboardView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var student: Student
-    @State private var checklist: StudentChecklist
+    @Bindable var student: Student
+    @Bindable var checklist: StudentChecklist
     @State private var template: ChecklistTemplate?
     @State private var showingTrainingHours = false
     
@@ -28,8 +28,8 @@ struct StudentOnboardView: View {
     @State private var previousInstructorName = ""
 
     init(student: Student, checklist: StudentChecklist) {
-        self._student = State(initialValue: student)
-        self._checklist = State(initialValue: checklist)
+        self.student = student
+        self.checklist = checklist
     }
 
     var body: some View {
@@ -44,13 +44,6 @@ struct StudentOnboardView: View {
                             item.completedAt = Date()
                         } else {
                             item.completedAt = nil
-                        }
-                        
-                        // Save the context to persist changes
-                        do {
-                            try modelContext.save()
-                        } catch {
-                            print("Failed to save checklist item: \(error)")
                         }
                     }
                 }, displayTitle: displayTitle)
@@ -158,6 +151,9 @@ struct StudentOnboardView: View {
             }
         }
         .id(checklist.id) // Prevent view recreation when checklist data changes
+        .onDisappear {
+            // Changes are automatically saved by SwiftData when context changes
+        }
         .sheet(isPresented: $showingTrainingHours) {
             TrainingHoursView(
                 totalHours: $totalHours,
@@ -230,12 +226,7 @@ struct StudentOnboardView: View {
             item.order = index
         }
         
-        // Save the changes to the database
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save checklist item order: \(error)")
-        }
+        // Changes will be saved when exiting the view
     }
     
     private func loadTemplate() {

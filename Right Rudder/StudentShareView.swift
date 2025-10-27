@@ -116,8 +116,13 @@ struct StudentShareView: View {
                         }
                     }) {
                         if isGeneratingShare {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            HStack {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                                Text("Creating Share...")
+                                    .font(.system(size: 16, weight: .medium))
+                            }
                         } else {
                             Label("Send Invite", systemImage: "paperplane.fill")
                         }
@@ -216,8 +221,10 @@ struct StudentShareView: View {
             showShareSheet = true
             monitoringForAcceptance = true  // Start monitoring for student acceptance
             
-            // Sync documents after sharing
-            await shareService.syncStudentDocuments(student, modelContext: modelContext)
+            // Sync documents in background after share sheet is shown
+            Task.detached { @MainActor in
+                await shareService.syncStudentDocuments(student, modelContext: modelContext)
+            }
             
             // Start periodic checking for acceptance
             startMonitoringForAcceptance()
@@ -315,13 +322,22 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
         let shareMessage = createShareMessage(instructorName: instructorName, shareURL: items.first as? URL)
         
         let controller = UIActivityViewController(activityItems: [shareMessage], applicationActivities: nil)
+        
+        // Optimize for better performance
+        controller.excludedActivityTypes = [
+            .assignToContact,
+            .addToReadingList,
+            .openInIBooks,
+            .markupAsPDF
+        ]
+        
         return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
     
     private func createShareMessage(instructorName: String, shareURL: URL?) -> String {
-        let appStoreLink = "https://apps.apple.com/app/right-rudder-student/id[APP_ID]" // Replace [APP_ID] with actual App Store ID
+        let appStoreLink = "https://apps.apple.com/us/app/right-rudder-student/id6753929067"
         
         return """
         You have been invited to link apps with \(instructorName).

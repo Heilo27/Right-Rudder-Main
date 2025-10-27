@@ -27,9 +27,15 @@ struct StudentDetailView: View {
     @State private var showingUnlinkConfirmation = false
     @State private var selectedEndorsement: EndorsementImage?
     @State private var showingEndorsementDetail = false
+    @State private var showingConflictResolution = false
+    @State private var detectedConflicts: [DataConflict] = []
+    @State private var hasUnresolvedConflicts = false
+    @State private var lastSyncDate = Date()
+    @State private var isCheckingForUpdates = false
     
     init(student: Student) {
         self._student = State(initialValue: student)
+        print("🏗️ StudentDetailView INIT for student: \(student.displayName)")
     }
 
     var body: some View {
@@ -45,8 +51,14 @@ struct StudentDetailView: View {
                 backgroundInformation
                 checklistsSection
                 endorsementsSection
+                trainingGoalsSection
                 documentsSection
                 exportButton
+                
+                // Show sync status section if linked
+                if isStudentLinked {
+                    syncStatusSection
+                }
                 
                 // Show unlink section at bottom if linked
                 if isStudentLinked {
@@ -94,6 +106,31 @@ struct StudentDetailView: View {
                 StudentDocumentsView(student: student)
             }
         }
+        .sheet(isPresented: $showingConflictResolution) {
+            ConflictResolutionView(student: student, conflicts: detectedConflicts)
+        }
+        .onAppear {
+            print("👁️ StudentDetailView APPEARED for student: \(student.displayName)")
+            updateSortedLists()
+            // Only check for updates if student is linked and we haven't checked recently
+            if isStudentLinked && lastSyncDate.timeIntervalSinceNow < -300 { // 5 minutes
+                Task {
+                    await checkForStudentUpdates()
+                }
+            }
+            
+            // Pre-warm gesture recognizers to prevent stuttery first swipe
+            preWarmGestureRecognizers()
+        }
+        .onDisappear {
+            print("👋 StudentDetailView DISAPPEARED for student: \(student.displayName)")
+            // Save all changes when navigating away from student detail
+            do {
+                try modelContext.save()
+            } catch {
+                print("Failed to save student changes: \(error)")
+            }
+        }
         .alert("Delete Checklist", isPresented: $showingDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
                 checklistToDelete = nil
@@ -108,12 +145,6 @@ struct StudentDetailView: View {
             if let checklist = checklistToDelete {
                 Text("Are you sure you want to delete '\(checklist.templateName)'? This action cannot be undone.")
             }
-        }
-        .onAppear {
-            updateSortedLists()
-        }
-        .onChange(of: student.checklists) { _, _ in
-            updateSortedLists()
         }
         .alert("Unlink Student App", isPresented: $showingUnlinkConfirmation) {
             Button("Cancel", role: .cancel) { }
@@ -139,11 +170,27 @@ struct StudentDetailView: View {
         return student.shareRecordID != nil
     }
     
+    /// Pre-warms gesture recognizers to prevent stuttery first swipe interactions
+    private func preWarmGestureRecognizers() {
+        // Pre-warm by briefly showing a hidden swipe action
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            // Force SwiftUI to initialize gesture recognizers by creating a temporary view
+            // This is done by accessing the current window's gesture recognizers
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first {
+                // This triggers the gesture recognizer system to initialize
+                window.gestureRecognizers?.forEach { _ in }
+            }
+        }
+    }
+    
     private func updateSortedLists() {
+        print("📊 Updating sorted lists - student has \(student.checklists?.count ?? 0) checklists")
         sortedChecklists = sortChecklists(student.checklists ?? [])
         sortedEndorsements = (student.endorsements ?? []).sorted { 
             $0.createdAt > $1.createdAt 
         }
+        print("📊 Sorted into \(sortedChecklists.count) checklists")
     }
     
     private func unlinkStudent() {
@@ -439,13 +486,14 @@ struct StudentDetailView: View {
                 .buttonStyle(.rounded)
             }
             
+            let incompleteChecklists = sortedChecklists.filter { !isChecklistComplete($0) }
+            let completedChecklists = sortedChecklists.filter { isChecklistComplete($0) }
+            
             List {
-                let incompleteChecklists = sortedChecklists.filter { !isChecklistComplete($0) }
-                let completedChecklists = sortedChecklists.filter { isChecklistComplete($0) }
                 
                 // Incomplete checklists
                 ForEach(Array(incompleteChecklists.enumerated()), id: \.element.id) { index, checklist in
-                    NavigationLink(destination: destinationView(for: checklist).id(checklist.id)) {
+                    NavigationLink(destination: destinationView(for: checklist)) {
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(checklist.templateName)
@@ -470,11 +518,19 @@ struct StudentDetailView: View {
                     }
                 }
                 
+                // Hidden pre-warming view for gesture recognizers
+                Color.clear
+                    .frame(height: 0)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button("Pre-warm", role: .destructive) { }
+                    }
+                    .opacity(0)
+                
                 // Completed section divider and checklists
                 if !completedChecklists.isEmpty {
                     Section {
                         ForEach(Array(completedChecklists.enumerated()), id: \.element.id) { index, checklist in
-                            NavigationLink(destination: destinationView(for: checklist).id(checklist.id)) {
+                            NavigationLink(destination: destinationView(for: checklist)) {
                                 HStack {
                                     VStack(alignment: .leading) {
                                         Text(checklist.templateName)
@@ -507,7 +563,7 @@ struct StudentDetailView: View {
                 }
             }
             .listStyle(PlainListStyle())
-            .frame(height: CGFloat(sortedChecklists.count * 80))
+            .frame(height: CGFloat(sortedChecklists.count * 80 + (completedChecklists.isEmpty ? 0 : 40)))
         }
     }
     
@@ -562,16 +618,25 @@ struct StudentDetailView: View {
     
     @ViewBuilder
     private func destinationView(for checklist: StudentChecklist) -> some View {
-        if checklist.templateName == "Student Onboard/Training Overview" {
-            StudentOnboardView(student: student, checklist: checklist)
-        } else if checklist.templateName == "Pre-Solo Training (61.87)" {
-            PreSoloTrainingView(student: student, checklist: checklist)
-        } else if checklist.templateName == "Pre-Solo Quiz" {
-            PreSoloQuizView(student: student, checklist: checklist)
-        } else if checklist.templateName == "Endorsements" {
-            EndorsementsView(student: student, checklist: checklist)
-        } else {
-            LessonView(student: student, checklist: checklist)
+        let _ = print("🎯 Creating destination view for: \(checklist.templateName)")
+        
+        Group {
+            if checklist.templateName == "Student Onboard/Training Overview" {
+                let _ = print("📋 Routing to StudentOnboardView")
+                StudentOnboardView(student: student, checklist: checklist)
+            } else if checklist.templateName == "Pre-Solo Training (61.87)" {
+                let _ = print("📋 Routing to PreSoloTrainingView")
+                PreSoloTrainingView(student: student, checklist: checklist)
+            } else if checklist.templateName == "Pre-Solo Quiz" {
+                let _ = print("📋 Routing to PreSoloQuizView")
+                PreSoloQuizView(student: student, checklist: checklist)
+            } else if checklist.templateName == "Endorsements" {
+                let _ = print("📋 Routing to EndorsementsView")
+                EndorsementsView(student: student, checklist: checklist)
+            } else {
+                let _ = print("📋 Routing to LessonView")
+                LessonView(student: student, checklist: checklist)
+            }
         }
     }
     
@@ -671,6 +736,142 @@ struct StudentDetailView: View {
         return "Endorsement_\(dateString)\(sequenceNumber).jpg"
     }
     
+    private var trainingGoalsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Student Information")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            NavigationLink(destination: StudentTrainingGoalsView(student: student)) {
+                HStack {
+                    Image(systemName: "target")
+                        .foregroundColor(.appPrimary)
+                        .frame(width: 20)
+                    
+                    Text("Training Goals & Milestones")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+                .padding(.vertical, 8)
+            }
+        }
+    }
+    
+    private var syncStatusSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Sync Status")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "icloud.and.arrow.up.and.down")
+                        .foregroundColor(.appPrimary)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Last synced: \(lastSyncDate, style: .relative)")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                        
+                        Text("Connected to student app")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    if hasUnresolvedConflicts {
+                        Badge(count: detectedConflicts.count, color: .orange)
+                    }
+                }
+                
+                Button(action: {
+                    Task {
+                        await checkForStudentUpdates()
+                    }
+                }) {
+                    HStack {
+                        if isCheckingForUpdates {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text(isCheckingForUpdates ? "Checking..." : "Check for Updates")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isCheckingForUpdates)
+                
+                if hasUnresolvedConflicts {
+                    Button(action: {
+                        showingConflictResolution = true
+                    }) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                            Text("Resolve \(detectedConflicts.count) Conflicts")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                }
+            }
+        }
+        .padding()
+        .background(Color.appMutedBox)
+        .cornerRadius(12)
+    }
+    
+    @MainActor
+    private func checkForStudentUpdates() async {
+        guard isStudentLinked else { 
+            print("Student not linked, skipping update check")
+            return 
+        }
+        
+        // Prevent multiple concurrent update checks
+        guard !isCheckingForUpdates else {
+            print("Update check already in progress, skipping...")
+            return
+        }
+        
+        isCheckingForUpdates = true
+        defer { isCheckingForUpdates = false }
+        
+        let conflictDetector = CloudKitConflictDetector()
+        
+        // Check if there's newer data in CloudKit
+        let hasNewerData = await conflictDetector.hasNewerDataInCloudKit(for: student)
+        
+        if hasNewerData {
+            // Detect conflicts
+            let conflicts = await conflictDetector.detectConflicts(for: student)
+            
+            if !conflicts.isEmpty {
+                detectedConflicts = conflicts
+                hasUnresolvedConflicts = true
+                print("⚠️ Found \(conflicts.count) conflicts with student data")
+            } else {
+                hasUnresolvedConflicts = false
+                print("✅ No conflicts detected")
+            }
+        } else {
+            hasUnresolvedConflicts = false
+            print("✅ No updates available")
+        }
+        
+        lastSyncDate = Date()
+    }
 }
 
 struct EndorsementView: View {
@@ -886,6 +1087,22 @@ struct ImageCropView: View {
                 }
             }
         }
+    }
+}
+
+struct Badge: View {
+    let count: Int
+    let color: Color
+    
+    var body: some View {
+        Text("\(count)")
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundColor(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color)
+            .cornerRadius(12)
     }
 }
 

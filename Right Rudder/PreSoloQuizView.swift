@@ -10,16 +10,16 @@ import SwiftData
 
 struct PreSoloQuizView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var student: Student
-    @State private var checklist: StudentChecklist
+    @Bindable var student: Student
+    @Bindable var checklist: StudentChecklist
     @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedImage: UIImage?
 
     init(student: Student, checklist: StudentChecklist) {
-        self._student = State(initialValue: student)
-        self._checklist = State(initialValue: checklist)
+        self.student = student
+        self.checklist = checklist
     }
 
     var body: some View {
@@ -32,13 +32,6 @@ struct PreSoloQuizView: View {
                         item.completedAt = Date()
                     } else {
                         item.completedAt = nil
-                    }
-                    
-                    // Save the context to persist changes
-                    do {
-                        try modelContext.save()
-                    } catch {
-                        print("Failed to save checklist item: \(error)")
                     }
                 }, displayTitle: displayTitle)
                 .adaptiveRowBackgroundModifier(for: index)
@@ -145,6 +138,9 @@ struct PreSoloQuizView: View {
             }
         }
         .id(checklist.id) // Prevent view recreation when checklist data changes
+        .onDisappear {
+            // Changes are automatically saved by SwiftData when context changes
+        }
         .sheet(isPresented: $showingCamera) {
             CameraView { image in
                 addQuizPhoto(image)
@@ -201,12 +197,7 @@ struct PreSoloQuizView: View {
             item.order = index
         }
         
-        // Save the changes to the database
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save checklist item order: \(error)")
-        }
+        // Changes will be saved when exiting the view
     }
     
     private func loadTemplate() {

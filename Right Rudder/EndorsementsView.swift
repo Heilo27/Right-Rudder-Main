@@ -10,16 +10,16 @@ import SwiftData
 
 struct EndorsementsView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var student: Student
-    @State private var checklist: StudentChecklist
+    @Bindable var student: Student
+    @Bindable var checklist: StudentChecklist
     @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var showingPhotoOptions = false
 
     init(student: Student, checklist: StudentChecklist) {
-        self._student = State(initialValue: student)
-        self._checklist = State(initialValue: checklist)
+        self.student = student
+        self.checklist = checklist
     }
 
     var body: some View {

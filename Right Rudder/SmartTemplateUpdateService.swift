@@ -10,7 +10,8 @@ import SwiftData
 
 class SmartTemplateUpdateService {
     
-    static let templateVersion = "1.4.7.11" // Increment this when templates change
+    static let templateVersion = "1.4.7.12" // Increment this when templates change
+    private static var isUpdating = false // Prevent concurrent updates
     
     /// Force update all templates (useful for debugging or major changes)
     static func forceUpdateAllTemplates(modelContext: ModelContext) {
@@ -26,14 +27,26 @@ class SmartTemplateUpdateService {
     
     /// Updates default templates while preserving user customizations
     static func updateDefaultTemplates(modelContext: ModelContext) {
+        // Prevent concurrent updates
+        guard !isUpdating else {
+            print("Template update already in progress, skipping...")
+            return
+        }
+        
+        isUpdating = true
+        defer { isUpdating = false }
+        
         do {
             // Check if we've already updated to this version
             let userDefaults = UserDefaults.standard
             let lastUpdateVersion = userDefaults.string(forKey: "lastTemplateUpdateVersion")
             
             if lastUpdateVersion == templateVersion {
+                print("Templates already up to date (version \(templateVersion))")
                 return
             }
+            
+            print("Updating templates from version \(lastUpdateVersion ?? "unknown") to \(templateVersion)")
             
             // Fetch all existing templates
             let descriptor = FetchDescriptor<ChecklistTemplate>()

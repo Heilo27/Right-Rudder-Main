@@ -98,6 +98,28 @@ class Student {
     var instructorName: String?
     var instructorCFINumber: String?
     
+    // Training goals (synced from student app - read-only in instructor app)
+    var goalPPL: Bool = false
+    var goalInstrument: Bool = false
+    var goalCommercial: Bool = false
+    var goalCFI: Bool = false
+    
+    // Training milestones - PPL
+    var pplGroundSchoolCompleted: Bool = false
+    var pplWrittenTestCompleted: Bool = false
+    
+    // Training milestones - Instrument
+    var instrumentGroundSchoolCompleted: Bool = false
+    var instrumentWrittenTestCompleted: Bool = false
+    
+    // Training milestones - Commercial
+    var commercialGroundSchoolCompleted: Bool = false
+    var commercialWrittenTestCompleted: Bool = false
+    
+    // Training milestones - CFI
+    var cfiGroundSchoolCompleted: Bool = false
+    var cfiWrittenTestCompleted: Bool = false
+    
     // CloudKit sync attributes
     var cloudKitRecordID: String?
     var shareRecordID: String?  // CKShare record ID for companion app access
@@ -119,6 +141,122 @@ class Student {
     // Determine primary training category - use manual assignment if set, otherwise default to PPL
     var primaryCategory: String {
         return assignedCategory ?? "PPL"
+    }
+    
+    // Helper function to determine category from template name
+    private func getCategoryFromTemplateName(_ templateName: String) -> String {
+        let name = templateName.lowercased()
+        
+        if name.contains("ppl") || name.contains("private") || name.contains("phase 1") || name.contains("phase 2") || name.contains("phase 3") || name.contains("phase 4") || name.contains("pre-solo") || name.contains("solo") {
+            return "PPL"
+        } else if name.contains("ifr") || name.contains("instrument") {
+            return "IFR"
+        } else if name.contains("cpl") || name.contains("commercial") {
+            return "CPL"
+        } else if name.contains("cfi") || name.contains("instructor") {
+            return "CFI"
+        } else if name.contains("review") {
+            return "Review"
+        }
+        
+        return "PPL" // Default fallback
+    }
+    
+    // Calculate progress for a specific category
+    func progressForCategory(_ category: String) -> Double {
+        guard let checklists = checklists else { return 0.0 }
+        
+        let categoryChecklists = checklists.filter { checklist in
+            getCategoryFromTemplateName(checklist.templateName) == category
+        }
+        
+        guard !categoryChecklists.isEmpty else { return 0.0 }
+        
+        var totalItems = 0
+        var completedItems = 0
+        
+        for checklist in categoryChecklists {
+            guard let items = checklist.items else { continue }
+            totalItems += items.count
+            completedItems += items.filter { $0.isComplete }.count
+        }
+        
+        guard totalItems > 0 else { return 0.0 }
+        return Double(completedItems) / Double(totalItems)
+    }
+    
+    // Get all categories this student has checklists for
+    var enrolledCategories: [String] {
+        guard let checklists = checklists else { return [] }
+        
+        var categories = Set<String>()
+        
+        for checklist in checklists {
+            let category = getCategoryFromTemplateName(checklist.templateName)
+            categories.insert(category)
+        }
+        
+        // If no categories found from templates, use assigned category
+        if categories.isEmpty, let assigned = assignedCategory {
+            categories.insert(assigned)
+        }
+        
+        return Array(categories).sorted()
+    }
+    
+    // Get primary progress (for the main category)
+    var primaryProgress: Double {
+        return progressForCategory(primaryCategory)
+    }
+    
+    // Get the current active category (lowest incomplete category)
+    var currentActiveCategory: String? {
+        guard let checklists = checklists else { return nil }
+        
+        // Define category hierarchy (lowest to highest)
+        let categoryHierarchy = ["PPL", "IFR", "CPL", "CFI", "Review"]
+        
+        var enrolledCategories = Set<String>()
+        
+        for checklist in checklists {
+            let category = getCategoryFromTemplateName(checklist.templateName)
+            enrolledCategories.insert(category)
+        }
+        
+        // If no categories found from templates, use assigned category
+        if enrolledCategories.isEmpty, let assigned = assignedCategory {
+            enrolledCategories.insert(assigned)
+        }
+        
+        // Special case: if only Review category, show it regardless of completion
+        if enrolledCategories.count == 1 && enrolledCategories.contains("Review") {
+            return "Review"
+        }
+        
+        // Find the lowest incomplete category
+        for category in categoryHierarchy {
+            if enrolledCategories.contains(category) {
+                let progress = progressForCategory(category)
+                if progress < 1.0 { // Not 100% complete
+                    return category
+                }
+            }
+        }
+        
+        // If all categories are 100% complete, return the highest one
+        for category in categoryHierarchy.reversed() {
+            if enrolledCategories.contains(category) {
+                return category
+            }
+        }
+        
+        return nil
+    }
+    
+    // Get progress for the current active category
+    var currentActiveProgress: Double {
+        guard let category = currentActiveCategory else { return 0.0 }
+        return progressForCategory(category)
     }
     
     init(firstName: String, lastName: String, email: String, telephone: String, homeAddress: String, ftnNumber: String) {

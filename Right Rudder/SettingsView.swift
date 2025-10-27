@@ -14,6 +14,8 @@ struct SettingsView: View {
     @State private var showingReceiveTemplates = false
     @State private var showingWhatsNew = false
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
+    @AppStorage("showProgressBars") private var showProgressBars = true
+    @AppStorage("showStudentPhotos") private var showStudentPhotos = false
     
     var body: some View {
         NavigationView {
@@ -248,6 +250,44 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                }
+                
+                Section("UI Settings") {
+                    Toggle(isOn: $showProgressBars) {
+                        HStack {
+                            Image(systemName: "chart.bar.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Show Progress Bars")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Display progress bars next to student names")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                    
+                    Toggle(isOn: $showStudentPhotos) {
+                        HStack {
+                            Image(systemName: "photo.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Show Student Photos")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Display profile photos in the students list")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: .green))
                 }
                 
                 Section("About") {

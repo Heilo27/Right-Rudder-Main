@@ -61,11 +61,14 @@ struct SplashScreenView: View {
                 
                 // Add a small delay to ensure SwiftData is fully initialized
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    // Force update templates to ensure instrument templates are available
-                    DefaultDataService.forceUpdateTemplates(modelContext: modelContext)
+                    print("Starting template initialization...")
+                    // Initialize default data with version checking
+                    DefaultDataService.initializeDefaultData(modelContext: modelContext)
+                    print("Template initialization completed successfully")
                 }
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+                    print("Transitioning to main app...")
                     withAnimation(.easeInOut(duration: 0.5)) {
                         self.isActive = true
                     }

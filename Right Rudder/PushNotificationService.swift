@@ -97,7 +97,15 @@ class PushNotificationService: ObservableObject {
         // The notification will be sent via CloudKit when the instructor updates the record
         // This method can be used to trigger additional local notifications if needed
         
-        print("Notification will be sent to student via CloudKit subscription")
+        print("Notification will be sent to student via CloudKit subscription for comment on \(checklistName)")
+    }
+    
+    /// Sends a notification to the student when a checklist reaches 100% completion
+    func notifyStudentOfCompletion(studentId: UUID, checklistId: UUID, checklistName: String) async {
+        // Note: For this to work, the student needs to be subscribed to the shared database
+        // The notification will be sent via CloudKit when the instructor updates the record
+        
+        print("Notification will be sent to student via CloudKit subscription for completion of \(checklistName)")
     }
     
     /// Handles deep linking when a notification is tapped

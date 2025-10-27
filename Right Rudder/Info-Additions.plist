@@ -42,6 +42,8 @@
 			</dict>
 		</dict>
 	</array>
+	<key>CKSharingSupported</key>
+	<true/>
 </dict>
 </plist>
 

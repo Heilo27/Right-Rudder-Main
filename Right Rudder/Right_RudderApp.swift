@@ -42,7 +42,8 @@ struct RightRudderApp: App {
                 EndorsementImage.self,
                 ChecklistTemplate.self,
                 ChecklistItem.self,
-                StudentDocument.self
+                StudentDocument.self,
+                OfflineSyncOperation.self
             ])
             
             // Configure CloudKit container with optimized settings
@@ -56,6 +57,12 @@ struct RightRudderApp: App {
             print("ModelContainer initialized successfully with CloudKit")
         } catch {
             print("Failed to initialize ModelContainer with CloudKit: \(error)")
+            
+            // Check if this is a CoreData corruption error
+            if Self.isCoreDataCorruptionError(error) {
+                print("⚠️ CoreData corruption detected. Attempting recovery...")
+                try? Self.recoverFromCorruption()
+            }
             print("Attempting to create local container as fallback...")
             
             // Fallback to local container if CloudKit fails
@@ -67,7 +74,8 @@ struct RightRudderApp: App {
                     EndorsementImage.self,
                     ChecklistTemplate.self,
                     ChecklistItem.self,
-                    StudentDocument.self
+                    StudentDocument.self,
+                    OfflineSyncOperation.self
                 ])
                 
                 let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -87,6 +95,7 @@ struct RightRudderApp: App {
                         ChecklistTemplate.self, 
                         ChecklistItem.self,
                         StudentDocument.self,
+                        OfflineSyncOperation.self,
                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
                     )
                     print("ModelContainer initialized with in-memory storage")
@@ -165,5 +174,43 @@ struct RightRudderApp: App {
     
     private var currentColorScheme: AppColorScheme {
         AppColorScheme(rawValue: selectedColorScheme) ?? .skyBlue
+    }
+    
+    /// Checks if an error indicates CoreData corruption
+    private static func isCoreDataCorruptionError(_ error: Error) -> Bool {
+        let errorString = error.localizedDescription.lowercased()
+        return errorString.contains("disk i/o error") ||
+               errorString.contains("sqlite error code:266") ||
+               errorString.contains("sqlite error code:10") ||
+               errorString.contains("couldn't be opened")
+    }
+    
+    /// Attempts to recover from CoreData corruption by deleting corrupted files
+    private static func recoverFromCorruption() throws {
+        print("🔄 Attempting CoreData corruption recovery...")
+        
+        // Get the application support directory
+        let fileManager = FileManager.default
+        let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let storeURL = appSupportURL.appendingPathComponent("default.store")
+        
+        // Check if the corrupted store exists
+        if fileManager.fileExists(atPath: storeURL.path) {
+            print("🗑️ Removing corrupted database file: \(storeURL.path)")
+            try fileManager.removeItem(at: storeURL)
+            
+            // Also remove any associated files
+            let storeShmURL = appSupportURL.appendingPathComponent("default.store-shm")
+            let storeWalURL = appSupportURL.appendingPathComponent("default.store-wal")
+            
+            if fileManager.fileExists(atPath: storeShmURL.path) {
+                try? fileManager.removeItem(at: storeShmURL)
+            }
+            if fileManager.fileExists(atPath: storeWalURL.path) {
+                try? fileManager.removeItem(at: storeWalURL)
+            }
+            
+            print("✅ Corrupted database files removed. App will restart with fresh database.")
+        }
     }
 }
