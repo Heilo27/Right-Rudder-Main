@@ -11,6 +11,7 @@ import SwiftData
 struct EditChecklistTemplateView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var cloudKitSyncService = CloudKitSyncService()
     
     @State private var template: ChecklistTemplate
     @State private var templateName: String
@@ -93,6 +94,9 @@ struct EditChecklistTemplateView: View {
                 }
             }
         }
+        .onAppear {
+            cloudKitSyncService.setModelContext(modelContext)
+        }
     }
     
     private var sortedItems: [ChecklistItem] {
@@ -124,6 +128,21 @@ struct EditChecklistTemplateView: View {
             template.isUserModified = true
         }
         
+        // Update lastModified timestamp
+        template.lastModified = Date()
+        
+        do {
+            try modelContext.save()
+            print("✅ Checklist template saved successfully")
+            
+            // Sync template to CloudKit in background
+            Task {
+                await cloudKitSyncService.syncTemplateToCloudKit(template)
+            }
+        } catch {
+            print("❌ Failed to save checklist template: \(error)")
+        }
+        
         dismiss()
     }
 }
@@ -131,5 +150,5 @@ struct EditChecklistTemplateView: View {
 #Preview {
     let template = ChecklistTemplate(name: "Pre-Flight Inspection", category: "PPL", items: [])
     EditChecklistTemplateView(template: template)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

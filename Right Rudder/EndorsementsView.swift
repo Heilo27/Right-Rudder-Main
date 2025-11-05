@@ -11,16 +11,12 @@ import SwiftData
 struct EndorsementsView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var student: Student
-    @Bindable var checklist: StudentChecklist
+    @Bindable var progress: ChecklistAssignment
     @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var showingPhotoOptions = false
 
-    init(student: Student, checklist: StudentChecklist) {
-        self.student = student
-        self.checklist = checklist
-    }
 
     var body: some View {
         List {
@@ -39,7 +35,7 @@ struct EndorsementsView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color.appMutedBox)
+                .background(Color.appAdaptiveMutedBox)
                 .cornerRadius(8)
             }
             
@@ -56,7 +52,7 @@ struct EndorsementsView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color.appMutedBox)
+                .background(Color.appAdaptiveMutedBox)
                 .cornerRadius(8)
             }
             
@@ -73,7 +69,7 @@ struct EndorsementsView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color.appMutedBox)
+                .background(Color.appAdaptiveMutedBox)
                 .cornerRadius(8)
             }
             
@@ -123,7 +119,7 @@ struct EndorsementsView: View {
                             .foregroundColor(.primary)
                     }
                     .padding()
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
             }
@@ -136,20 +132,20 @@ struct EndorsementsView: View {
                         .foregroundColor(.secondary)
                     
                     TextEditor(text: Binding(
-                        get: { checklist.instructorComments ?? "" },
-                        set: { checklist.instructorComments = $0.isEmpty ? nil : $0 }
+                        get: { progress.instructorComments ?? "" },
+                        set: { progress.instructorComments = $0.isEmpty ? nil : $0 }
                     ))
                     .frame(minHeight: 100)
                     .padding(8)
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
             }
         }
-        .navigationTitle(checklist.templateName)
+        .navigationTitle(progress.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .id(checklist.id) // Prevent view recreation when checklist data changes
+        .id(progress.id) // Prevent view recreation when progress data changes
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Text("Endorsement Text")
@@ -220,22 +216,14 @@ struct EndorsementsView: View {
     }
     
     private func loadTemplate() {
-        let templateId = checklist.templateId
-        let descriptor = FetchDescriptor<ChecklistTemplate>(
-            predicate: #Predicate { $0.id == templateId }
-        )
-        do {
-            let templates = try modelContext.fetch(descriptor)
-            template = templates.first
-        } catch {
-            print("Failed to load template: \(error)")
-        }
+        // In the new system, template is already available through the progress relationship
+        template = progress.template
     }
 }
 
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
-    let checklist = StudentChecklist(templateId: UUID(), templateName: "Endorsements", items: [])
-    EndorsementsView(student: student, checklist: checklist)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+    let progress = ChecklistAssignment(templateId: UUID(), templateIdentifier: "endorsements")
+    EndorsementsView(student: student, progress: progress)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

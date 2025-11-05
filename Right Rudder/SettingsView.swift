@@ -5,14 +5,21 @@ import CloudKit
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var cloudKitBackupService = CloudKitBackupService()
+    @StateObject private var emergencyRecovery = EmergencyDataRecovery.shared
+    @StateObject private var oldDatabaseEmulator = OldDatabaseEmulator.shared
     @State private var showingDeleteConfirmation = false
     @State private var showingRestoreConfirmation = false
+    @State private var showingEmergencyRecoveryConfirmation = false
     @State private var cloudKitAvailable = false
     @State private var isCheckingCloudKit = false
     @State private var showingInstructorInfo = false
     @State private var showingShareTemplates = false
     @State private var showingReceiveTemplates = false
     @State private var showingWhatsNew = false
+    @State private var showingSnakeGame = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
+    @State private var swipeOffset: CGFloat = 0
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     @AppStorage("showProgressBars") private var showProgressBars = true
     @AppStorage("showStudentPhotos") private var showStudentPhotos = false
@@ -213,6 +220,225 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section("Database Recovery") {
+                    Button(action: {
+                        DatabaseRecoveryService.shared.presentRecoveryAlert()
+                    }) {
+                        HStack {
+                            Image(systemName: "externaldrive.badge.exclamationmark")
+                                .foregroundColor(.orange)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Recover Database")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Fix database corruption and restore from CloudKit")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        showingEmergencyRecoveryConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Emergency Data Recovery")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Directly access CloudKit and restore all available student data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        emergencyRecovery.setModelContext(modelContext)
+                        Task {
+                            await emergencyRecovery.fixCorruptedStudents()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "wrench.and.screwdriver")
+                                .foregroundColor(.orange)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Fix Corrupted Students")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Fix duplicate IDs and empty names in existing students")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(emergencyRecovery.isRecovering)
+                    
+                    Button(action: {
+                        oldDatabaseEmulator.setModelContext(modelContext)
+                        Task {
+                            await oldDatabaseEmulator.migrateOldDatabaseToNewSchema()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Migrate Old Database")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Read old database format and convert to new schema")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(oldDatabaseEmulator.isMigrating)
+                    
+                    Button(action: {
+                        emergencyRecovery.setModelContext(modelContext)
+                        Task {
+                            await emergencyRecovery.removeTemporaryNamedStudents()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Remove Temporary Students")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Delete students with temporary names (Student + ID)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(emergencyRecovery.isRecovering)
+                    
+                    Button(action: {
+                        DefaultDataService.forceUpdateTemplates(modelContext: modelContext)
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Reinitialize Templates")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Reload all checklist templates with central library IDs")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    if oldDatabaseEmulator.isMigrating {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Migration in progress...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                            }
+                            
+                            Text(oldDatabaseEmulator.migrationProgress)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            if oldDatabaseEmulator.studentsMigrated > 0 {
+                                Text("Migrated: \(oldDatabaseEmulator.studentsMigrated) students")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    if DatabaseRecoveryService.shared.isRecovering {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Recovery in progress...")
+                                .font(.subheadline)
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    if emergencyRecovery.isRecovering {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Emergency Recovery in progress...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                            }
+                            
+                            Text(emergencyRecovery.recoveryProgress)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            if emergencyRecovery.studentsFound > 0 {
+                                HStack {
+                                    Text("Found: \(emergencyRecovery.studentsFound)")
+                                        .font(.caption)
+                                    Text("Restored: \(emergencyRecovery.studentsRestored)")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                
                 Section("Color Scheme") {
                     ForEach(AppColorScheme.allCases) { scheme in
                         Button(action: {
@@ -357,6 +583,44 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .offset(y: dragOffset)
+            .overlay(
+                // Right-side swipe trigger area
+                GeometryReader { geometry in
+                    HStack {
+                        Spacer()
+                        Rectangle()
+                            .fill(Color.clear) // Make it invisible
+                            .frame(width: 60, height: geometry.size.height)
+                            .offset(x: swipeOffset)
+                            .contentShape(Rectangle()) // Ensure it can receive touches
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        print("🎮 Drag detected: \(value.translation)")
+                                        // Only allow leftward drags
+                                        if value.translation.width < 0 {
+                                            isDragging = true
+                                            swipeOffset = value.translation.width
+                                            
+                                            // If swiped left more than 80 points, activate game
+                                            if value.translation.width < -80 {
+                                                openSnakeGame()
+                                            }
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        print("🎮 Drag ended")
+                                        // Reset position with animation
+                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                            swipeOffset = 0
+                                            isDragging = false
+                                        }
+                                    }
+                            )
+                    }
+                }
+            )
             .alert("Delete iCloud Backup", isPresented: $showingDeleteConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Delete", role: .destructive) {
@@ -377,6 +641,23 @@ struct SettingsView: View {
             } message: {
                 Text("This will search your iCloud account for a backup and restore any data that doesn't already exist locally. Existing data will not be affected.")
             }
+            .alert("Emergency Data Recovery", isPresented: $showingEmergencyRecoveryConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Recover Now", role: .destructive) {
+                    emergencyRecovery.setModelContext(modelContext)
+                    Task {
+                        await emergencyRecovery.emergencyRecovery()
+                    }
+                }
+            } message: {
+                Text("This will directly access CloudKit and restore ALL available student data from any backup format. This bypasses schema checks and searches all possible record types. Your existing data will not be deleted.")
+            }
+            .onAppear {
+                cloudKitBackupService.setModelContext(modelContext)
+                emergencyRecovery.setModelContext(modelContext)
+                oldDatabaseEmulator.setModelContext(modelContext)
+                checkCloudKitStatus()
+            }
             .sheet(isPresented: $showingInstructorInfo) {
                 InstructorInfoView()
             }
@@ -389,11 +670,50 @@ struct SettingsView: View {
             .sheet(isPresented: $showingWhatsNew) {
                 WhatsNewView()
             }
-            .onAppear {
-                cloudKitBackupService.setModelContext(modelContext)
-                checkCloudKitStatus()
+            .fullScreenCover(isPresented: $showingSnakeGame) {
+                NavigationView {
+                    AviationSnakeGameView()
+                }
             }
         }
+        .onAppear {
+            cloudKitBackupService.setModelContext(modelContext)
+            checkCloudKitStatus()
+        }
+        .clipShape(
+            MorphingBottomShape(
+                dragOffset: dragOffset,
+                isDragging: isDragging
+            )
+        )
+        .overlay(
+            // Swipe-left instruction
+            Group {
+                if isDragging && swipeOffset < -50 {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                Image(systemName: "arrow.left")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                
+                                Text("Swipe left to open Snake Game")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.black.opacity(0.7))
+                                    .cornerRadius(8)
+                            }
+                            .padding(.trailing, 20)
+                        }
+                        .padding(.bottom, 100)
+                    }
+                }
+            }
+        )
     }
     
     private func checkCloudKitStatus() {
@@ -451,9 +771,90 @@ struct SettingsView: View {
             }
         }
     }
+    
+    // Handle swipe-left gesture to open snake game
+    private func openSnakeGame() {
+        print("🎮 Swipe-left gesture detected! Opening Snake Game! 🐍✈️")
+        showingSnakeGame = true
+        isDragging = false
+        swipeOffset = 0
+    }
+}
+
+// MARK: - Morphing Shape
+
+struct MorphingBottomShape: Shape {
+    let dragOffset: CGFloat
+    let isDragging: Bool
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        // Start from top-left
+        path.move(to: CGPoint(x: 0, y: 0))
+        
+        // Top edge
+        path.addLine(to: CGPoint(x: rect.width, y: 0))
+        
+        // Right edge
+        path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+        
+        // Bottom edge with morphing effect
+        if isDragging && dragOffset < 0 {
+            let morphAmount = min(abs(dragOffset) / 100.0, 1.0) // 0 to 1
+            let curveHeight = morphAmount * 50 // Max 50 points of curve
+            let stretchAmount = morphAmount * 30 // Max 30 points of stretch
+            let waveAmplitude = morphAmount * 15 // Wave effect
+            
+            // Create a wavy, curved bottom edge
+            let startPoint = CGPoint(x: 0, y: rect.height)
+            let endPoint = CGPoint(x: rect.width, y: rect.height + stretchAmount)
+            
+            // Add multiple curves for a more organic wave effect
+            let controlPoint1 = CGPoint(
+                x: rect.width * 0.2,
+                y: rect.height + curveHeight + waveAmplitude
+            )
+            let controlPoint2 = CGPoint(
+                x: rect.width * 0.4,
+                y: rect.height + curveHeight - waveAmplitude
+            )
+            let controlPoint3 = CGPoint(
+                x: rect.width * 0.6,
+                y: rect.height + curveHeight + waveAmplitude
+            )
+            let controlPoint4 = CGPoint(
+                x: rect.width * 0.8,
+                y: rect.height + curveHeight - waveAmplitude
+            )
+            
+            path.addLine(to: startPoint)
+            path.addCurve(
+                to: CGPoint(x: rect.width * 0.5, y: rect.height + curveHeight),
+                control1: controlPoint1,
+                control2: controlPoint2
+            )
+            path.addCurve(
+                to: endPoint,
+                control1: controlPoint3,
+                control2: controlPoint4
+            )
+        } else {
+            // Normal straight bottom edge
+            path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+        }
+        
+        // Left edge
+        path.addLine(to: CGPoint(x: 0, y: rect.height))
+        
+        // Close the path
+        path.closeSubpath()
+        
+        return path
+    }
 }
 
 #Preview {
     SettingsView()
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

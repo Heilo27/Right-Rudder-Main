@@ -55,7 +55,7 @@ struct StudentShareView: View {
                                description: "Students receive push notifications when you add instructor comments to their checklists.")
                     }
                     .padding()
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
@@ -92,7 +92,7 @@ struct StudentShareView: View {
                                     }
                                 }
                                 .padding()
-                                .background(Color.appMutedBox)
+                                .background(Color.appAdaptiveMutedBox)
                                 .cornerRadius(8)
                             }
                             

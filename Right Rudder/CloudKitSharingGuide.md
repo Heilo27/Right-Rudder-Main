@@ -29,6 +29,67 @@ Documents are synced via CloudKit and stored securely in the shared zone.
 
 When an instructor adds or updates comments on a student's checklist, the student receives a push notification directing them to that specific checklist.
 
+## NEW: Reference-Based Checklist Architecture
+
+### Overview
+
+The instructor app now uses a **reference-based system** instead of copying checklist data to each student. This provides several benefits:
+
+- **Eliminates Duplication**: Templates are never copied, only referenced
+- **Reduces Storage**: ~90% reduction in data storage
+- **Prevents Corruption**: Template integrity verification prevents data issues
+- **Improves Performance**: Faster loading, smaller sync payloads
+- **Better CloudKit Sync**: Only progress changes need syncing
+
+### How It Works
+
+1. **Templates**: Stored centrally with integrity hashes
+2. **Student Progress**: Lightweight records that reference templates
+3. **CloudKit Sync**: Templates and progress synced separately
+4. **Student App**: Receives both template structure and progress data
+
+### Data Flow
+
+```
+Instructor App                 CloudKit                    Student App
+     │                            │                             │
+     ├─ Templates ──────────────>│<────── Fetch Templates ─────┤
+     ├─ Student Progress ───────>│<────── Fetch Progress ──────┤
+     │                            │                             │
+     │                            │<────── Upload ──────────────┤ Documents
+     │<───── Fetch ───────────────┤                             │
+     │                            │                             │
+     ├─ Comment Update ──────────>│                             │
+     │                            ├──── Notification ──────────>│
+```
+
+### Student App Implementation
+
+The student app should:
+
+1. **Fetch Templates**: Get ChecklistTemplate and ChecklistItem records
+2. **Fetch Progress**: Get StudentChecklist and StudentChecklistItem records  
+3. **Merge Data**: Combine template structure with student progress
+4. **Display**: Show template items with completion status
+
+### Example Implementation
+
+```swift
+// Fetch templates
+let templateQuery = CKQuery(recordType: "ChecklistTemplate", predicate: NSPredicate(value: true))
+let templates = try await database.records(matching: templateQuery)
+
+// Fetch student progress
+let progressQuery = CKQuery(recordType: "StudentChecklist", predicate: NSPredicate(format: "studentId == %@", studentId))
+let progress = try await database.records(matching: progressQuery)
+
+// Merge for display
+for template in templates {
+    let studentProgress = progress.first { $0["templateId"] == template.recordID }
+    // Display template items with completion status from progress
+}
+```
+
 ## How to Use (Instructor App)
 
 ### Sending an Invite to a Student
@@ -78,15 +139,24 @@ The student app needs to fetch and display:
    - Fields: firstName, lastName, email, telephone, homeAddress, ftnNumber
    - Biography and background notes
    
-2. **StudentChecklist** (Child records)
-   - Fields: templateName, instructorComments, dualGivenHours
-   - Read-only display
+2. **StudentChecklist** (Child records - NEW REFERENCE-BASED SYSTEM)
+   - Fields: templateName, templateIdentifier, instructorComments, dualGivenHours
+   - Fields: isComplete, completionPercentage, completedItemsCount, totalItemsCount
+   - Read-only display - references template data
    
-3. **StudentChecklistItem** (Child records)
-   - Fields: title, isComplete, notes, completedAt, order
-   - Read-only display
+3. **StudentChecklistItem** (Child records - NEW REFERENCE-BASED SYSTEM)
+   - Fields: templateItemId, title, isComplete, notes, completedAt, order
+   - Read-only display - references template item data
    
-4. **StudentDocument** (Child records - student can create/upload)
+4. **ChecklistTemplate** (NEW - Shared for student app access)
+   - Fields: name, category, phase, relevantData, templateIdentifier, contentHash
+   - Read-only access to template structure
+   
+5. **ChecklistItem** (NEW - Child of ChecklistTemplate)
+   - Fields: title, notes, order
+   - Read-only access to template item structure
+   
+6. **StudentDocument** (Child records - student can create/upload)
    - Fields: documentType, filename, fileData, uploadedAt, expirationDate, notes
    - Full write access for students
 

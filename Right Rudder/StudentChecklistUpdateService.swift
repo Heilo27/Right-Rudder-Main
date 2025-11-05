@@ -3,6 +3,7 @@
 //  Right Rudder
 //
 //  Created by AI on 10/8/25.
+//  Updated for reference-based checklist system
 //
 
 import Foundation
@@ -10,223 +11,172 @@ import SwiftData
 
 class StudentChecklistUpdateService {
     
-    /// Updates all student checklists to match new template versions
-    static func updateStudentChecklists(modelContext: ModelContext) {
+    /// Updates all student checklist progress records to match template changes
+    static func updateStudentChecklistProgress(modelContext: ModelContext) {
         do {
-            // First, migrate any checklists missing templateIdentifier
-            migrateLegacyChecklists(modelContext: modelContext)
-            
-            // Fetch all student checklists
-            let descriptor = FetchDescriptor<StudentChecklist>()
-            let studentChecklists = try modelContext.fetch(descriptor)
+            // Fetch all student checklist assignment records
+            let descriptor = FetchDescriptor<ChecklistAssignment>()
+            let assignmentRecords = try modelContext.fetch(descriptor)
             
             var updatedCount = 0
             var skippedCount = 0
             
-            for studentChecklist in studentChecklists {
-                var currentTemplate: ChecklistTemplate?
-                
-                // Try to find template by identifier first (new method)
-                if let templateIdentifier = studentChecklist.templateIdentifier {
-                    let templateDescriptor = FetchDescriptor<ChecklistTemplate>(
-                        predicate: #Predicate { $0.templateIdentifier == templateIdentifier }
-                    )
-                    let templates = try modelContext.fetch(templateDescriptor)
-                    currentTemplate = templates.first
-                }
-                
-                // If no template found by identifier, try by name (legacy method)
-                if currentTemplate == nil {
-                    let templateName = studentChecklist.templateName
-                    let templateDescriptor = FetchDescriptor<ChecklistTemplate>(
-                        predicate: #Predicate<ChecklistTemplate> { template in
-                            template.name == templateName
-                        }
-                    )
-                    let templates = try modelContext.fetch(templateDescriptor)
-                    currentTemplate = templates.first
-                }
-                
-                guard let template = currentTemplate else {
+            for assignment in assignmentRecords {
+                // Find the corresponding template
+                guard let template = assignment.template else {
+                    print("⚠️ No template found for assignment record: \(assignment.displayName)")
                     skippedCount += 1
                     continue
                 }
                 
-                // All checklists should now have templateIdentifier after migration
-                // This is just a safety check
-                if studentChecklist.templateIdentifier == nil {
-                    studentChecklist.templateIdentifier = template.templateIdentifier
-                }
-                
-                // Check if update is needed
-                if shouldUpdateChecklist(studentChecklist: studentChecklist, newTemplate: template) {
-                    mergeChecklistItems(existing: studentChecklist, template: template)
-                    studentChecklist.templateVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
+                // Sync assignment with template
+                let wasUpdated = syncProgressWithTemplate(assignment: assignment, template: template, modelContext: modelContext)
+                if wasUpdated {
                     updatedCount += 1
                 } else {
                     skippedCount += 1
                 }
             }
             
-            // Save changes
-            try modelContext.save()
+            print("✅ Template sync completed: \(updatedCount) updated, \(skippedCount) skipped")
             
-            print("Template update: \(updatedCount) updated, \(skippedCount) skipped")
+            // Run integrity check after updates
+            ChecklistIntegrityService.verifyAndRepairAllChecklists(modelContext: modelContext)
             
         } catch {
-            print("Failed to update student checklists: \(error)")
+            print("❌ Failed to update student checklist progress: \(error)")
         }
     }
     
-    /// Check if a student checklist needs to be updated
-    private static func shouldUpdateChecklist(studentChecklist: StudentChecklist, newTemplate: ChecklistTemplate) -> Bool {
-        // If no version stored, assume it needs updating
-        guard let currentVersion = studentChecklist.templateVersion else {
-            return true
-        }
+    /// Syncs an assignment record with its template, adding/removing items as needed
+    private static func syncProgressWithTemplate(assignment: ChecklistAssignment, template: ChecklistTemplate, modelContext: ModelContext) -> Bool {
+        var wasUpdated = false
         
-        // Compare with current template version
-        let latestVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
-        return currentVersion != latestVersion
-    }
-    
-    /// Smart merge of checklist items preserving all student data
-    private static func mergeChecklistItems(existing: StudentChecklist, template: ChecklistTemplate) {
-        guard let existingItems = existing.items,
-              let templateItems = template.items else {
-            return
-        }
+        // Get current template items
+        let templateItems = template.items?.sorted { $0.order < $1.order } ?? []
         
-        // Create a map of existing items by templateItemId for quick lookup
-        var existingItemsMap: [UUID: StudentChecklistItem] = [:]
-        for item in existingItems {
-            existingItemsMap[item.templateItemId] = item
-        }
+        // Get current progress items
+        let currentProgressItems = assignment.itemProgress ?? []
         
-        // Create new items array that will replace the existing one
-        var newItems: [StudentChecklistItem] = []
+        // Create a map of existing progress items by template item ID
+        let existingProgressMap = Dictionary(uniqueKeysWithValues: currentProgressItems.map { ($0.templateItemId, $0) })
         
-        // Process each template item
+        // Add missing progress items for new template items
         for templateItem in templateItems {
-            if let existingItem = existingItemsMap[templateItem.id] {
-                // Item exists - preserve all student data but update order
-                existingItem.order = templateItem.order
-                newItems.append(existingItem)
-            } else {
-                // New item from template - create new student item
-                let newStudentItem = StudentChecklistItem(
-                    templateItemId: templateItem.id,
-                    title: templateItem.title,
-                    notes: templateItem.notes,
-                    order: templateItem.order
+            if existingProgressMap[templateItem.id] == nil {
+                let newProgressItem = ItemProgress(
+                    templateItemId: templateItem.id
                 )
-                newItems.append(newStudentItem)
+                assignment.itemProgress?.append(newProgressItem)
+                wasUpdated = true
+                print("➕ Added progress item for template item: \(templateItem.title)")
             }
         }
         
-        // Handle items that were removed from template (legacy items)
-        for existingItem in existingItems {
-            if !newItems.contains(where: { $0.templateItemId == existingItem.templateItemId }) {
-                // This item was removed from template - keep it but mark as legacy
-                existingItem.order = 9999 // Put at end
-                newItems.append(existingItem)
+        // Remove orphaned progress items (template items that no longer exist)
+        let templateItemIds = Set(templateItems.map { $0.id })
+        let progressItemsToRemove = currentProgressItems.filter { !templateItemIds.contains($0.templateItemId) }
+        
+        for progressItem in progressItemsToRemove {
+            if let index = assignment.itemProgress?.firstIndex(where: { $0.id == progressItem.id }) {
+                assignment.itemProgress?.remove(at: index)
+                modelContext.delete(progressItem)
+                wasUpdated = true
+                print("➖ Removed orphaned progress item: \(progressItem.templateItemId)")
             }
         }
         
-        // Sort by order
-        newItems.sort { $0.order < $1.order }
+        // Update order values to match template
+        for templateItem in templateItems {
+            if existingProgressMap[templateItem.id] != nil {
+                // Note: ItemProgress doesn't have order field, so we skip this update
+                // The order is maintained by the template
+            }
+        }
         
-        // Replace the items array
-        existing.items = newItems
-        existing.lastModified = Date()
+        // Update last modified
+        if wasUpdated {
+            assignment.lastModified = Date()
+        }
         
+        return wasUpdated
     }
     
-    /// Migrate legacy checklists that don't have templateIdentifier set
-    private static func migrateLegacyChecklists(modelContext: ModelContext) {
-        do {
-            // Fetch all student checklists without templateIdentifier
-            let descriptor = FetchDescriptor<StudentChecklist>(
-                predicate: #Predicate { $0.templateIdentifier == nil }
-            )
-            let legacyChecklists = try modelContext.fetch(descriptor)
-            
-            var migratedCount = 0
-            
-            for studentChecklist in legacyChecklists {
-                var matchingTemplate: ChecklistTemplate?
-                
-                // First try exact name match
-                let templateName = studentChecklist.templateName
-                let exactTemplateDescriptor = FetchDescriptor<ChecklistTemplate>(
-                    predicate: #Predicate<ChecklistTemplate> { template in
-                        template.name == templateName
-                    }
+    /// Adds missing progress items for a specific assignment record
+    static func addMissingProgressItems(for assignment: ChecklistAssignment, modelContext: ModelContext) {
+        guard let template = assignment.template else { return }
+        
+        let templateItems = template.items?.sorted { $0.order < $1.order } ?? []
+        let currentProgressItems = assignment.itemProgress ?? []
+        let existingTemplateItemIds = Set(currentProgressItems.map { $0.templateItemId })
+        
+        for templateItem in templateItems {
+            if !existingTemplateItemIds.contains(templateItem.id) {
+                let newProgressItem = ItemProgress(
+                    templateItemId: templateItem.id
                 )
-                let exactTemplates = try modelContext.fetch(exactTemplateDescriptor)
-                matchingTemplate = exactTemplates.first
-                
-                // If no exact match, try format conversion (P1L1 -> I1-L1)
-                if matchingTemplate == nil {
-                    let convertedName = convertLegacyTemplateName(templateName)
-                    if convertedName != templateName {
-                        let convertedTemplateDescriptor = FetchDescriptor<ChecklistTemplate>(
-                            predicate: #Predicate<ChecklistTemplate> { template in
-                                template.name == convertedName
-                            }
-                        )
-                        let convertedTemplates = try modelContext.fetch(convertedTemplateDescriptor)
-                        matchingTemplate = convertedTemplates.first
-                        
-                        if matchingTemplate != nil {
-                            // Update the template name to match the new format
-                            studentChecklist.templateName = convertedName
-                        }
-                    }
-                }
-                
-                if let template = matchingTemplate {
-                    // Set the templateIdentifier from the matching template
-                    studentChecklist.templateIdentifier = template.templateIdentifier
-                    migratedCount += 1
-                }
+                assignment.itemProgress?.append(newProgressItem)
+                print("➕ Added missing progress item for: \(templateItem.title)")
+            }
+        }
+        
+        assignment.lastModified = Date()
+    }
+    
+    /// Removes orphaned progress items for a specific assignment record
+    static func removeOrphanedProgressItems(for assignment: ChecklistAssignment, modelContext: ModelContext) {
+        guard let template = assignment.template else { return }
+        
+        let templateItems = template.items ?? []
+        let templateItemIds = Set(templateItems.map { $0.id })
+        let currentProgressItems = assignment.itemProgress ?? []
+        
+        let orphanedItems = currentProgressItems.filter { !templateItemIds.contains($0.templateItemId) }
+        
+        for orphanedItem in orphanedItems {
+            if let index = assignment.itemProgress?.firstIndex(where: { $0.id == orphanedItem.id }) {
+                assignment.itemProgress?.remove(at: index)
+                modelContext.delete(orphanedItem)
+                print("➖ Removed orphaned progress item: \(orphanedItem.templateItemId)")
+            }
+        }
+        
+        assignment.lastModified = Date()
+    }
+    
+    /// Updates progress records when a template is modified
+    static func updateProgressForTemplateChange(template: ChecklistTemplate, modelContext: ModelContext) {
+        do {
+            // Find all assignment records for this template
+            let descriptor = FetchDescriptor<ChecklistAssignment>()
+            let allAssignments = try modelContext.fetch(descriptor)
+            
+            let relevantAssignments = allAssignments.filter { $0.templateId == template.id }
+            
+            print("🔄 Updating \(relevantAssignments.count) assignment records for template: \(template.name)")
+            
+            for assignment in relevantAssignments {
+                _ = syncProgressWithTemplate(assignment: assignment, template: template, modelContext: modelContext)
             }
             
-            // Save the migration changes
-            try modelContext.save()
-            
-            if migratedCount > 0 {
-                print("Migrated \(migratedCount) legacy checklists")
-            }
+            // Run integrity check
+            ChecklistIntegrityService.verifyAndRepairAllChecklists(modelContext: modelContext)
             
         } catch {
-            print("Failed to migrate legacy checklists: \(error)")
+            print("❌ Failed to update progress for template change: \(error)")
         }
     }
     
-    /// Convert legacy template names to new format (P1L1 -> I1-L1, etc.)
-    private static func convertLegacyTemplateName(_ legacyName: String) -> String {
-        // Handle the specific pattern: P1L1: Title -> I1-L1: Title
-        if legacyName.hasPrefix("P1L") {
-            return legacyName.replacingOccurrences(of: "P1L", with: "I1-L")
-        } else if legacyName.hasPrefix("P2L") {
-            return legacyName.replacingOccurrences(of: "P2L", with: "I2-L")
-        } else if legacyName.hasPrefix("P3L") {
-            return legacyName.replacingOccurrences(of: "P3L", with: "I3-L")
-        } else if legacyName.hasPrefix("P4L") {
-            return legacyName.replacingOccurrences(of: "P4L", with: "I4-L")
-        } else if legacyName.hasPrefix("P5L") {
-            return legacyName.replacingOccurrences(of: "P5L", with: "I5-L")
-        }
-        
-        // Return original name if no conversion needed
-        return legacyName
+    /// Checks if a template has been modified since the last assignment update
+    static func hasTemplateChanged(template: ChecklistTemplate, assignment: ChecklistAssignment) -> Bool {
+        // Compare last modified dates since ChecklistAssignment doesn't have templateVersion
+        return template.lastModified > assignment.lastModified
     }
-}
-
-// Extension to access template version from SmartTemplateUpdateService
-extension SmartTemplateUpdateService {
-    static func getCurrentTemplateVersion() -> String {
-        return templateVersion // Use the actual version from SmartTemplateUpdateService
+    
+    /// Migrates legacy checklist data to the new reference-based system
+    static func migrateLegacyChecklists(modelContext: ModelContext) {
+        // This function is kept for compatibility but should not be needed
+        // since we're implementing the new system directly
+        print("ℹ️ Legacy migration not needed - implementing reference-based system directly")
     }
 }

@@ -30,6 +30,10 @@ struct EditStudentView: View {
     @State private var selectedCategory: String
     @State private var isInactive: Bool
     @State private var hasChanges: Bool = false
+    @State private var hasExplicitlySaved: Bool = false
+    
+    // CloudKit sync service
+    @StateObject private var cloudKitShareService = CloudKitShareService()
     
     // Store original values for comparison
     private let originalCategory: String
@@ -69,23 +73,31 @@ struct EditStudentView: View {
                     }
                     
                     TextField("First Name", text: $firstName)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Last Name", text: $lastName)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Email Address", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Telephone Number", text: $telephone)
                         .keyboardType(.phonePad)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Home Address", text: $homeAddress)
                         .foregroundColor(homeAddress == "Enter home address (optional)" ? .secondary : .primary)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("FTN Number", text: $ftnNumber)
                         .foregroundColor(ftnNumber == "Enter FTN number (optional)" ? .secondary : .primary)
+                        .modifier(ResponsiveTextFieldModifier())
                 }
                 
                 Section("Background") {
                     TextField("Biography", text: $biography, axis: .vertical)
                         .lineLimit(3...6)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Background Notes", text: $backgroundNotes, axis: .vertical)
                         .lineLimit(3...6)
+                        .modifier(ResponsiveTextFieldModifier())
                 }
                 
                 Section("Student Category") {
@@ -168,9 +180,12 @@ struct EditStudentView: View {
                         dismiss()
                     }
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveStudent()
+                        hasExplicitlySaved = true
+                        dismiss()
                     }
                     .disabled(!isFormValid)
                 }
@@ -201,6 +216,20 @@ struct EditStudentView: View {
         .onChange(of: backgroundNotes) { checkForChanges() }
         .onChange(of: selectedCategory) { checkForChanges() }
         .onChange(of: isInactive) { checkForChanges() }
+        .onAppear {
+            cloudKitShareService.setModelContext(modelContext)
+        }
+        .onDisappear {
+            print("🔵 DEBUG: EditStudentView.onDisappear called - Checking for changes")
+            if hasChanges && !hasExplicitlySaved {
+                print("🔵 DEBUG: Changes detected but not explicitly saved, triggering auto-save")
+                saveStudent()
+            } else if hasExplicitlySaved {
+                print("🔵 DEBUG: Changes were explicitly saved, skipping auto-save")
+            } else {
+                print("🔵 DEBUG: No changes detected, skipping save")
+            }
+        }
     }
     
     private var isFormValid: Bool {
@@ -230,6 +259,9 @@ struct EditStudentView: View {
     }
     
     private func saveStudent() {
+        print("🔵 DEBUG: EditStudentView.saveStudent() called - Personal info save triggered")
+        print("🔵 DEBUG: Student: \(student.displayName), Changes detected: \(hasChanges)")
+        
         student.firstName = firstName
         student.lastName = lastName
         student.email = email
@@ -240,8 +272,33 @@ struct EditStudentView: View {
         student.backgroundNotes = backgroundNotes.isEmpty ? nil : backgroundNotes
         student.assignedCategory = selectedCategory
         student.isInactive = isInactive
+        student.lastModified = Date()
         
-        dismiss()
+        do {
+            try modelContext.save()
+            print("✅ Student personal info saved successfully")
+            print("🔍 Saved category: '\(student.assignedCategory ?? "nil")' for student: \(student.displayName)")
+            
+            // Post notification to update StudentsView
+            NotificationCenter.default.post(name: NSNotification.Name("StudentUpdated"), object: nil)
+            
+            // Sync to CloudKit and refresh progress
+            Task {
+                await cloudKitShareService.syncStudentPersonalInfo(student, modelContext: modelContext)
+                await refreshStudentProgress()
+            }
+        } catch {
+            print("❌ Failed to save student: \(error)")
+        }
+    }
+    
+    private func refreshStudentProgress() async {
+        // Force refresh of progress calculations by updating lastModified
+        await MainActor.run {
+            student.lastModified = Date()
+            // This will trigger SwiftUI to recalculate weightedCategoryProgress
+            // and update the progress bars in StudentsView
+        }
     }
     
     private func importContact(_ contact: CNContact) {
@@ -272,6 +329,6 @@ struct EditStudentView: View {
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
     EditStudentView(student: student)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 

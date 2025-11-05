@@ -51,7 +51,7 @@ struct StudentTrainingGoalsView: View {
             Spacer()
         }
         .padding()
-        .background(Color.blue.opacity(0.1))
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -100,7 +100,7 @@ struct StudentTrainingGoalsView: View {
             }
         }
         .padding()
-        .background(Color.appBackground)
+        .background(Color.appAdaptiveBackground)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
@@ -166,7 +166,7 @@ struct StudentTrainingGoalsView: View {
             }
         }
         .padding()
-        .background(Color.appBackground)
+        .background(Color.appAdaptiveBackground)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
@@ -212,7 +212,7 @@ struct StudentTrainingGoalsView: View {
             }
         }
         .padding()
-        .background(Color.appBackground)
+        .background(Color.appAdaptiveBackground)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }

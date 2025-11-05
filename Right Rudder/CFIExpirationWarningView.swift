@@ -85,7 +85,7 @@ struct CFIExpirationWarningView: View {
                         }
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.1))
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(12)
                     
                     VStack(alignment: .leading, spacing: 8) {
@@ -105,7 +105,7 @@ struct CFIExpirationWarningView: View {
                         }
                     }
                     .padding()
-                    .background(Color.blue.opacity(0.05))
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(12)
                 }
                 .padding(.horizontal, 20)
@@ -139,7 +139,7 @@ struct CFIExpirationWarningView: View {
                         Text("Dismiss for Today")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.gray.opacity(0.2))
+                            .background(Color.appAdaptiveMutedBox)
                             .foregroundColor(.primary)
                             .cornerRadius(12)
                     }

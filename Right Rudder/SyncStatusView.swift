@@ -49,7 +49,7 @@ struct SyncStatusView: View {
                 }
             }
             .padding()
-            .background(Color.appMutedBox)
+            .background(Color.appAdaptiveMutedBox)
             .cornerRadius(12)
             
             // Action Buttons
@@ -129,7 +129,7 @@ struct SyncStatusView: View {
                 }
             }
             .padding()
-            .background(Color.appMutedBox)
+            .background(Color.appAdaptiveMutedBox)
             .cornerRadius(12)
             
             Spacer()
@@ -147,5 +147,5 @@ struct SyncStatusView: View {
     NavigationView {
         SyncStatusView()
     }
-    .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

@@ -23,13 +23,14 @@ struct AddChecklistTemplateView: View {
                 Section(header: Text("Lesson Name")) {
                     TextField("Enter lesson name", text: $templateName)
                         .autocapitalization(.words)
+                        .modifier(ResponsiveTextFieldModifier())
                 }
                 
                 Section(header: Text("Phase")) {
                     Picker("Phase", selection: $selectedPhase) {
                         Text("First Steps").tag("First Steps")
                         Text("Phase 1").tag("Phase 1")
-                        Text("Pre-Solo/Solo").tag("Pre-Solo/Solo")
+                        Text("Phase 1.5 Pre-Solo/Solo").tag("Phase 1.5 Pre-Solo/Solo")
                         Text("Phase 2").tag("Phase 2")
                         Text("Phase 3").tag("Phase 3")
                         Text("Phase 4").tag("Phase 4")
@@ -40,6 +41,7 @@ struct AddChecklistTemplateView: View {
                 Section(header: Text("Relevant Data (Optional)")) {
                     TextEditor(text: $relevantData)
                         .frame(minHeight: 100)
+                        .modifier(ResponsiveTextFieldModifier())
                     Text("Add study materials, ACS references, or other lesson-specific information. Leave blank if not applicable.")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -85,6 +87,6 @@ struct AddChecklistTemplateView: View {
 #Preview {
     if #available(iOS 17.0, *) {
         AddChecklistTemplateView(category: "PPL")
-            .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+            .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
     }
 }

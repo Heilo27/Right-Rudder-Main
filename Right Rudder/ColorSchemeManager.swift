@@ -89,6 +89,24 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
         }
     }
     
+    // Dark mode background color - used for cards, sections in dark mode
+    var darkModeBackgroundColor: Color {
+        switch self {
+        case .skyBlue:
+            return Color(red: 0.11, green: 0.11, blue: 0.12) // #1C1C1E - iOS system secondary background
+        case .aviation:
+            return Color(red: 0.12, green: 0.10, blue: 0.08) // #1F1A14 - Warm dark
+        case .professional:
+            return Color(red: 0.10, green: 0.11, blue: 0.13) // #1A1C21 - Cool dark
+        case .forest:
+            return Color(red: 0.10, green: 0.12, blue: 0.10) // #1A1F1A - Dark green tint
+        case .planePrincess:
+            return Color(red: 0.13, green: 0.10, blue: 0.12) // #211A1F - Dark pink tint
+        case .highContrast:
+            return Color(red: 0.05, green: 0.05, blue: 0.05) // #0D0D0D - Very dark
+        }
+    }
+    
     // Muted box color - used for content boxes, text editor backgrounds
     var mutedBoxColor: Color {
         switch self {
@@ -104,6 +122,24 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
             return Color(red: 0.98, green: 0.88, blue: 0.92) // Muted pink
         case .highContrast:
             return Color(red: 0.9, green: 0.9, blue: 0.9) // Muted light gray
+        }
+    }
+    
+    // Dark mode muted box color - used for content boxes, text editor backgrounds in dark mode
+    var darkModeMutedBoxColor: Color {
+        switch self {
+        case .skyBlue:
+            return Color(red: 0.15, green: 0.15, blue: 0.16) // #262629 - iOS system tertiary background
+        case .aviation:
+            return Color(red: 0.16, green: 0.14, blue: 0.12) // #28241F - Warm dark muted
+        case .professional:
+            return Color(red: 0.14, green: 0.15, blue: 0.17) // #242629 - Cool dark muted
+        case .forest:
+            return Color(red: 0.14, green: 0.16, blue: 0.14) // #242A24 - Dark green muted
+        case .planePrincess:
+            return Color(red: 0.17, green: 0.14, blue: 0.16) // #2B2429 - Dark pink muted
+        case .highContrast:
+            return Color(red: 0.08, green: 0.08, blue: 0.08) // #141414 - Very dark muted
         }
     }
     
@@ -183,6 +219,44 @@ extension Color {
     static var appMutedBox: Color {
         let scheme = AppColorScheme(rawValue: UserDefaults.standard.string(forKey: "selectedColorScheme") ?? AppColorScheme.skyBlue.rawValue) ?? .skyBlue
         return scheme.mutedBoxColor
+    }
+    
+    static var appDarkModeBackground: Color {
+        let scheme = AppColorScheme(rawValue: UserDefaults.standard.string(forKey: "selectedColorScheme") ?? AppColorScheme.skyBlue.rawValue) ?? .skyBlue
+        return scheme.darkModeBackgroundColor
+    }
+    
+    static var appDarkModeMutedBox: Color {
+        let scheme = AppColorScheme(rawValue: UserDefaults.standard.string(forKey: "selectedColorScheme") ?? AppColorScheme.skyBlue.rawValue) ?? .skyBlue
+        return scheme.darkModeMutedBoxColor
+    }
+}
+
+// MARK: - Adaptive Color Extensions (automatically switch between light/dark mode)
+
+extension Color {
+    /// Adaptive background color that automatically switches between light and dark mode
+    static var appAdaptiveBackground: Color {
+        let scheme = AppColorScheme(rawValue: UserDefaults.standard.string(forKey: "selectedColorScheme") ?? AppColorScheme.skyBlue.rawValue) ?? .skyBlue
+        
+        // Check if we're in dark mode by looking at the current color scheme
+        if UITraitCollection.current.userInterfaceStyle == .dark {
+            return scheme.darkModeBackgroundColor
+        } else {
+            return scheme.backgroundColor
+        }
+    }
+    
+    /// Adaptive muted box color that automatically switches between light and dark mode
+    static var appAdaptiveMutedBox: Color {
+        let scheme = AppColorScheme(rawValue: UserDefaults.standard.string(forKey: "selectedColorScheme") ?? AppColorScheme.skyBlue.rawValue) ?? .skyBlue
+        
+        // Check if we're in dark mode by looking at the current color scheme
+        if UITraitCollection.current.userInterfaceStyle == .dark {
+            return scheme.darkModeMutedBoxColor
+        } else {
+            return scheme.mutedBoxColor
+        }
     }
 }
 

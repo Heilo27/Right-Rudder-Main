@@ -38,6 +38,59 @@ struct TemplateSharePackage: Codable {
 
 class TemplateExportService {
     
+    /// Cleans up old sync files (older than 7 days) from the temporary directory
+    static func cleanupOldSyncFiles() {
+        let fileManager = FileManager.default
+        let temporaryDirectory = fileManager.temporaryDirectory
+        let cutoffDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        
+        do {
+            let files = try fileManager.contentsOfDirectory(
+                at: temporaryDirectory,
+                includingPropertiesForKeys: [.creationDateKey, .fileSizeKey],
+                options: [.skipsHiddenFiles]
+            )
+            
+            var deletedCount = 0
+            var totalSizeDeleted: Int64 = 0
+            
+            for file in files {
+                // Only delete .rrtl files and other Right Rudder sync files
+                let fileName = file.lastPathComponent
+                if fileName.hasPrefix("RightRudder") || fileName.hasSuffix(".rrtl") {
+                    // Get file attributes
+                    let resourceValues = try? file.resourceValues(forKeys: [.creationDateKey, .fileSizeKey])
+                    var fileDate: Date?
+                    
+                    // Try to get creation date first
+                    if let creationDate = resourceValues?.creationDate {
+                        fileDate = creationDate
+                    } else {
+                        // Fallback to modification date from file system
+                        let attributes = try? fileManager.attributesOfItem(atPath: file.path)
+                        fileDate = attributes?[.modificationDate] as? Date
+                    }
+                    
+                    // Check if file is older than 7 days
+                    if let fileDate = fileDate, fileDate < cutoffDate {
+                        let fileSize = Int64(resourceValues?.fileSize ?? 0)
+                        try fileManager.removeItem(at: file)
+                        deletedCount += 1
+                        totalSizeDeleted += fileSize
+                        print("🗑️ Deleted old sync file: \(fileName) (age: \(Int(Date().timeIntervalSince(fileDate) / 86400)) days)")
+                    }
+                }
+            }
+            
+            if deletedCount > 0 {
+                let sizeInMB = Double(totalSizeDeleted) / (1024 * 1024)
+                print("✅ Cleaned up \(deletedCount) old sync file(s), freed \(String(format: "%.2f", sizeInMB)) MB")
+            }
+        } catch {
+            print("⚠️ Failed to cleanup old sync files: \(error)")
+        }
+    }
+    
     /// Exports selected templates to a shareable file URL
     static func exportTemplates(_ templates: [ChecklistTemplate], authorName: String?) -> URL? {
         let exportableTemplates = templates.map { template -> ExportableTemplate in
@@ -83,6 +136,9 @@ class TemplateExportService {
             let fileURL = temporaryDirectory.appendingPathComponent(fileName)
             
             try data.write(to: fileURL)
+            
+            // Clean up old sync files after export
+            cleanupOldSyncFiles()
             
             print("Exported \(templates.count) templates to: \(fileURL.path)")
             return fileURL

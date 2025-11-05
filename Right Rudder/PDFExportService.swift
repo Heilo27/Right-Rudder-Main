@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 class PDFExportService {
     static func showStudentRecord(_ student: Student) -> some View {

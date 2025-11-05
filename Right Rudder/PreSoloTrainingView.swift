@@ -11,13 +11,9 @@ import SwiftData
 struct PreSoloTrainingView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var student: Student
-    @Bindable var checklist: StudentChecklist
+    @Bindable var progress: ChecklistAssignment
     @State private var template: ChecklistTemplate?
 
-    init(student: Student, checklist: StudentChecklist) {
-        self.student = student
-        self.checklist = checklist
-    }
 
     var body: some View {
         List {
@@ -33,20 +29,20 @@ struct PreSoloTrainingView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemBlue).opacity(0.1))
+                .background(Color.appAdaptiveMutedBox)
                 .cornerRadius(8)
             }
             
             // Checklist items
-            ForEach(Array((checklist.items ?? []).sorted { $0.order < $1.order }.enumerated()), id: \.element.id) { index, item in
-                ChecklistItemRow(item: item, onToggle: { isComplete in
-                    // Use a more controlled state update
-                    DispatchQueue.main.async {
-                        item.isComplete = isComplete
+            ForEach(Array(ChecklistAssignmentService.getDisplayItems(for: progress).sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
+                ChecklistItemRow(displayItem: displayItem, onToggle: { isComplete in
+                    // Find the corresponding progress item and update it
+                    if let progressItem = progress.itemProgress?.first(where: { $0.templateItemId == displayItem.templateItemId }) {
+                        progressItem.isComplete = isComplete
                         if isComplete {
-                            item.completedAt = Date()
+                            progressItem.completedAt = Date()
                         } else {
-                            item.completedAt = nil
+                            progressItem.completedAt = nil
                         }
                     }
                 }, displayTitle: displayTitle)
@@ -65,7 +61,7 @@ struct PreSoloTrainingView: View {
                             .foregroundColor(.primary)
                     }
                     .padding()
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
             }
@@ -77,8 +73,8 @@ struct PreSoloTrainingView: View {
                         SelectableTextField(
                             placeholder: "0.0",
                             value: Binding(
-                                get: { checklist.dualGivenHours },
-                                set: { checklist.dualGivenHours = $0 }
+                                get: { progress.dualGivenHours },
+                                set: { progress.dualGivenHours = $0 }
                             ),
                             format: .number.precision(.fractionLength(1))
                         )
@@ -101,25 +97,25 @@ struct PreSoloTrainingView: View {
                         .foregroundColor(.secondary)
                     
                     TextEditor(text: Binding(
-                        get: { checklist.instructorComments ?? "" },
-                        set: { checklist.instructorComments = $0.isEmpty ? nil : $0 }
+                        get: { progress.instructorComments ?? "" },
+                        set: { progress.instructorComments = $0.isEmpty ? nil : $0 }
                     ))
                     .frame(minHeight: 100)
                     .padding(8)
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
             }
         }
-        .navigationTitle(checklist.templateName)
+        .navigationTitle(progress.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 EditButton()
             }
         }
-        .id(checklist.id) // Prevent view recreation when checklist data changes
+        .id(progress.id) // Prevent view recreation when progress data changes
         .onDisappear {
             // Changes are automatically saved by SwiftData when context changes
         }
@@ -128,56 +124,25 @@ struct PreSoloTrainingView: View {
         }
     }
     
-    private var sortedItems: [StudentChecklistItem] {
-        (checklist.items ?? []).sorted { $0.order < $1.order }
-    }
-    
-    private func extractNumberFromTitle(_ title: String) -> Int {
-        let pattern = "^\\d+\\."
-        if let range = title.range(of: pattern, options: .regularExpression) {
-            let numberString = String(title[range]).replacingOccurrences(of: ".", with: "")
-            return Int(numberString) ?? 999
-        }
-        return 999
-    }
-    
     private func displayTitle(_ title: String) -> String {
         let pattern = "^\\d+\\.\\s*"
         return title.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
     }
     
     private func moveItems(from source: IndexSet, to destination: Int) {
-        var sortedItems = self.sortedItems
-        sortedItems.move(fromOffsets: source, toOffset: destination)
-        
-        // Update order values
-        for (index, item) in sortedItems.enumerated() {
-            item.order = index
-        }
-        
-        // Changes will be saved when exiting the view
+        // Note: In the new reference-based system, item ordering is managed by the template
+        print("⚠️ Item reordering not supported in reference-based system. Items should be reordered in the template.")
     }
     
     private func loadTemplate() {
-        let templateId = checklist.templateId
-        let descriptor = FetchDescriptor<ChecklistTemplate>(
-            predicate: #Predicate { $0.id == templateId }
-        )
-        do {
-            let templates = try modelContext.fetch(descriptor)
-            template = templates.first
-        } catch {
-            print("Failed to load template: \(error)")
-        }
+        // In the new system, template is already available through the progress relationship
+        template = progress.template
     }
 }
 
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
-    let checklist = StudentChecklist(templateId: UUID(), templateName: "Pre-Solo Training (61.87)", items: [
-        StudentChecklistItem(templateItemId: UUID(), title: "(1) Proper flight preparation procedures including, Preflight planning, Powerplant operations, and aircraft systems"),
-        StudentChecklistItem(templateItemId: UUID(), title: "(2) Taxiing or surface operations, including runups")
-    ])
-    PreSoloTrainingView(student: student, checklist: checklist)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+    let progress = ChecklistAssignment(templateId: UUID(), templateIdentifier: "presolo-training")
+    PreSoloTrainingView(student: student, progress: progress)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

@@ -11,27 +11,27 @@ import SwiftData
 struct PreSoloQuizView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var student: Student
-    @Bindable var checklist: StudentChecklist
+    @Bindable var progress: ChecklistAssignment
     @State private var template: ChecklistTemplate?
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedImage: UIImage?
+    @StateObject private var cloudKitShareService = CloudKitShareService()
 
-    init(student: Student, checklist: StudentChecklist) {
-        self.student = student
-        self.checklist = checklist
-    }
 
     var body: some View {
         List {
             // Checklist item
-            ForEach(Array((checklist.items ?? []).sorted { $0.order < $1.order }.enumerated()), id: \.element.id) { index, item in
-                ChecklistItemRow(item: item, onToggle: { isComplete in
-                    item.isComplete = isComplete
-                    if isComplete {
-                        item.completedAt = Date()
-                    } else {
-                        item.completedAt = nil
+            ForEach(Array(ChecklistAssignmentService.getDisplayItems(for: progress).sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
+                ChecklistItemRow(displayItem: displayItem, onToggle: { isComplete in
+                    // Find the corresponding progress item and update it
+                    if let progressItem = progress.itemProgress?.first(where: { $0.templateItemId == displayItem.templateItemId }) {
+                        progressItem.isComplete = isComplete
+                        if isComplete {
+                            progressItem.completedAt = Date()
+                        } else {
+                            progressItem.completedAt = nil
+                        }
                     }
                 }, displayTitle: displayTitle)
                 .adaptiveRowBackgroundModifier(for: index)
@@ -49,7 +49,7 @@ struct PreSoloQuizView: View {
                             .foregroundColor(.primary)
                     }
                     .padding()
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
             }
@@ -95,8 +95,8 @@ struct PreSoloQuizView: View {
                         SelectableTextField(
                             placeholder: "0.0",
                             value: Binding(
-                                get: { checklist.dualGivenHours },
-                                set: { checklist.dualGivenHours = $0 }
+                                get: { progress.dualGivenHours },
+                                set: { progress.dualGivenHours = $0 }
                             ),
                             format: .number.precision(.fractionLength(1))
                         )
@@ -119,27 +119,35 @@ struct PreSoloQuizView: View {
                         .foregroundColor(.secondary)
                     
                     TextEditor(text: Binding(
-                        get: { checklist.instructorComments ?? "" },
-                        set: { checklist.instructorComments = $0.isEmpty ? nil : $0 }
+                        get: { progress.instructorComments ?? "" },
+                        set: { progress.instructorComments = $0.isEmpty ? nil : $0 }
                     ))
                     .frame(minHeight: 100)
                     .padding(8)
-                    .background(Color.appMutedBox)
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
             }
         }
-        .navigationTitle(checklist.templateName)
+        .navigationTitle(progress.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 EditButton()
             }
         }
-        .id(checklist.id) // Prevent view recreation when checklist data changes
+        .id(progress.id) // Prevent view recreation when progress data changes
+        .onAppear {
+            template = progress.template
+            cloudKitShareService.setModelContext(modelContext)
+        }
         .onDisappear {
-            // Changes are automatically saved by SwiftData when context changes
+            print("🔵 DEBUG: PreSoloQuizView.onDisappear called - Quiz exit detected")
+            // Save changes and sync to CloudKit when user exits
+            Task {
+                await saveChangesAndSync()
+            }
         }
         .sheet(isPresented: $showingCamera) {
             CameraView { image in
@@ -170,46 +178,49 @@ struct PreSoloQuizView: View {
         student.endorsements?.append(endorsement)
     }
     
-    private var sortedItems: [StudentChecklistItem] {
-        (checklist.items ?? []).sorted { $0.order < $1.order }
-    }
-    
-    private func extractNumberFromTitle(_ title: String) -> Int {
-        let pattern = "^\\d+\\."
-        if let range = title.range(of: pattern, options: .regularExpression) {
-            let numberString = String(title[range]).replacingOccurrences(of: ".", with: "")
-            return Int(numberString) ?? 999
-        }
-        return 999
-    }
-    
     private func displayTitle(_ title: String) -> String {
         let pattern = "^\\d+\\.\\s*"
         return title.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
     }
     
     private func moveItems(from source: IndexSet, to destination: Int) {
-        var sortedItems = self.sortedItems
-        sortedItems.move(fromOffsets: source, toOffset: destination)
-        
-        // Update order values
-        for (index, item) in sortedItems.enumerated() {
-            item.order = index
-        }
-        
-        // Changes will be saved when exiting the view
+        // Note: In the new reference-based system, item ordering is managed by the template
+        print("⚠️ Item reordering not supported in reference-based system. Items should be reordered in the template.")
     }
     
     private func loadTemplate() {
-        let templateId = checklist.templateId
-        let descriptor = FetchDescriptor<ChecklistTemplate>(
-            predicate: #Predicate { $0.id == templateId }
-        )
+        // In the new system, template is already available through the progress relationship
+        template = progress.template
+    }
+    
+    private func saveChangesAndSync() async {
+        print("🔵 DEBUG: PreSoloQuizView.saveChangesAndSync() called - Quiz save triggered")
+        print("🔵 DEBUG: Quiz: \(progress.displayName), Student: \(student.displayName)")
+        
+        // Update progress metadata
+        progress.lastModified = Date()
+        student.lastModified = Date() // Trigger progress bar refresh
+        
         do {
-            let templates = try modelContext.fetch(descriptor)
-            template = templates.first
+            try modelContext.save()
+            print("✅ PreSoloQuiz progress saved successfully")
+            
+            // Sync to CloudKit and refresh progress
+            await cloudKitShareService.syncStudentChecklistProgressToSharedZone(student, modelContext: modelContext)
+            await refreshStudentProgress()
+            print("✅ PreSoloQuiz progress synced to CloudKit and progress refreshed")
+            
         } catch {
-            print("Failed to load template: \(error)")
+            print("❌ Failed to save PreSoloQuiz progress: \(error)")
+        }
+    }
+    
+    private func refreshStudentProgress() async {
+        // Force refresh of progress calculations by updating lastModified
+        await MainActor.run {
+            student.lastModified = Date()
+            // This will trigger SwiftUI to recalculate weightedCategoryProgress
+            // and update the progress bars in StudentsView
         }
     }
 }
@@ -247,9 +258,7 @@ struct QuizPhotoView: View {
 
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
-    let checklist = StudentChecklist(templateId: UUID(), templateName: "Pre-Solo Quiz", items: [
-        StudentChecklistItem(templateItemId: UUID(), title: "Administer, Grade and correct pre-solo quiz")
-    ])
-    PreSoloQuizView(student: student, checklist: checklist)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+    let progress = ChecklistAssignment(templateId: UUID(), templateIdentifier: "presolo-quiz")
+    PreSoloQuizView(student: student, progress: progress)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

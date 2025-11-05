@@ -6,6 +6,7 @@
 import SwiftUI
 import WebKit
 import SwiftData
+import PDFKit
 
 struct StudentRecordWebView: View {
     let student: Student
@@ -42,10 +43,10 @@ struct StudentRecordWebView: View {
                     }
                     .buttonStyle(.noHaptic)
                     .font(.body)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.appPrimary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1))
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(20)
                     .frame(minWidth: 80)
                 }
@@ -55,10 +56,10 @@ struct StudentRecordWebView: View {
                     }
                     .buttonStyle(.noHaptic)
                     .font(.body)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.appPrimary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1))
+                    .background(Color.appAdaptiveMutedBox)
                     .cornerRadius(20)
                     .frame(minWidth: 80)
                     .disabled(isLoading)
@@ -123,7 +124,7 @@ struct StudentRecordWebView: View {
                 .instructor-comments{background:#fff3cd;border:1px solid #ffeaa7;border-radius:4px;padding:8px;margin-top:8px;font-style:italic;font-size:12px}
                 .endorsement-item{border:1px solid #ddd;border-radius:6px;padding:8px;background:white;width:100%;box-sizing:border-box}
                 .endorsement-filename{font-size:11px;color:#666;text-align:center}
-                .endorsement-photo{max-width:100%;height:auto;border-radius:4px;margin-bottom:8px}
+                .endorsement-photo{max-width:100px;max-height:100px;width:auto;height:auto;border-radius:4px;margin-bottom:8px}
                 .document-item{border:1px solid #ddd;border-radius:6px;padding:10px;background:white;width:100%;box-sizing:border-box}
                 .document-icon{font-size:20px;color:#007AFF}
                 .document-info{flex:1}
@@ -157,7 +158,7 @@ struct StudentRecordWebView: View {
                 </div>
         """ : ""
         
-        let checklistsSection = (student.checklists?.isEmpty ?? true) ? "" : generateChecklistsSection()
+        let checklistsSection = (student.checklistAssignments?.isEmpty ?? true) ? "" : generateChecklistsSection()
         
         let endorsementsSection = (student.endorsements?.isEmpty ?? true) ? "" : generateEndorsementsSection()
         
@@ -207,29 +208,31 @@ struct StudentRecordWebView: View {
     }
     
     private func generateChecklistsSection() -> String {
-        // Sort checklists by phase and lesson number for proper ordering
-        let sortedChecklists = (student.checklists ?? []).sorted { checklist1, checklist2 in
-            // First sort by phase (First Steps, Phase 1, Pre-Solo, Phase 2, etc.)
-            let phase1 = extractPhase(checklist1.templateName)
-            let phase2 = extractPhase(checklist2.templateName)
+        // Sort assignment records by phase and lesson number for proper ordering
+        let sortedAssignments = (student.checklistAssignments ?? []).sorted { assignment1, assignment2 in
+            // First sort by phase (First Steps, Phase 1, Phase 1.5 Pre-Solo/Solo, Phase 2, etc.)
+            let phase1 = extractPhase(assignment1.displayName)
+            let phase2 = extractPhase(assignment2.displayName)
             
             if phase1 != phase2 {
                 return phase1 < phase2
             }
             
             // Within the same phase, sort by lesson number
-            let lesson1 = extractLessonNumber(checklist1.templateName)
-            let lesson2 = extractLessonNumber(checklist2.templateName)
+            let lesson1 = extractLessonNumber(assignment1.displayName)
+            let lesson2 = extractLessonNumber(assignment2.displayName)
             
             return lesson1 < lesson2
         }
         
-        let checklistHTML = sortedChecklists.map { checklist in
-            let completedCount = (checklist.items ?? []).filter { $0.isComplete }.count
-            let totalCount = (checklist.items ?? []).count
+        let checklistHTML = sortedAssignments.map { assignment in
+            let completedCount = assignment.completedItemsCount
+            let totalCount = assignment.totalItemsCount
             let percentage = totalCount > 0 ? Int((Double(completedCount) / Double(totalCount)) * 100) : 0
             
-            let sortedItems = (checklist.items ?? []).sorted { $0.order < $1.order }
+            // Get display items for this assignment record
+            let displayItems = ChecklistAssignmentService.getDisplayItems(for: assignment)
+            let sortedItems = displayItems.sorted { $0.order < $1.order }
             let itemsHTML = sortedItems.map { item in
                 let statusClass = item.isComplete ? "completed" : ""
                 let statusIcon = item.isComplete ? "✓" : "○"
@@ -246,22 +249,22 @@ struct StudentRecordWebView: View {
                 """
             }.joined()
             
-               let dualGivenHTML = checklist.dualGivenHours > 0 ? """
+               let dualGivenHTML = assignment.dualGivenHours > 0 ? """
                    <div class="instructor-comments">
-                       <strong>Dual Given Hours:</strong> \(String(format: "%.1f", checklist.dualGivenHours)) hours
+                       <strong>Dual Given Hours:</strong> \(String(format: "%.1f", assignment.dualGivenHours)) hours
                    </div>
                """ : ""
                
-               let commentsHTML = checklist.instructorComments?.isEmpty == false ? """
+               let commentsHTML = assignment.instructorComments?.isEmpty == false ? """
                    <div class="instructor-comments">
                        <strong>Instructor Comments:</strong><br>
-                       \(checklist.instructorComments!)
+                       \(assignment.instructorComments!)
                    </div>
                """ : ""
             
             return """
                 <div class="checklist">
-                    <div class="checklist-header">\(checklist.templateName) (\(completedCount)/\(totalCount) - \(percentage)%)</div>
+                    <div class="checklist-header">\(assignment.displayName) (\(completedCount)/\(totalCount) - \(percentage)%)</div>
                     \(itemsHTML)
                     \(dualGivenHTML)
                     \(commentsHTML)
@@ -278,7 +281,7 @@ struct StudentRecordWebView: View {
     }
     
     private func extractPhase(_ templateName: String) -> Int {
-        // Define phase order: First Steps = 0, Phase 1 = 1, Pre-Solo = 2, Phase 2 = 3, etc.
+        // Define phase order: First Steps = 0, Phase 1 = 1, Phase 1.5 Pre-Solo/Solo = 2, Phase 2 = 3, etc.
         if templateName.contains("Student Onboard") || templateName.contains("First Steps") {
             return 0
         } else if templateName.contains("P1-") {
@@ -314,19 +317,45 @@ struct StudentRecordWebView: View {
     
     private func generateEndorsementsSection() -> String {
         let endorsementsHTML = (student.endorsements ?? []).map { endorsement in
-            // Convert image data to base64 for embedding in HTML
+            // Check if this is a PDF file
             if let imageData = endorsement.imageData {
-                let base64String = imageData.base64EncodedString()
-                return """
-                <div class="endorsement-item">
-                    <img src="data:image/jpeg;base64,\(base64String)" class="endorsement-photo" alt="\(endorsement.filename)">
-                    <div class="endorsement-filename">\(endorsement.filename)</div>
-                </div>
-                """
+                if endorsement.filename.hasSuffix(".pdf") {
+                    // For PDF files, generate a thumbnail and embed as image
+                    if let thumbnailData = generatePDFThumbnail(from: imageData) {
+                        let base64String = thumbnailData.base64EncodedString()
+                        return """
+                        <div class="endorsement-item" style="text-align:center;width:120px;margin:0 auto;">
+                            <div style="width:100px;height:100px;overflow:hidden;border-radius:4px;margin:0 auto 8px auto;border:1px solid #ddd;">
+                                <img src="data:image/png;base64,\(base64String)" style="width:100%;height:100%;object-fit:contain;" alt="\(endorsement.filename)">
+                            </div>
+                            <div class="endorsement-filename">\(getEndorsementDisplayName(for: endorsement))</div>
+                        </div>
+                        """
+                    } else {
+                        // Fallback if thumbnail generation fails
+                        return """
+                        <div class="endorsement-item">
+                            <div style="width:100px;height:100px;background:#f0f0f0;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;color:#666;margin:0 auto;">
+                                PDF Document
+                            </div>
+                            <div class="endorsement-filename">\(getEndorsementDisplayName(for: endorsement))</div>
+                        </div>
+                        """
+                    }
+                } else {
+                    // For regular image files
+                    let base64String = imageData.base64EncodedString()
+                    return """
+                    <div class="endorsement-item">
+                        <img src="data:image/jpeg;base64,\(base64String)" class="endorsement-photo" alt="\(endorsement.filename)">
+                        <div class="endorsement-filename">\(getEndorsementDisplayName(for: endorsement))</div>
+                    </div>
+                    """
+                }
             } else {
                 return """
                 <div class="endorsement-item">
-                    <div class="endorsement-filename">\(endorsement.filename) (No image data)</div>
+                    <div class="endorsement-filename">\(getEndorsementDisplayName(for: endorsement)) (No data)</div>
                 </div>
                 """
             }
@@ -340,6 +369,101 @@ struct StudentRecordWebView: View {
                 </div>
             </div>
         """
+    }
+    
+    private func generatePDFThumbnail(from pdfData: Data) -> Data? {
+        print("🔍 Generating PDF thumbnail, data size: \(pdfData.count) bytes")
+        
+        guard let pdfDocument = PDFDocument(data: pdfData) else {
+            print("⚠️ Failed to create PDFDocument from data")
+            return nil
+        }
+        
+        guard let page = pdfDocument.page(at: 0) else {
+            print("⚠️ Failed to get first page of PDF")
+            return nil
+        }
+        
+        let thumbnailSize = CGSize(width: 300, height: 300)
+        let thumbnail = page.thumbnail(of: thumbnailSize, for: .mediaBox)
+        
+        guard let pngData = thumbnail.pngData() else {
+            print("⚠️ Failed to convert thumbnail to PNG data")
+            return nil
+        }
+        
+        print("✅ Generated PDF thumbnail, PNG size: \(pngData.count) bytes")
+        return pngData
+    }
+    
+    private func getEndorsementDisplayName(for endorsement: EndorsementImage) -> String {
+        if let code = endorsement.endorsementCode {
+            switch code {
+            case "A.1":
+                return "Authorization to Take Practical Test"
+            case "A.2":
+                return "Authorization for Solo Flight"
+            case "A.3":
+                return "Aeronautical Knowledge"
+            case "A.4":
+                return "Pre-Solo Training to Proficiency"
+            case "A.5":
+                return "Solo Flight Training"
+            case "A.6":
+                return "Solo Cross-Country Flight Training"
+            case "A.7":
+                return "Solo Flight in Complex Airplane"
+            case "A.8":
+                return "Instrument Proficiency Check"
+            case "A.9":
+                return "Instrument Training"
+            case "A.10":
+                return "Instrument Experience"
+            case "A.11":
+                return "Instrument Recency"
+            case "A.12":
+                return "Instrument Approach Procedures"
+            case "A.13":
+                return "Instrument Training for Private Pilot"
+            case "A.14":
+                return "Instrument Training for Commercial Pilot"
+            case "A.15":
+                return "Instrument Training for Airline Transport Pilot"
+            case "A.16":
+                return "Instrument Training for Flight Instructor"
+            case "A.17":
+                return "Instrument Training for Ground Instructor"
+            case "A.18":
+                return "Instrument Training for Instrument Instructor"
+            case "A.19":
+                return "Instrument Training for Multi-Engine Instructor"
+            case "A.20":
+                return "Instrument Training for Sport Pilot"
+            case "A.21":
+                return "Instrument Training for Recreational Pilot"
+            case "A.22":
+                return "Instrument Training for Glider Pilot"
+            case "A.23":
+                return "Instrument Training for Lighter-Than-Air Pilot"
+            case "A.24":
+                return "Instrument Training for Powered-Lift Pilot"
+            case "A.25":
+                return "Instrument Training for Rotorcraft Pilot"
+            case "A.26":
+                return "Instrument Training for Powered Parachute Pilot"
+            case "A.27":
+                return "Instrument Training for Weight-Shift-Control Pilot"
+            case "A.28":
+                return "Instrument Training for Balloon Pilot"
+            case "A.29":
+                return "Instrument Training for Airship Pilot"
+            case "A.30":
+                return "Instrument Training for Powered-Lift Pilot"
+            default:
+                return code
+            }
+        }
+        return endorsement.filename
     }
     
     private func generateDocumentsSection() -> String {
@@ -448,7 +572,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
     StudentRecordWebView(student: student)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 
 // MARK: - Helper Functions

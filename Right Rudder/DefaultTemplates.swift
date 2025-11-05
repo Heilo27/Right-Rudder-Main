@@ -424,7 +424,7 @@ class DefaultTemplates {
     static let preSoloQuizAndDocuments = ChecklistTemplate(
         name: "Pre-Solo Quiz & Documents",
         category: "PPL",
-        phase: "Pre-Solo/Solo",
+        phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_pre_solo_quiz_and_documents",
         items: [
             ChecklistItem(title: "1. Administer, Grade, and Correct pre-solo quiz", notes: "Pass is 100% corrected", order: 0),
@@ -436,7 +436,7 @@ class DefaultTemplates {
     static let preSoloTrainingCheckoff = ChecklistTemplate(
         name: "Pre-Solo Training Checkoff (61.87)",
         category: "PPL",
-        phase: "Pre-Solo/Solo",
+        phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_pre_solo_training_checkoff",
         items: [
             ChecklistItem(title: "1. PProper flight perperation procedures including, Preflight planning, powerplant operations, and aircraft systems", notes: "", order: 0),
@@ -461,7 +461,7 @@ class DefaultTemplates {
     static let firstSolo = ChecklistTemplate(
         name: "First Solo",
         category: "PPL",
-        phase: "Pre-Solo/Solo",
+        phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_first_solo",
         items: [
             ChecklistItem(title: "1. Risk Managment", notes: "Using PAVE checklist, brief risk factors for this flight & how to mitigate them", order: 0),
@@ -489,7 +489,7 @@ class DefaultTemplates {
     static let soloEndorsements = ChecklistTemplate(
         name: "Solo Endorsements",
         category: "PPL",
-        phase: "Pre-Solo/Solo",
+        phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_solo_endorsements",
         items: [
             ChecklistItem(title: "1. A.3 Aeronautical knowledge 61.87(b) (Pre-solo written to 100%. I have to ensure that their written test deficiencies have been reviewed and corrected to 100% by explaining to them the areas they got wrong.)", notes: "I certify that (first, middle, last) has satisfactorily completed the pre-solo knowledge test of 61.87(b) for the [make and model] aircraft.", order: 0),

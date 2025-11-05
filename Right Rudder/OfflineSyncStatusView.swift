@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 /// View that displays offline sync status and pending operations
 struct OfflineSyncStatusView: View {
@@ -67,7 +68,7 @@ struct OfflineSyncStatusView: View {
             }
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
         .onAppear {
             offlineSyncManager.setModelContext(modelContext)

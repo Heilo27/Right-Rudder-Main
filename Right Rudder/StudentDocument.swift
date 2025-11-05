@@ -27,14 +27,19 @@ class StudentDocument {
     var id: UUID = UUID()
     var documentTypeRaw: String = DocumentType.studentPilotCertificate.rawValue
     var filename: String = ""
-    var fileData: Data?
+    
+    // MARK: - Bidirectional Fields (Last Write Wins)
+    // Document data can be uploaded by both instructor and student apps
+    var fileData: Data?  // BIDIRECTIONAL (last write wins)
+    var notes: String?  // BIDIRECTIONAL (last write wins)
+    
     var uploadedAt: Date = Date()
     var expirationDate: Date?
-    var notes: String?
     
-    // CloudKit sync attributes
+    // MARK: - CloudKit Sync Attributes
     var cloudKitRecordID: String?
     var lastModified: Date = Date()
+    var lastModifiedBy: String?  // Tracks who last modified: "instructor" or "student"
     
     // Inverse relationship
     var student: Student?

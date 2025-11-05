@@ -42,23 +42,31 @@ struct AddStudentView: View {
                     }
                     
                     TextField("First Name", text: $firstName)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Last Name", text: $lastName)
+                        .modifier(ResponsiveTextFieldModifier())
                     TextField("Email Address", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
-                    TextField("Telephone Number", text: $telephone)
+                        .modifier(ResponsiveTextFieldModifier())
+                    TextField("Telephone Number (Optional)", text: $telephone)
                         .keyboardType(.phonePad)
-                    TextField("Home Address", text: $homeAddress)
+                        .modifier(ResponsiveTextFieldModifier())
+                    TextField("Home Address (Optional)", text: $homeAddress)
                         .foregroundColor(homeAddress == "Enter home address (optional)" ? .secondary : .primary)
-                    TextField("FTN Number", text: $ftnNumber)
+                        .modifier(ResponsiveTextFieldModifier())
+                    TextField("FTN Number (Optional)", text: $ftnNumber)
                         .foregroundColor(ftnNumber == "Enter FTN number (optional)" ? .secondary : .primary)
+                        .modifier(ResponsiveTextFieldModifier())
                 }
                 
                 Section("Background") {
-                    TextField("Biography", text: $biography, axis: .vertical)
+                    TextField("Biography (Optional)", text: $biography, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Background Notes", text: $backgroundNotes, axis: .vertical)
+                        .modifier(ResponsiveTextFieldModifier())
+                    TextField("Background Notes (Optional)", text: $backgroundNotes, axis: .vertical)
                         .lineLimit(3...6)
+                        .modifier(ResponsiveTextFieldModifier())
                 }
             }
             .navigationTitle("Add Student")
@@ -85,21 +93,22 @@ struct AddStudentView: View {
     }
     
     private var isFormValid: Bool {
-        !firstName.isEmpty && !lastName.isEmpty && !email.isEmpty && !telephone.isEmpty && 
-        homeAddress != "Enter home address (optional)" && ftnNumber != "Enter FTN number (optional)"
+        !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     private func saveStudent() {
         let student = Student(
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
-            telephone: telephone,
-            homeAddress: homeAddress == "Enter home address (optional)" ? "" : homeAddress,
-            ftnNumber: ftnNumber == "Enter FTN number (optional)" ? "" : ftnNumber
+            firstName: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+            lastName: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            telephone: telephone.trimmingCharacters(in: .whitespacesAndNewlines),
+            homeAddress: homeAddress == "Enter home address (optional)" ? "" : homeAddress.trimmingCharacters(in: .whitespacesAndNewlines),
+            ftnNumber: ftnNumber == "Enter FTN number (optional)" ? "" : ftnNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         )
-        student.biography = biography.isEmpty ? nil : biography
-        student.backgroundNotes = backgroundNotes.isEmpty ? nil : backgroundNotes
+        student.biography = biography.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : biography.trimmingCharacters(in: .whitespacesAndNewlines)
+        student.backgroundNotes = backgroundNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : backgroundNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Automatically add instructor information from settings
         student.instructorName = instructorName.isEmpty ? nil : instructorName
@@ -109,7 +118,37 @@ struct AddStudentView: View {
         student.assignedCategory = "PPL"  // Default to PPL for new students
         student.isInactive = false  // New students are active by default
         
+        // Insert student into context
         modelContext.insert(student)
+        
+        // Explicitly save to ensure persistence
+        do {
+            try modelContext.save()
+            print("✅ Successfully saved new student: \(student.displayName) (ID: \(student.id))")
+            
+            // Verify the save worked by fetching
+            let verifyDescriptor = FetchDescriptor<Student>()
+            let allStudents = try modelContext.fetch(verifyDescriptor)
+            let found = allStudents.contains { $0.id == student.id }
+            
+            if !found {
+                print("⚠️ WARNING: Student was saved but fetch returned empty!")
+            } else {
+                print("✅ Verification: Student found in database after save (total students: \(allStudents.count))")
+            }
+            
+        } catch {
+            print("❌ CRITICAL: Failed to save student: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain)")
+                print("❌ Error code: \(nsError.code)")
+                print("❌ User info: \(nsError.userInfo)")
+            }
+            // Don't dismiss if save failed - user should see the error
+            return
+        }
+        
         dismiss()
     }
     
@@ -140,6 +179,6 @@ struct AddStudentView: View {
 
 #Preview {
     AddStudentView()
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 

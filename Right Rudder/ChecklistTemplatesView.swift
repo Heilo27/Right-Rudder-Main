@@ -213,7 +213,7 @@ struct ChecklistTemplatesView: View {
             }
             
             // Define the logical order for phases - First Steps must be at the top
-            let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
+            let phaseOrder = ["First Steps", "Phase 1", "Phase 1.5 Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
             
             // Create phase groups with sorted templates
             var phaseGroups: [PhaseGroup] = []
@@ -378,7 +378,7 @@ struct PhaseGroup: Identifiable {
 
 #Preview {
     ChecklistTemplatesView()
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 
 

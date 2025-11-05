@@ -58,10 +58,10 @@ struct AdaptiveRowBackgroundModifier: ViewModifier {
         if colorScheme == .dark {
             if currentColorScheme == .highContrast {
                 // Keep very dark for High Contrast scheme
-                return Color.appMutedBox.opacity(0.15)
+                return Color.appDarkModeMutedBox.opacity(0.3)
             } else {
-                // Use the primary color scheme colors directly for better color visibility
-                return currentColorScheme.primaryColor.opacity(0.2)
+                // Use the new dark mode background colors
+                return currentColorScheme.darkModeBackgroundColor.opacity(0.8)
             }
         } else {
             // Light mode: Use vibrant primary colors for better color visibility

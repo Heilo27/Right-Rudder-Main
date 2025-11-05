@@ -16,39 +16,33 @@ struct WhatsNewView: View {
     
     private let features = [
         FeatureItem(
-            icon: "icloud.and.arrow.up",
-            title: "CloudKit Student Sharing",
-            description: "Share student profiles and checklists with students via secure CloudKit sharing. Students can view their progress and upload documents.",
+            icon: "iphone.gen3",
+            title: "🎉 NEW: Student Companion App",
+            description: "Introducing the Right Rudder Student App! Students can now download their own dedicated app to view their training progress, upload documents, receive notifications, and track their flight hours independently.",
             color: .blue
         ),
         FeatureItem(
-            icon: "doc.text.fill",
-            title: "Student Document Management",
-            description: "Students can upload and manage required documents: Pilot Certificate, Medical Certificate, Passport/Birth Certificate, and LogBook with expiration tracking.",
+            icon: "person.2.fill",
+            title: "Student-Instructor Collaboration",
+            description: "Students can view their assigned checklists, see instructor comments, upload required documents, and track their training milestones in real-time through the companion app.",
             color: .green
         ),
         FeatureItem(
-            icon: "bell.badge.fill",
-            title: "Push Notifications",
-            description: "Real-time notifications when instructors add comments or updates. Students receive instant alerts about their training progress.",
+            icon: "doc.text.fill",
+            title: "Document Management",
+            description: "Students can upload and manage all required documents: Pilot Certificate, Medical Certificate, Passport/Birth Certificate, and LogBook with automatic expiration tracking and alerts.",
             color: .orange
         ),
         FeatureItem(
-            icon: "checkmark.circle.fill",
-            title: "Enhanced Flight Reviews",
-            description: "New Biennial Flight Review checklist with 94 detailed items covering all FAA AC 61-98E requirements and comprehensive IPC checklists.",
-            color: .purple
-        ),
-        FeatureItem(
-            icon: "paintbrush.fill",
-            title: "Improved UI & Accessibility",
-            description: "Enhanced Light/Dark mode support, high contrast color schemes, better legibility, and streamlined navigation for all users.",
+            icon: "chart.line.uptrend.xyaxis",
+            title: "Progress Tracking",
+            description: "Students can view their training progress, completed lessons, upcoming requirements, and track their journey toward certification goals.",
             color: .red
         ),
         FeatureItem(
-            icon: "square.and.arrow.up",
-            title: "Lesson Sharing & Export",
-            description: "Share custom lesson checklists with other instructors and export student records as PDFs for record keeping.",
+            icon: "icloud.and.arrow.up",
+            title: "Secure CloudKit Sync",
+            description: "All student data syncs securely through CloudKit, ensuring students always have access to their latest training information across all devices.",
             color: .indigo
         )
     ]
@@ -78,7 +72,7 @@ struct WhatsNewView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text("Major CloudKit Integration & Student Features")
+                        Text("🎉 Introducing the Student Companion App!")
                             .font(.title2)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
@@ -159,7 +153,7 @@ struct WhatsNewView: View {
                 }
                 
                 // Auto-advance pages
-                autoAdvanceTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { _ in
+                autoAdvanceTimer = Timer.scheduledTimer(withTimeInterval: 9.0, repeats: true) { _ in
                     withAnimation(.easeInOut(duration: 0.5)) {
                         self.currentPage = (self.currentPage + 1) % self.features.count
                     }

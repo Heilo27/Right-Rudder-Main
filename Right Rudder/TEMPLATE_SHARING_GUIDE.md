@@ -56,7 +56,7 @@ All template lists are sorted alphabetically, with custom logic for:
 - **User-created templates**: Appear first in sharing menu
 - **User-modified templates**: Appear second in sharing menu
 - **Default templates**: Appear last in sharing menu
-- **Phase grouping**: Templates are grouped by phase (First Steps, Phase 1, Pre-Solo, etc.)
+- **Phase grouping**: Templates are grouped by phase (First Steps, Phase 1, Phase 1.5 Pre-Solo/Solo, etc.)
 - **Alphabetical order**: Within each category, templates are sorted alphabetically
 
 ## Xcode Configuration

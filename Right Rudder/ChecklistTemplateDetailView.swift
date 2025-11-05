@@ -65,7 +65,7 @@ struct ChecklistTemplateDetailView: View {
         ChecklistItem(title: "Inspect exterior", notes: "Look for damage or loose parts")
     ])
     ChecklistTemplateDetailView(template: template)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 
 

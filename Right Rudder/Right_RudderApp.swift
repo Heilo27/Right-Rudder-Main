@@ -14,12 +14,16 @@ struct RightRudderApp: App {
     let modelContainer: ModelContainer
     @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
     @StateObject private var pushNotificationService = PushNotificationService.shared
+    @StateObject private var databaseRecoveryService = DatabaseRecoveryService.shared
     @State private var shouldShowWhatsNew = false
     @State private var shouldShowCFIWarning = false
     
     init() {
         // Initialize memory monitoring
         _ = MemoryMonitor.shared
+        
+        // Warm up text input system to prevent cold start delays
+        TextInputWarmingService.shared.warmTextInput()
         
         // Set up memory pressure handling
         NotificationCenter.default.addObserver(
@@ -35,16 +39,23 @@ struct RightRudderApp: App {
             // Initialize with CloudKit support
             print("Initializing ModelContainer with CloudKit support...")
             
+            // Define the current schema (using ChecklistAssignment, not StudentChecklistProgress)
             let schema = Schema([
                 Student.self,
-                StudentChecklist.self,
-                StudentChecklistItem.self,
+                ChecklistAssignment.self,
+                ItemProgress.self,
+                CustomChecklistDefinition.self,
+                CustomChecklistItem.self,
                 EndorsementImage.self,
                 ChecklistTemplate.self,
                 ChecklistItem.self,
                 StudentDocument.self,
                 OfflineSyncOperation.self
             ])
+            
+            // Check if we need to migrate the database due to schema changes
+            // This handles migration from StudentChecklistProgress to ChecklistAssignment
+            DatabaseMigrationService.migrateIfNeeded()
             
             // Configure CloudKit container with optimized settings
             let cloudKitConfiguration = ModelConfiguration(
@@ -54,14 +65,29 @@ struct RightRudderApp: App {
             )
             
             modelContainer = try ModelContainer(for: schema, configurations: cloudKitConfiguration)
-            print("ModelContainer initialized successfully with CloudKit")
+            print("✅ ModelContainer initialized successfully with CloudKit")
+            
+            // Verify the container is actually using persistent storage
+            if cloudKitConfiguration.isStoredInMemoryOnly {
+                print("⚠️ WARNING: Container is using in-memory storage!")
+            } else {
+                print("✅ Container is using persistent storage")
+            }
         } catch {
-            print("Failed to initialize ModelContainer with CloudKit: \(error)")
+            print("❌ FAILED to initialize ModelContainer with CloudKit: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain)")
+                print("❌ Error code: \(nsError.code)")
+                print("❌ User info: \(nsError.userInfo)")
+            }
             
             // Check if this is a CoreData corruption error
             if Self.isCoreDataCorruptionError(error) {
                 print("⚠️ CoreData corruption detected. Attempting recovery...")
-                try? Self.recoverFromCorruption()
+                Task {
+                    await DatabaseRecoveryService.shared.attemptRecovery()
+                }
             }
             print("Attempting to create local container as fallback...")
             
@@ -69,8 +95,10 @@ struct RightRudderApp: App {
             do {
                 let schema = Schema([
                     Student.self,
-                    StudentChecklist.self,
-                    StudentChecklistItem.self,
+                    ChecklistAssignment.self,
+                    ItemProgress.self,
+                    CustomChecklistDefinition.self,
+                    CustomChecklistItem.self,
                     EndorsementImage.self,
                     ChecklistTemplate.self,
                     ChecklistItem.self,
@@ -89,8 +117,10 @@ struct RightRudderApp: App {
                 do {
                     modelContainer = try ModelContainer(for: 
                         Student.self, 
-                        StudentChecklist.self, 
-                        StudentChecklistItem.self, 
+                        ChecklistAssignment.self,
+                        ItemProgress.self,
+                        CustomChecklistDefinition.self,
+                        CustomChecklistItem.self,
                         EndorsementImage.self,
                         ChecklistTemplate.self, 
                         ChecklistItem.self,
@@ -108,19 +138,51 @@ struct RightRudderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if shouldShowCFIWarning {
-                    CFIExpirationWarningView {
-                        shouldShowCFIWarning = false
+            ZStack {
+                Group {
+                    if shouldShowCFIWarning {
+                        CFIExpirationWarningView {
+                            shouldShowCFIWarning = false
+                        }
+                    } else if shouldShowWhatsNew {
+                        WhatsNewView()
+                    } else {
+                        SplashScreenView()
                     }
-                } else if shouldShowWhatsNew {
-                    WhatsNewView()
-                } else {
-                    SplashScreenView()
+                }
+                
+                // Recovery progress overlay
+                if databaseRecoveryService.isRecovering {
+                    VStack {
+                        Spacer()
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                            Text("Recovering Database...")
+                                .font(.headline)
+                            Text(databaseRecoveryService.recoveryProgress)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 10)
+                        Spacer()
+                    }
+                    .background(Color.black.opacity(0.3))
                 }
             }
             .tint(currentColorScheme.primaryColor)
             .task {
+                // Clean up old sync files (older than 7 days) on app launch
+                TemplateExportService.cleanupOldSyncFiles()
+                
+                // Initialize CloudKit schema (ensures CustomChecklistDefinition record type is deployed)
+                let syncService = CloudKitSyncService()
+                await syncService.initializeCloudKitSchema()
+                
                 await pushNotificationService.checkNotificationPermission()
                 if pushNotificationService.notificationPermissionGranted {
                     await pushNotificationService.subscribeToInstructorComments()
@@ -136,6 +198,25 @@ struct RightRudderApp: App {
             }
             .onOpenURL { url in
                 handleIncomingURL(url)
+            }
+            .alert("Database Recovery", isPresented: $databaseRecoveryService.showRecoveryAlert) {
+                Button("Recover Database") {
+                    Task {
+                        await databaseRecoveryService.handleRecoveryWithConfirmation()
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    databaseRecoveryService.showRecoveryAlert = false
+                }
+            } message: {
+                Text("Your database appears to be corrupted. Would you like to attempt recovery? This will restore your data from CloudKit.")
+            }
+            .alert("Recovery Error", isPresented: .constant(databaseRecoveryService.recoveryError != nil)) {
+                Button("OK") {
+                    databaseRecoveryService.recoveryError = nil
+                }
+            } message: {
+                Text(databaseRecoveryService.recoveryError ?? "")
             }
         }
         .modelContainer(modelContainer)
@@ -213,4 +294,5 @@ struct RightRudderApp: App {
             print("✅ Corrupted database files removed. App will restart with fresh database.")
         }
     }
+    
 }

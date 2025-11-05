@@ -152,8 +152,8 @@ class OfflineSyncManager: ObservableObject {
               let checklistId = operation.checklistId else { return false }
         
         do {
-            // Find the checklist and student
-            let checklistRequest = FetchDescriptor<StudentChecklist>()
+            // Find the checklist assignment and student
+            let checklistRequest = FetchDescriptor<ChecklistAssignment>()
             let allChecklists = try modelContext.fetch(checklistRequest)
             let checklist = allChecklists.first { $0.id == checklistId }
             
@@ -162,7 +162,7 @@ class OfflineSyncManager: ObservableObject {
             
             // Sync to CloudKit
             let shareService = CloudKitShareService()
-            await shareService.syncStudentChecklistsToSharedZone(student, modelContext: modelContext)
+            await shareService.syncStudentChecklistAssignmentsToSharedZone(student, modelContext: modelContext)
             
             return true
         } catch {
@@ -184,7 +184,7 @@ class OfflineSyncManager: ObservableObject {
             
             // Sync to CloudKit
             let shareService = CloudKitShareService()
-            await shareService.syncStudentChecklistsToSharedZone(foundStudent, modelContext: modelContext)
+            await shareService.syncStudentChecklistAssignmentsToSharedZone(foundStudent, modelContext: modelContext)
             
             return true
         } catch {

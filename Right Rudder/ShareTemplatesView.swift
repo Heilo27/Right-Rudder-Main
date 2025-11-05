@@ -14,6 +14,19 @@ struct ShareTemplatesView: View {
     
     @Query(sort: \ChecklistTemplate.name) private var allTemplates: [ChecklistTemplate]
     
+    // Filter out blank or invalid templates
+    private var validTemplates: [ChecklistTemplate] {
+        return allTemplates.filter { template in
+            // Filter out templates with empty names
+            guard !template.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+            
+            // Filter out templates with no items (optional - you might want to keep these)
+            // guard let items = template.items, !items.isEmpty else { return false }
+            
+            return true
+        }
+    }
+    
     @State private var selectedTemplates: Set<UUID> = []
     @State private var shareURL: URL?
     @State private var showingShareSheet = false
@@ -27,7 +40,7 @@ struct ShareTemplatesView: View {
         // Get the default template order from DefaultTemplates.allTemplates
         let defaultTemplateOrder = DefaultTemplates.allTemplates.map { $0.templateIdentifier }
         
-        return allTemplates.sorted { template1, template2 in
+        return validTemplates.sorted { template1, template2 in
             // Priority 1: User-created templates (always first)
             if template1.isUserCreated != template2.isUserCreated {
                 return template1.isUserCreated
@@ -138,7 +151,7 @@ struct ShareTemplatesView: View {
                                     .font(.caption)
                             }
                         }
-                        .disabled(selectedTemplates.count == allTemplates.count)
+                        .disabled(selectedTemplates.count == validTemplates.count)
                         
                         Button(action: deselectAll) {
                             VStack(spacing: 4) {
@@ -225,7 +238,7 @@ struct ShareTemplatesView: View {
     }
     
     private func selectAll() {
-        selectedTemplates = Set(allTemplates.map { $0.id })
+        selectedTemplates = Set(validTemplates.map { $0.id })
     }
     
     private func deselectAll() {
@@ -236,7 +249,7 @@ struct ShareTemplatesView: View {
         isExporting = true
         errorMessage = nil
         
-        let templatesToShare = allTemplates.filter { selectedTemplates.contains($0.id) }
+        let templatesToShare = validTemplates.filter { selectedTemplates.contains($0.id) }
         
         if let url = TemplateExportService.exportTemplates(templatesToShare, authorName: instructorName) {
             shareURL = url

@@ -387,7 +387,7 @@ struct DocumentTypeCard: View {
             }
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -419,7 +419,7 @@ struct DocumentDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 200)
-                        .background(Color.appMutedBox)
+                        .background(Color.appAdaptiveMutedBox)
                         .cornerRadius(12)
                     } else if let uiImage = uiImage {
                         Image(uiImage: uiImage)
@@ -441,7 +441,7 @@ struct DocumentDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 200)
-                        .background(Color.appMutedBox)
+                        .background(Color.appAdaptiveMutedBox)
                         .cornerRadius(12)
                         .onTapGesture {
                             openDocumentExternally()

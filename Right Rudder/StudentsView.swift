@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CloudKit
 
 struct StudentsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,6 +17,7 @@ struct StudentsView: View {
     @State private var selectedCategory: String? = nil
     @State private var showingInactiveStudents = false
     @State private var cachedFilteredStudents: [Student] = []
+    @StateObject private var cloudKitShareService = CloudKitShareService()
     
     // Settings for progress bars and photos
     @AppStorage("showProgressBars") private var showProgressBars = true
@@ -37,8 +39,69 @@ struct StudentsView: View {
         }
         .onAppear {
             print("👁️ StudentsView APPEARED")
+            cloudKitShareService.setModelContext(modelContext)
+            
+            // Repair template relationships for all students to ensure progress calculations work
+            Task {
+                await repairAllStudentTemplateRelationships()
+            }
+            
             loadStudents()
             updateFilteredStudents()
+            
+            // If no students found, run diagnostics
+            if allStudents.isEmpty {
+                print("⚠️ No students found - attempting to migrate from old database...")
+                Task {
+                    OldDatabaseEmulator.shared.setModelContext(modelContext)
+                    await OldDatabaseEmulator.shared.migrateOldDatabaseToNewSchema()
+                    
+                    // Reload students after migration
+                    await MainActor.run {
+                        loadStudents()
+                        updateFilteredStudents()
+                    }
+                    
+                    // Repair template relationships after migration
+                    await repairAllStudentTemplateRelationships()
+                    
+                    // If still empty, try CloudKit diagnostics
+                    if allStudents.isEmpty {
+                        EmergencyDataRecovery.shared.setModelContext(modelContext)
+                        let diagnostics = await EmergencyDataRecovery.shared.diagnoseCloudKitData()
+                        print("📊 CloudKit Diagnostics:")
+                        for (type, count) in diagnostics {
+                            print("   \(type): \(count) records")
+                        }
+                        
+                        // If data exists in CloudKit, suggest recovery
+                        let totalRecords = diagnostics.values.reduce(0, +)
+                        if totalRecords > 0 {
+                            print("💡 Found \(totalRecords) records in CloudKit - use Emergency Data Recovery in Settings")
+                        }
+                    }
+                }
+            } else {
+                // Check for corrupted students (duplicate IDs or empty names)
+                let hasDuplicates = allStudents.count != Set(allStudents.map { $0.id }).count
+                let hasEmptyNames = allStudents.contains { $0.firstName.isEmpty && $0.lastName.isEmpty }
+                
+                if hasDuplicates || hasEmptyNames {
+                    print("⚠️ Detected corrupted students - duplicate IDs: \(hasDuplicates), empty names: \(hasEmptyNames)")
+                    print("💡 Use 'Fix Corrupted Students' in Settings to repair")
+                    
+                    // Try to auto-fix if we have CloudKit data
+                    Task {
+                        EmergencyDataRecovery.shared.setModelContext(modelContext)
+                        await EmergencyDataRecovery.shared.fixCorruptedStudents()
+                        // Reload students after fix
+                        await MainActor.run {
+                            loadStudents()
+                            updateFilteredStudents()
+                        }
+                    }
+                }
+            }
         }
         .onChange(of: selectedCategory) { _, _ in
             updateFilteredStudents()
@@ -46,17 +109,68 @@ struct StudentsView: View {
         .onChange(of: showingInactiveStudents) { _, _ in
             updateFilteredStudents()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StudentUpdated"))) { _ in
+            // Reload students when a student is updated (e.g., category changed)
+            loadStudents()
+            updateFilteredStudents()
+        }
     }
     
     private func loadStudents() {
-        let request = FetchDescriptor<Student>(
+        print("🔍 Starting student load process...")
+        print("🔍 ModelContext description: \(modelContext)")
+        
+        // Try a basic fetch without any predicates first
+        var request = FetchDescriptor<Student>(
             sortBy: [SortDescriptor(\.lastName, order: .forward)]
         )
+        
+        // Remove any predicates that might be filtering students
+        request.predicate = nil
+        
         do {
             allStudents = try modelContext.fetch(request)
+            print("📊 Loaded \(allStudents.count) students from database")
+            
+            if allStudents.isEmpty {
+                print("⚠️ WARNING: No students found in database!")
+                print("📊 Attempting alternative fetch methods...")
+                
+                // Try fetching without any sorting
+                var simpleRequest = FetchDescriptor<Student>()
+                simpleRequest.predicate = nil
+                let simpleFetch = try modelContext.fetch(simpleRequest)
+                print("📊 Simple fetch returned: \(simpleFetch.count) students")
+                
+                // Try fetching all entities to see if ANY data exists
+                let allEntities = try modelContext.fetch(FetchDescriptor<Student>())
+                print("📊 Fetch all entities: \(allEntities.count) students")
+                
+                // Check if this might be a schema migration issue
+                print("⚠️ SCHEMA ISSUE DETECTED: Database may need to be reset due to schema change")
+                print("⚠️ Check Right_RudderApp.swift for database reset instructions")
+                
+            } else {
+                for (index, student) in allStudents.enumerated() {
+                    print("📊   [\(index)] \(student.displayName) - Active: \(!student.isInactive), ID: \(student.id)")
+                }
+            }
         } catch {
-            print("Failed to load students: \(error)")
+            print("❌ CRITICAL: Failed to load students: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain)")
+                print("❌ Error code: \(nsError.code)")
+                print("❌ This might indicate a schema mismatch with CloudKit")
+            }
+            
             allStudents = []
+            
+            // Try to see if it's a schema issue
+            print("🔍 This is likely a schema migration issue!")
+            print("🔍 The schema changed from StudentChecklistProgress to ChecklistAssignment")
+            print("🔍 You may need to reset the database - check Right_RudderApp.swift")
         }
     }
     
@@ -65,12 +179,93 @@ struct StudentsView: View {
             allStudents.filter { $0.isInactive } : 
             allStudents.filter { !$0.isInactive }
         
+        print("📊 Filtering students - Total: \(allStudents.count), Active: \(allStudents.filter { !$0.isInactive }.count), Showing inactive: \(showingInactiveStudents)")
+        
         if let category = selectedCategory {
-            cachedFilteredStudents = baseStudents.filter { $0.primaryCategory == category }
-                .sorted { $0.sortKey < $1.sortKey }
+            cachedFilteredStudents = baseStudents.filter { student in
+                let assignedCat = student.assignedCategory
+                #if DEBUG
+                if assignedCat != nil || student.checklistAssignments?.isEmpty == false {
+                    print("🔍 Filtering student '\(student.displayName)': assignedCategory='\(assignedCat ?? "nil")', filter='\(category)'")
+                }
+                #endif
+                
+                // Direct match
+                if assignedCat == category {
+                    return true
+                }
+                
+                // Handle category aliases/mappings
+                // "IFR" in filter should match "Instrument" in assignedCategory
+                // "CPL" in filter should match "Commercial" in assignedCategory
+                if category == "IFR" && assignedCat == "Instrument" {
+                    return true
+                }
+                if category == "CPL" && assignedCat == "Commercial" {
+                    return true
+                }
+                
+                // Also check if auto-detected category would match
+                if assignedCat == nil {
+                    // Auto-detect category from checklists for filtering purposes
+                    let autoDetected = autoDetectCategoryForStudent(student)
+                    #if DEBUG
+                    print("🔍 Auto-detected category for '\(student.displayName)': '\(autoDetected ?? "nil")'")
+                    #endif
+                    if category == "IFR" && autoDetected == "Instrument" {
+                        return true
+                    }
+                    if category == "CPL" && autoDetected == "Commercial" {
+                        return true
+                    }
+                    if autoDetected == category {
+                        return true
+                    }
+                }
+                
+                return false
+            }
+            .sorted { $0.sortKey < $1.sortKey }
+            print("📊 Filtered by category '\(category)': \(cachedFilteredStudents.count) students")
         } else {
             cachedFilteredStudents = baseStudents.sorted { $0.sortKey < $1.sortKey }
+            print("📊 No category filter: \(cachedFilteredStudents.count) students")
         }
+    }
+    
+    /// Auto-detect category for a student (helper function for filtering)
+    private func autoDetectCategoryForStudent(_ student: Student) -> String? {
+        guard let assignments = student.checklistAssignments, !assignments.isEmpty else {
+            return nil
+        }
+        
+        // Count checklists by category
+        var categoryCounts: [String: Int] = [:]
+        
+        for assignment in assignments {
+            // Try template relationship first
+            if let templateCategory = assignment.template?.category {
+                categoryCounts[templateCategory, default: 0] += 1
+            } else if let identifier = assignment.templateIdentifier {
+                // Infer from templateIdentifier
+                let identifierLower = identifier.lowercased()
+                if identifierLower.contains("p1_") || identifierLower.contains("p2_") || identifierLower.contains("p3_") || identifierLower.contains("p4_") || identifierLower.contains("pre_solo") || identifierLower.contains("solo") {
+                    categoryCounts["PPL", default: 0] += 1
+                } else if identifierLower.contains("i1_") || identifierLower.contains("i2_") || identifierLower.contains("i3_") || identifierLower.contains("i4_") || identifierLower.contains("i5_") {
+                    categoryCounts["Instrument", default: 0] += 1
+                } else if identifierLower.contains("c1_") || identifierLower.contains("c2_") || identifierLower.contains("c3_") {
+                    categoryCounts["Commercial", default: 0] += 1
+                }
+            }
+        }
+        
+        // Return the category with the most checklists
+        if let mostCommonCategory = categoryCounts.max(by: { $0.value < $1.value }) {
+            return mostCommonCategory.key
+        }
+        
+        // Default to PPL if no category detected
+        return "PPL"
     }
     
     private var studentsList: some View {
@@ -81,10 +276,21 @@ struct StudentsView: View {
             }
             
             List {
-                ForEach(Array(filteredStudents.enumerated()), id: \.element.id) { index, student in
-                    studentRow(index: index, student: student)
+                if allStudents.isEmpty {
+                    VStack {
+                        Text("No students found in database")
+                            .foregroundColor(.secondary)
+                        Text("Total students: \(allStudents.count)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ForEach(Array(filteredStudents.enumerated()), id: \.element.id) { index, student in
+                        studentRow(index: index, student: student)
+                    }
+                    .onDelete(perform: deleteStudents)
                 }
-                .onDelete(perform: deleteStudents)
             }
             
             // Inactive Students button at bottom
@@ -124,6 +330,14 @@ struct StudentsView: View {
         .navigationBarItems(trailing: addButton)
         .sheet(isPresented: $showingAddStudent) {
             AddStudentView()
+        }
+        .onChange(of: showingAddStudent) { oldValue, newValue in
+            // When sheet closes (dismisses), reload students
+            if oldValue == true && newValue == false {
+                print("🔄 AddStudent sheet dismissed - reloading students...")
+                loadStudents()
+                updateFilteredStudents()
+            }
         }
     }
     
@@ -168,8 +382,9 @@ struct StudentsView: View {
                 // Progress indicators on the left side
                 if showProgressBars {
                     HStack(spacing: 8) {
-                        if student.currentActiveCategory != nil {
-                            let progress = student.currentActiveProgress
+                        // Show progress if student has any checklists assigned
+                        if let assignments = student.checklistAssignments, !assignments.isEmpty {
+                            let progress = student.weightedCategoryProgress
                             HStack(spacing: 6) {
                                 // Vertical progress bar
                                 VStack {
@@ -186,7 +401,7 @@ struct StudentsView: View {
                                     .font(.caption)
                                     .fontWeight(.semibold)
                                     .foregroundColor(progressColor(for: progress))
-                                    .frame(width: 32, alignment: .leading)
+                                    .frame(width: 36, alignment: .leading)
                             }
                         } else {
                             // Show placeholder for students with no checklists
@@ -204,7 +419,7 @@ struct StudentsView: View {
                                     .font(.caption)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.gray)
-                                    .frame(width: 32, alignment: .leading)
+                                    .frame(width: 36, alignment: .leading)
                             }
                         }
                     }
@@ -213,6 +428,7 @@ struct StudentsView: View {
                 Text(student.displayName)
                     .font(.system(size: 22, weight: .medium))
                     .fontWeight(.medium)
+                    .padding(.leading, 4)
                 
                 Spacer()
                 
@@ -250,14 +466,67 @@ struct StudentsView: View {
     
     private func deleteStudents(offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(filteredStudents[index])
+            let student = filteredStudents[index]
+            
+            // Delete CloudKit record if it exists
+            if let cloudKitRecordID = student.cloudKitRecordID {
+                Task {
+                    let container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
+                    let database = container.privateCloudDatabase
+                    let recordID = CKRecord.ID(recordName: cloudKitRecordID)
+                    
+                    do {
+                        try await database.deleteRecord(withID: recordID)
+                        print("✅ Deleted student from CloudKit: \(student.displayName)")
+                    } catch {
+                        print("⚠️ Failed to delete student from CloudKit: \(error)")
+                        // Continue with local deletion even if CloudKit deletion fails
+                    }
+                }
+            }
+            
+            // Delete from local database
+            modelContext.delete(student)
+            
+            do {
+                try modelContext.save()
+                print("✅ Deleted student locally: \(student.displayName)")
+            } catch {
+                print("❌ Failed to save after deleting student: \(error)")
+            }
+        }
+        
+        // Reload students
+        loadStudents()
+        updateFilteredStudents()
+    }
+    
+    /// Repair template relationships for all students to ensure progress calculations work correctly
+    private func repairAllStudentTemplateRelationships() async {
+        await MainActor.run {
+            do {
+                let request = FetchDescriptor<Student>()
+                let students = try modelContext.fetch(request)
+                
+                var repairedCount = 0
+                for student in students {
+                    ChecklistAssignmentService.repairTemplateRelationships(for: student, modelContext: modelContext)
+                    repairedCount += 1
+                }
+                
+                if repairedCount > 0 {
+                    print("✅ Repaired template relationships for \(repairedCount) students")
+                }
+            } catch {
+                print("❌ Failed to repair template relationships: \(error)")
+            }
         }
     }
 }
 
 #Preview {
     StudentsView()
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 
 

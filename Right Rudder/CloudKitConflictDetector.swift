@@ -171,64 +171,20 @@ class CloudKitConflictDetector: ObservableObject {
         ))
         
         // Training Milestones - PPL
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.pplGroundSchoolCompleted,
-            cloudKitValue: cloudKitRecord["pplGroundSchoolCompleted"] as? Bool,
-            fieldName: "pplGroundSchoolCompleted",
-            displayName: "PPL Ground School"
-        ))
+        // Note: Ground school and written test completion are read-only for instructor
+        // Student changes should always take precedence, no conflicts detected
         
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.pplWrittenTestCompleted,
-            cloudKitValue: cloudKitRecord["pplWrittenTestCompleted"] as? Bool,
-            fieldName: "pplWrittenTestCompleted",
-            displayName: "PPL Written Test"
-        ))
-        
-        // Training Milestones - Instrument
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.instrumentGroundSchoolCompleted,
-            cloudKitValue: cloudKitRecord["instrumentGroundSchoolCompleted"] as? Bool,
-            fieldName: "instrumentGroundSchoolCompleted",
-            displayName: "Instrument Ground School"
-        ))
-        
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.instrumentWrittenTestCompleted,
-            cloudKitValue: cloudKitRecord["instrumentWrittenTestCompleted"] as? Bool,
-            fieldName: "instrumentWrittenTestCompleted",
-            displayName: "Instrument Written Test"
-        ))
+        // Training Milestones - Instrument  
+        // Note: Ground school and written test completion are read-only for instructor
+        // Student changes should always take precedence, no conflicts detected
         
         // Training Milestones - Commercial
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.commercialGroundSchoolCompleted,
-            cloudKitValue: cloudKitRecord["commercialGroundSchoolCompleted"] as? Bool,
-            fieldName: "commercialGroundSchoolCompleted",
-            displayName: "Commercial Ground School"
-        ))
-        
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.commercialWrittenTestCompleted,
-            cloudKitValue: cloudKitRecord["commercialWrittenTestCompleted"] as? Bool,
-            fieldName: "commercialWrittenTestCompleted",
-            displayName: "Commercial Written Test"
-        ))
+        // Note: Ground school and written test completion are read-only for instructor
+        // Student changes should always take precedence, no conflicts detected
         
         // Training Milestones - CFI
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.cfiGroundSchoolCompleted,
-            cloudKitValue: cloudKitRecord["cfiGroundSchoolCompleted"] as? Bool,
-            fieldName: "cfiGroundSchoolCompleted",
-            displayName: "CFI Ground School"
-        ))
-        
-        conflicts.append(contentsOf: compareBooleanField(
-            localValue: localStudent.cfiWrittenTestCompleted,
-            cloudKitValue: cloudKitRecord["cfiWrittenTestCompleted"] as? Bool,
-            fieldName: "cfiWrittenTestCompleted",
-            displayName: "CFI Written Test"
-        ))
+        // Note: Ground school and written test completion are read-only for instructor
+        // Student changes should always take precedence, no conflicts detected
         
         return conflicts
     }

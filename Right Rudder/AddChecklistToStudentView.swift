@@ -19,59 +19,111 @@ struct AddChecklistToStudentView: View {
 
     var body: some View {
         NavigationView {
-            if selectedCategory == nil {
-                categorySelectionView
-            } else {
-                templatesList
+            Group {
+                if templates.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Templates Available")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("No checklist templates found in the database. Templates may need to be initialized.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button("Dismiss") {
+                            dismiss()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding()
+                    .navigationTitle("Add Checklist")
+                    .navigationBarTitleDisplayMode(.inline)
+                } else if selectedCategory == nil {
+                    categorySelectionView
+                        .navigationTitle("Select Category")
+                        .navigationBarTitleDisplayMode(.inline)
+                } else {
+                    templatesList
+                        .navigationTitle("Add Checklist")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if selectedCategory != nil {
+                        Button(action: {
+                            selectedCategory = nil
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Back")
+                                    .font(.system(size: 17, weight: .medium))
+                            }
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.appAdaptiveMutedBox)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
             }
         }
-        .navigationTitle(selectedCategory == nil ? "Select Category" : "Add Checklist")
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             cloudKitShareService.setModelContext(modelContext)
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                if selectedCategory != nil {
-                    Button("Back") {
-                        selectedCategory = nil
-                    }
-                    .buttonStyle(.noHaptic)
-                }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .buttonStyle(.noHaptic)
+            print("📋 AddChecklistToStudentView appeared with \(templates.count) templates")
+            if templates.isEmpty {
+                print("⚠️ WARNING: No templates available!")
             }
         }
     }
     
     private var categorySelectionView: some View {
         List {
-            ForEach(availableCategories, id: \.self) { category in
-                Button(action: {
-                    selectedCategory = category
-                }) {
-                    HStack {
-                        categoryIcon(for: category)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(category)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            Text("\(templatesInCategory(category).count) lessons")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                    .padding(.vertical, 8)
+            if availableCategories.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary)
+                    Text("No Categories Available")
+                        .font(.headline)
+                    Text("No checklist templates found in any category")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .padding()
+            } else {
+                ForEach(availableCategories, id: \.self) { category in
+                    Button(action: {
+                        selectedCategory = category
+                    }) {
+                        HStack {
+                            categoryIcon(for: category)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(category)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("\(templatesInCategory(category).count) lessons")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
@@ -196,7 +248,7 @@ struct AddChecklistToStudentView: View {
         }
         
         // Define the logical order for phases - First Steps must be at the top
-        let phaseOrder = ["First Steps", "Phase 1", "Pre-Solo", "Phase 2", "Phase 3", "Phase 4"]
+        let phaseOrder = ["First Steps", "Phase 1", "Phase 1.5 Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4"]
         
         // Create phase groups with sorted templates
         var phaseGroups: [PhaseGroup] = []
@@ -243,113 +295,55 @@ struct AddChecklistToStudentView: View {
     }
     
     private func isChecklistAlreadyAssigned(_ template: ChecklistTemplate) -> Bool {
-        return student.checklists?.contains { $0.templateName == template.name } ?? false
+        return student.checklistAssignments?.contains { $0.templateId == template.id } ?? false
     }
     
     private func addChecklistToStudent(_ template: ChecklistTemplate) {
         // Check if already assigned
         guard !isChecklistAlreadyAssigned(template) else { return }
         
-        // Process on background queue for better performance
-        DispatchQueue.global(qos: .userInitiated).async {
-            let templateItems = template.items ?? []
-            let studentChecklistItems = templateItems.map { templateItem in
-                return StudentChecklistItem(
-                    templateItemId: templateItem.id,
-                    title: templateItem.title,
-                    notes: templateItem.notes,
-                    order: templateItem.order
-                )
-            }
-            
-            let studentChecklist = StudentChecklist(
-                templateId: template.id,
-                templateName: template.name,
-                items: studentChecklistItems
-            )
-            
-            // Set template version tracking for automatic updates
-            studentChecklist.templateVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
-            studentChecklist.templateIdentifier = template.templateIdentifier
-            
-            DispatchQueue.main.async {
-                if self.student.checklists == nil {
-                    self.student.checklists = []
-                }
-                self.student.checklists?.append(studentChecklist)
-                
-                // Save the context to persist changes and trigger UI updates
-                do {
-                    try self.modelContext.save()
-                    // Force a refresh of the student object to trigger UI updates
-                    self.student.lastModified = Date()
-                    
-                    // Trigger automatic sync to shared zone
-                    Task {
-                        await self.cloudKitShareService.syncStudentChecklistsToSharedZone(self.student, modelContext: self.modelContext)
-                    }
-                } catch {
-                    print("Failed to save student checklist: \(error)")
-                }
-                
-                self.dismiss()
-            }
+        // Use new reference-based assignment system
+        ChecklistAssignmentService.assignTemplate(template, to: student, modelContext: modelContext)
+        
+        // Save changes immediately to ensure UI updates
+        do {
+            try modelContext.save()
+            print("✅ Checklist assigned and saved: \(template.name)")
+        } catch {
+            print("❌ Failed to save after assigning checklist: \(error)")
         }
+        
+        // Trigger automatic sync to shared zone using new system
+        Task {
+            await self.cloudKitShareService.syncStudentChecklistProgressToSharedZone(self.student, modelContext: self.modelContext)
+        }
+        
+        // Don't dismiss - let user manually close the sheet
     }
     
     private func addAllTemplatesInPhase(_ templates: [ChecklistTemplate]) {
-        // Process on background queue for better performance
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Filter out templates that are already assigned
-            let unassignedTemplates = templates.filter { !self.isChecklistAlreadyAssigned($0) }
-            
-            let studentChecklists = unassignedTemplates.map { template in
-                let templateItems = template.items ?? []
-                let studentChecklistItems = templateItems.map { templateItem in
-                    StudentChecklistItem(
-                        templateItemId: templateItem.id,
-                        title: templateItem.title,
-                        notes: templateItem.notes,
-                        order: templateItem.order
-                    )
-                }
-                
-                let studentChecklist = StudentChecklist(
-                    templateId: template.id,
-                    templateName: template.name,
-                    items: studentChecklistItems
-                )
-                
-                // Set template version tracking for automatic updates
-                studentChecklist.templateVersion = SmartTemplateUpdateService.getCurrentTemplateVersion()
-                studentChecklist.templateIdentifier = template.templateIdentifier
-                
-                return studentChecklist
-            }
-            
-            DispatchQueue.main.async {
-                if self.student.checklists == nil {
-                    self.student.checklists = []
-                }
-                self.student.checklists?.append(contentsOf: studentChecklists)
-                
-                // Save the context to persist changes and trigger UI updates
-                do {
-                    try self.modelContext.save()
-                    // Force a refresh of the student object to trigger UI updates
-                    self.student.lastModified = Date()
-                    
-                    // Trigger automatic sync to shared zone
-                    Task {
-                        await self.cloudKitShareService.syncStudentChecklistsToSharedZone(self.student, modelContext: self.modelContext)
-                    }
-                } catch {
-                    print("Failed to save student checklists: \(error)")
-                }
-                
-                self.dismiss()
-            }
+        // Filter out templates that are already assigned
+        let unassignedTemplates = templates.filter { !isChecklistAlreadyAssigned($0) }
+        
+        // Use new reference-based assignment system for each template
+        for template in unassignedTemplates {
+            ChecklistAssignmentService.assignTemplate(template, to: student, modelContext: modelContext)
         }
+        
+        // Save changes immediately to ensure UI updates
+        do {
+            try modelContext.save()
+            print("✅ All templates assigned and saved: \(unassignedTemplates.count) templates")
+        } catch {
+            print("❌ Failed to save after assigning templates: \(error)")
+        }
+        
+        // Trigger automatic sync to shared zone using new system
+        Task {
+            await self.cloudKitShareService.syncStudentChecklistProgressToSharedZone(self.student, modelContext: self.modelContext)
+        }
+        
+        // Don't dismiss - let user manually close the sheet
     }
     
     // Use shared utility for lesson info extraction
@@ -362,53 +356,23 @@ struct AddChecklistToStudentView: View {
         print("Delete All button pressed for \(templates.count) templates")
         #endif
         
-        // Find and delete checklists that match any template in this phase
-        guard let checklists = student.checklists else { return }
+        // Find and delete checklist assignments that match any template in this phase
+        guard let assignments = student.checklistAssignments else { return }
         
-        // Match by category and lesson number instead of exact name
-        // This works with both old (P1L5) and new (I1-L5) formats
-        let checklistsToDelete = checklists.filter { checklist in
-            let checklistName = checklist.templateName
-            
-            // Check if this checklist matches any template in this phase
+        // Match by template ID (more reliable than name matching)
+        let assignmentsToDelete = assignments.filter { assignment in
             return templates.contains { template in
-                // Extract lesson info from both names for comparison
-                let checklistLesson = extractLessonInfo(from: checklistName)
-                let templateLesson = extractLessonInfo(from: template.name)
-                
-                return checklistLesson.phase == templateLesson.phase && 
-                       checklistLesson.lesson == templateLesson.lesson
+                return assignment.templateId == template.id
             }
         }
         
-        if checklistsToDelete.isEmpty { return }
+        if assignmentsToDelete.isEmpty { return }
         
-        // Delete from database
-        for checklist in checklistsToDelete {
-            modelContext.delete(checklist)
-        }
-        
-        // Update the student's checklists array
-        student.checklists = checklists.filter { checklist in
-            let checklistName = checklist.templateName
-            
-            // Keep checklists that don't match any template in this phase
-            return !templates.contains { template in
-                let checklistLesson = extractLessonInfo(from: checklistName)
-                let templateLesson = extractLessonInfo(from: template.name)
-                
-                return checklistLesson.phase == templateLesson.phase && 
-                       checklistLesson.lesson == templateLesson.lesson
+        // Delete from database using the new assignment service
+        for assignment in assignmentsToDelete {
+            if let template = assignment.template {
+                ChecklistAssignmentService.removeTemplate(template, from: student, modelContext: modelContext)
             }
-        }
-        
-        // Save the context to persist changes and trigger UI updates
-        do {
-            try modelContext.save()
-            // Force a refresh of the student object to trigger UI updates
-            student.lastModified = Date()
-        } catch {
-            print("Failed to save after deleting student checklists: \(error)")
         }
     }
 }
@@ -421,6 +385,6 @@ struct AddChecklistToStudentView: View {
         ChecklistTemplate(name: "Post-Flight Inspection", category: "PPL", items: [])
     ]
     AddChecklistToStudentView(student: student, templates: templates)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
 

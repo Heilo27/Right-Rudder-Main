@@ -94,7 +94,7 @@ struct ConflictResolutionView: View {
             }
         }
         .padding()
-        .background(Color.orange.opacity(0.1))
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
         .padding()
     }
@@ -125,7 +125,7 @@ struct ConflictResolutionView: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.appBackground)
+        .background(Color.appAdaptiveBackground)
     }
     
     private func initializeResolutions() {
@@ -314,7 +314,7 @@ struct ConflictRow: View {
             }
         }
         .padding()
-        .background(Color.appBackground)
+        .background(Color.appAdaptiveBackground)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }

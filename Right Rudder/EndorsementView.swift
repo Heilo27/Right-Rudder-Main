@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreText
 import PDFKit
 
 struct EndorsementGeneratorView: View {
@@ -149,8 +150,8 @@ struct EndorsementGeneratorView: View {
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
                                         .frame(maxHeight: 80)
-                                        .background(Color.white)
-                                        .border(Color.gray, width: 1)
+                                        .background(Color.appAdaptiveMutedBox)
+                                        .border(Color.gray.opacity(0.3), width: 1)
                                         .cornerRadius(4)
                                     
                                     Spacer()
@@ -199,7 +200,8 @@ struct EndorsementGeneratorView: View {
                         cfiNumber: instructorCFINumber,
                         cfiExpirationDate: instructorCFIExpirationDate,
                         cfiHasExpiration: instructorCFIHasExpiration,
-                        signatureImage: signatureImage
+                        signatureImage: signatureImage,
+                        selectedStudent: selectedStudent
                     )
                 }
             }
@@ -380,10 +382,12 @@ struct PDFExportView: View {
     let cfiExpirationDate: Date
     let cfiHasExpiration: Bool
     let signatureImage: UIImage?
+    let selectedStudent: Student?
     
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var pdfData: Data?
-    @State private var showingShareSheet = false
+    @State private var hasBeenSaved = false
     
     var body: some View {
         NavigationView {
@@ -397,25 +401,22 @@ struct PDFExportView: View {
                         Text(generateEndorsementText())
                             .font(.body)
                             .padding()
-                            .background(Color.gray.opacity(0.1))
+                            .background(Color.appAdaptiveMutedBox)
                             .cornerRadius(8)
                     }
                     .padding()
                 }
                 
-                HStack(spacing: 20) {
-                    Button("Save as PDF") {
-                        generatePDF()
-                        showingShareSheet = true
+                Button("Print / Save as PDF") {
+                    generatePDF()
+                    if !hasBeenSaved {
+                        saveEndorsementToStudent()
+                        hasBeenSaved = true
                     }
-                    .buttonStyle(.borderedProminent)
-                    
-                    Button("Print") {
-                        generatePDF()
-                        printPDF()
-                    }
-                    .buttonStyle(.bordered)
+                    printPDF()
                 }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
             }
             .navigationTitle("Export Endorsement")
             .navigationBarTitleDisplayMode(.inline)
@@ -424,11 +425,6 @@ struct PDFExportView: View {
                     Button("Done") {
                         dismiss()
                     }
-                }
-            }
-            .sheet(isPresented: $showingShareSheet) {
-                if let pdfData = pdfData {
-                    EndorsementShareSheet(activityItems: [pdfData])
                 }
             }
         }
@@ -479,46 +475,84 @@ struct PDFExportView: View {
     }
     
     private func generatePDF() {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
+        let text = generateEndorsementText()
+        print("🔍 Generated endorsement text: \(text)")
+        
+        // Create attributed string with proper attributes
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 6
+        paragraphStyle.alignment = .left
+        
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 14, weight: .regular),
+            .foregroundColor: UIColor.black,
+            .paragraphStyle: paragraphStyle
+        ]
+        
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        
+        // Calculate text size
+        let maxWidth: CGFloat = 500
+        let textSize = attributedString.boundingRect(
+            with: CGSize(width: maxWidth, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            context: nil
+        )
+        
+        print("🔍 Text size: \(textSize)")
+        
+        // Calculate content bounds for automatic cropping
+        let textHeight = textSize.height
+        let padding: CGFloat = 20
+        let contentHeight = textHeight + padding * 2
+        let contentWidth = signatureImage != nil ? maxWidth + 140 + 20 : maxWidth // Add space for signature if present
+        
+        // Create a smaller page size that fits the content
+        let pageSize = CGSize(width: min(612, contentWidth + 100), height: max(200, contentHeight + 40)) // Minimum height of 200
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: pageSize))
         
         pdfData = renderer.pdfData { context in
             context.beginPage()
             
             // Set white background
             context.cgContext.setFillColor(UIColor.white.cgColor)
-            context.cgContext.fill(CGRect(x: 0, y: 0, width: 612, height: 792))
+            context.cgContext.fill(CGRect(origin: .zero, size: pageSize))
             
-            let text = generateEndorsementText()
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 12),
-                .foregroundColor: UIColor.black
-            ]
-            
-            let attributedString = NSAttributedString(string: text, attributes: attributes)
-            
-            // Calculate text height to position signature correctly
-            let textRect = CGRect(x: 50, y: 50, width: 500, height: 600)
-            let textSize = attributedString.boundingRect(with: CGSize(width: 500, height: CGFloat.greatestFiniteMagnitude), 
-                                                       options: [.usesLineFragmentOrigin, .usesFontLeading], 
-                                                       context: nil)
-            
-            // Draw the text with proper context setup
+            // Draw text using Core Text for better control
             context.cgContext.saveGState()
-            attributedString.draw(in: textRect)
+            
+            // Flip the coordinate system for Core Text
+            context.cgContext.textMatrix = CGAffineTransform.identity
+            context.cgContext.translateBy(x: 0, y: pageSize.height)
+            context.cgContext.scaleBy(x: 1.0, y: -1.0)
+            
+            // Create framesetter
+            let framesetter = CTFramesetterCreateWithAttributedString(attributedString)
+            let textRect = CGRect(x: 50, y: pageSize.height - textHeight - padding, width: maxWidth, height: textHeight)
+            let path = CGPath(rect: textRect, transform: nil)
+            let frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, 0), path, nil)
+            
+            // Draw the frame
+            CTFrameDraw(frame, context.cgContext)
+            
             context.cgContext.restoreGState()
             
-            // Position signature directly under the text content
+            // Draw signature if available (positioned to the right of the date)
             if let signatureImage = signatureImage {
-                let textBottom = 50 + textSize.height + 20 // 20 points below text
-                let signatureRect = CGRect(x: 400, y: textBottom, width: 120, height: 60)
+                // Position signature to the right of the text, aligned with the date line
+                let signatureX: CGFloat = 50 + maxWidth + 20 // 20 points to the right of text
+                let signatureY: CGFloat = padding + textHeight - 60 // Aligned with bottom of text (date line)
+                let signatureRect = CGRect(x: signatureX, y: signatureY, width: 120, height: 60)
                 signatureImage.draw(in: signatureRect)
                 
-                // Add a subtle border around the signature for better visibility
+                // Add a subtle border around the signature
                 context.cgContext.setStrokeColor(UIColor.lightGray.cgColor)
                 context.cgContext.setLineWidth(0.5)
                 context.cgContext.stroke(signatureRect)
             }
         }
+        
+        print("🔍 PDF generated with auto-crop, size: \(pdfData?.count ?? 0) bytes")
     }
     
     private func printPDF() {
@@ -550,6 +584,128 @@ struct PDFExportView: View {
             } else if let error = error {
                 print("Print error: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    /// Calculates the expiration date based on endorsement type
+    private func calculateExpirationDate(for endorsementCode: String, from date: Date) -> Date? {
+        let calendar = Calendar.current
+        
+        // Solo endorsements (A.6, A.7): 90 calendar days
+        if endorsementCode == "A.6" || endorsementCode == "A.7" {
+            return calendar.date(byAdding: .day, value: 90, to: date)
+        }
+        
+        // Practical test authorization (A.1): 2 calendar months
+        // A calendar month means it goes until the last day of the 2nd month
+        // e.g., April 13 → June 30
+        if endorsementCode == "A.1" {
+            // Add 2 months
+            guard let twoMonthsLater = calendar.date(byAdding: .month, value: 2, to: date) else {
+                return nil
+            }
+            
+            // Get the last day of that month
+            let components = calendar.dateComponents([.year, .month], from: twoMonthsLater)
+            guard let firstDayOfMonth = calendar.date(from: components),
+                  let lastDayOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: firstDayOfMonth) else {
+                return nil
+            }
+            
+            return lastDayOfMonth
+        }
+        
+        // Other endorsements don't have expiration
+        return nil
+    }
+    
+    /// Saves the endorsement PDF to the student's profile
+    private func saveEndorsementToStudent() {
+        guard let student = selectedStudent else {
+            print("⚠️ Cannot save endorsement: no student selected")
+            return
+        }
+        
+        // Ensure PDF is generated before saving
+        generatePDF()
+        
+        guard let pdfData = pdfData else {
+            print("⚠️ Cannot save endorsement: PDF data is nil after generation")
+            return
+        }
+        
+        print("🔍 Saving endorsement with PDF data size: \(pdfData.count) bytes")
+        
+        // Generate descriptive filename
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMddyy"
+        let dateString = formatter.string(from: endorsementDate)
+        
+        // Create a clean student name for filename (remove spaces, special chars)
+        let cleanStudentName = studentName
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "[^a-zA-Z0-9_-]", with: "", options: .regularExpression)
+        
+        // Create a clean endorsement title for filename
+        let cleanEndorsementTitle = endorsement.title
+            .replacingOccurrences(of: ":", with: "")
+            .replacingOccurrences(of: "§", with: "")
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "[^a-zA-Z0-9_-]", with: "", options: .regularExpression)
+            .prefix(30) // Limit length
+        
+        // Count existing endorsements for this student and type to get sequence number
+        let todayEndorsements = (student.endorsements ?? []).filter { end in
+            if let code = end.endorsementCode {
+                return code == endorsement.code && 
+                       formatter.string(from: end.createdAt) == dateString
+            }
+            return end.filename.contains(cleanStudentName) && 
+                   end.filename.contains(String(cleanEndorsementTitle))
+        }
+        
+        let sequenceNumber = todayEndorsements.count > 0 ? "_\(String(format: "%02d", todayEndorsements.count + 1))" : ""
+        let filename = "\(cleanStudentName)_\(cleanEndorsementTitle)_\(endorsement.code)_\(dateString)\(sequenceNumber).pdf"
+        
+        // Calculate expiration date
+        let expirationDate = calculateExpirationDate(for: endorsement.code, from: endorsementDate)
+        
+        // Create endorsement record
+        let endorsementRecord = EndorsementImage(
+            filename: filename,
+            imageData: pdfData,
+            endorsementCode: endorsement.code,
+            expirationDate: expirationDate
+        )
+        
+        print("🔍 Created EndorsementImage with:")
+        print("   - Filename: \(filename)")
+        print("   - Image data size: \(pdfData.count) bytes")
+        print("   - Endorsement code: \(endorsement.code)")
+        print("   - Expiration date: \(expirationDate?.description ?? "None")")
+        
+        // Set up the relationship
+        endorsementRecord.student = student
+        
+        // Add to student's endorsements array
+        if student.endorsements == nil {
+            student.endorsements = []
+        }
+        student.endorsements?.append(endorsementRecord)
+        
+        // Insert and save
+        modelContext.insert(endorsementRecord)
+        
+        do {
+            try modelContext.save()
+            print("✅ Saved endorsement \(endorsement.code) to student \(student.displayName)")
+            if let expiration = expirationDate {
+                let expirationFormatter = DateFormatter()
+                expirationFormatter.dateFormat = "MM/dd/yyyy"
+                print("   Expiration date: \(expirationFormatter.string(from: expiration))")
+            }
+        } catch {
+            print("❌ Failed to save endorsement: \(error)")
         }
     }
 }
@@ -672,16 +828,35 @@ struct CustomFieldRow: View {
     @Binding var customFields: [String: String]
     @Binding var fieldDescriptionCache: [String: String]
     
+    // Certificate type options
+    private let certificateTypes = ["Private Pilot", "Instrument", "Commercial Pilot", "Certified Flight Instructor"]
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text(getFieldDescription(field: field, endorsement: endorsement))
                 .font(.caption)
                 .foregroundColor(.secondary)
-            TextField("Enter \(getFieldPlaceholder(field: field))", text: Binding(
-                get: { customFields[field] ?? "" },
-                set: { customFields[field] = $0 }
-            ))
-            .textFieldStyle(.roundedBorder)
+            
+            // Show dropdown for certificate type fields
+            if field.lowercased().contains("certificate type") || field.lowercased().contains("applicable") {
+                Picker("Certificate Type", selection: Binding(
+                    get: { customFields[field] ?? "" },
+                    set: { customFields[field] = $0 }
+                )) {
+                    Text("Select Certificate Type").tag("")
+                    ForEach(certificateTypes, id: \.self) { certificateType in
+                        Text(certificateType).tag(certificateType)
+                    }
+                }
+                .pickerStyle(.menu)
+                .textFieldStyle(.roundedBorder)
+            } else {
+                TextField("Enter \(getFieldPlaceholder(field: field))", text: Binding(
+                    get: { customFields[field] ?? "" },
+                    set: { customFields[field] = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+            }
         }
     }
     
@@ -1000,5 +1175,5 @@ struct FAAEndorsement: Identifiable, Hashable {
 
 #Preview {
     EndorsementGeneratorView()
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }

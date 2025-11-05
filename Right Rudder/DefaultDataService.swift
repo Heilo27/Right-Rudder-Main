@@ -15,6 +15,9 @@ class DefaultDataService {
         // Use smart template update service to preserve user customizations
         SmartTemplateUpdateService.updateDefaultTemplates(modelContext: modelContext)
         
+        // Validate template integrity after initialization
+        SmartTemplateUpdateService.validateTemplateIntegrity(modelContext: modelContext)
+        
         print("Default data initialization completed successfully")
     }
     

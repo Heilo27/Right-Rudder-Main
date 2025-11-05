@@ -9,6 +9,10 @@ class EndorsementImage {
     var createdAt: Date = Date()
     var imageData: Data?
     
+    // Endorsement metadata
+    var endorsementCode: String? // FAA endorsement code (e.g., "A.1", "A.6")
+    var expirationDate: Date? // Expiration date for endorsements with expiration
+    
     // CloudKit sync attributes
     var cloudKitRecordID: String?
     var lastModified: Date = Date()
@@ -16,78 +20,31 @@ class EndorsementImage {
     // Inverse relationship
     var student: Student?
     
-    init(filename: String, imageData: Data? = nil) {
+    init(filename: String, imageData: Data? = nil, endorsementCode: String? = nil, expirationDate: Date? = nil) {
         self.filename = filename
         self.imageData = imageData
+        self.endorsementCode = endorsementCode
+        self.expirationDate = expirationDate
         self.lastModified = Date()
     }
 }
 
-@Model
-class StudentChecklistItem {
-    var id: UUID = UUID()
-    var templateItemId: UUID = UUID()
-    var title: String = ""
-    var isComplete: Bool = false
-    var notes: String?
-    var completedAt: Date?
-    var order: Int = 0
-    
-    // CloudKit sync attributes
-    var cloudKitRecordID: String?
-    var lastModified: Date = Date()
-    
-    // Inverse relationship
-    var checklist: StudentChecklist?
-    
-    init(templateItemId: UUID, title: String, notes: String? = nil, order: Int = 0) {
-        self.templateItemId = templateItemId
-        self.title = title
-        self.notes = notes
-        self.order = order
-        self.lastModified = Date()
-    }
-}
-
-@Model
-class StudentChecklist {
-    var id: UUID = UUID()
-    var templateId: UUID = UUID()
-    var templateName: String = ""
-    @Relationship(deleteRule: .cascade, inverse: \StudentChecklistItem.checklist) var items: [StudentChecklistItem]?
-    var instructorComments: String?
-    var dualGivenHours: Double = 0.0
-    
-    // Template version tracking for automatic updates
-    var templateVersion: String? // Track which template version this checklist is based on
-    var templateIdentifier: String? // For reliable matching to default templates
-    
-    // CloudKit sync attributes
-    var cloudKitRecordID: String?
-    var lastModified: Date = Date()
-    
-    // Inverse relationship
-    var student: Student?
-    
-    init(templateId: UUID, templateName: String, items: [StudentChecklistItem]? = nil) {
-        self.templateId = templateId
-        self.templateName = templateName
-        self.items = items
-        self.lastModified = Date()
-    }
-}
 
 @Model
 class Student {
     var id: UUID = UUID()
-    var firstName: String = ""
-    var lastName: String = ""
-    var email: String = ""
-    var telephone: String = ""
-    var homeAddress: String = ""
-    var ftnNumber: String = ""
-    var biography: String?
-    var backgroundNotes: String?
+    
+    // MARK: - Bidirectional Fields (Last Write Wins)
+    // These fields can be edited by both instructor and student apps
+    // Conflict resolution: merge non-empty fields, timestamp comparison
+    var firstName: String = ""  // BIDIRECTIONAL
+    var lastName: String = ""  // BIDIRECTIONAL
+    var email: String = ""  // BIDIRECTIONAL
+    var telephone: String = ""  // BIDIRECTIONAL
+    var homeAddress: String = ""  // BIDIRECTIONAL
+    var ftnNumber: String = ""  // BIDIRECTIONAL
+    var biography: String?  // BIDIRECTIONAL
+    var backgroundNotes: String?  // BIDIRECTIONAL (internal notes, not synced)
     var profilePhotoData: Data?
     var createdAt: Date = Date()
     var customOrder: Int = 0  // For manual sorting
@@ -98,34 +55,39 @@ class Student {
     var instructorName: String?
     var instructorCFINumber: String?
     
-    // Training goals (synced from student app - read-only in instructor app)
-    var goalPPL: Bool = false
-    var goalInstrument: Bool = false
-    var goalCommercial: Bool = false
-    var goalCFI: Bool = false
+    // MARK: - Student-Owned Fields (Read-Only for Instructor)
+    // These fields are written by student app, read-only in instructor app
+    var goalPPL: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var goalInstrument: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var goalCommercial: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var goalCFI: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
     
     // Training milestones - PPL
-    var pplGroundSchoolCompleted: Bool = false
-    var pplWrittenTestCompleted: Bool = false
+    var pplGroundSchoolCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var pplWrittenTestCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
     
     // Training milestones - Instrument
-    var instrumentGroundSchoolCompleted: Bool = false
-    var instrumentWrittenTestCompleted: Bool = false
+    var instrumentGroundSchoolCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var instrumentWrittenTestCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
     
     // Training milestones - Commercial
-    var commercialGroundSchoolCompleted: Bool = false
-    var commercialWrittenTestCompleted: Bool = false
+    var commercialGroundSchoolCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var commercialWrittenTestCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
     
     // Training milestones - CFI
-    var cfiGroundSchoolCompleted: Bool = false
-    var cfiWrittenTestCompleted: Bool = false
+    var cfiGroundSchoolCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
+    var cfiWrittenTestCompleted: Bool = false  // STUDENT → INSTRUCTOR (read-only for instructor)
     
-    // CloudKit sync attributes
+    // MARK: - CloudKit Sync Attributes
     var cloudKitRecordID: String?
     var shareRecordID: String?  // CKShare record ID for companion app access
     var lastModified: Date = Date()
+    var lastModifiedBy: String?  // Tracks who last modified bidirectional fields: "instructor" or "student"
+    var instructorEmail: String?  // Email of instructor who created the share (for identity validation)
     
-    @Relationship(deleteRule: .cascade, inverse: \StudentChecklist.student) var checklists: [StudentChecklist]?
+    // NEW: Library-based checklist assignments
+    @Relationship(deleteRule: .cascade, inverse: \ChecklistAssignment.student) 
+    var checklistAssignments: [ChecklistAssignment]?
     @Relationship(deleteRule: .cascade, inverse: \EndorsementImage.student) var endorsements: [EndorsementImage]?
     @Relationship(deleteRule: .cascade, inverse: \StudentDocument.student) var documents: [StudentDocument]?
     
@@ -135,12 +97,45 @@ class Student {
     var sortKey: String { "\(lastName), \(firstName)" }
     
     var totalDualGivenHours: Double {
-        checklists?.reduce(0.0) { $0 + $1.dualGivenHours } ?? 0.0
+        checklistAssignments?.reduce(0.0) { $0 + $1.dualGivenHours } ?? 0.0
     }
     
     // Determine primary training category - use manual assignment if set, otherwise default to PPL
     var primaryCategory: String {
         return assignedCategory ?? "PPL"
+    }
+    
+    // Helper function to normalize category names for consistent comparison
+    // Handles case-insensitive matching and variations like "Review"/"Reviews"
+    private func normalizedCategory(_ category: String?) -> String? {
+        guard let category = category else { return nil }
+        let normalized = category.lowercased().trimmingCharacters(in: .whitespaces)
+        
+        // Map variations to canonical forms
+        switch normalized {
+        case "review", "reviews":
+            return "Review"
+        case "ppl", "private pilot":
+            return "PPL"
+        case "ifr", "instrument":
+            return "IFR"
+        case "cpl", "commercial", "commercial pilot":
+            return "CPL"
+        case "cfi", "instructor":
+            return "CFI"
+        default:
+            // Return capitalized version for known categories, or original if unknown
+            return category
+        }
+    }
+    
+    // Helper function to check if two categories match (case-insensitive, handles variations)
+    private func categoriesMatch(_ cat1: String?, _ cat2: String?) -> Bool {
+        guard let norm1 = normalizedCategory(cat1),
+              let norm2 = normalizedCategory(cat2) else {
+            return false
+        }
+        return norm1 == norm2
     }
     
     // Helper function to determine category from template name
@@ -164,99 +159,486 @@ class Student {
     
     // Calculate progress for a specific category
     func progressForCategory(_ category: String) -> Double {
-        guard let checklists = checklists else { return 0.0 }
+        guard let assignments = checklistAssignments else { return 0.0 }
         
-        let categoryChecklists = checklists.filter { checklist in
-            getCategoryFromTemplateName(checklist.templateName) == category
+        // Normalize the target category
+        let normalizedTarget = normalizedCategory(category) ?? category
+        
+        // Filter assignments by category, handling both template relationship and templateIdentifier
+        let categoryAssignments = assignments.filter { assignment in
+            // First try template relationship with normalized matching
+            if let templateCategory = assignment.template?.category {
+                if categoriesMatch(templateCategory, normalizedTarget) {
+                    return true
+                }
+            }
+            // Fallback: try to infer from templateIdentifier if available
+            if let identifier = assignment.templateIdentifier {
+                let identifierLower = identifier.lowercased()
+                let normalizedCategoryLower = normalizedTarget.lowercased()
+                
+                if normalizedCategoryLower == "ppl" && (identifierLower.contains("p1_") || identifierLower.contains("p2_") || identifierLower.contains("p3_") || identifierLower.contains("p4_") || identifierLower.contains("pre_solo") || identifierLower.contains("solo")) {
+                    return true
+                }
+                if (normalizedCategoryLower == "ifr" || normalizedCategoryLower == "instrument") && (identifierLower.contains("i1_") || identifierLower.contains("i2_") || identifierLower.contains("i3_") || identifierLower.contains("i4_") || identifierLower.contains("i5_")) {
+                    return true
+                }
+                if (normalizedCategoryLower == "cpl" || normalizedCategoryLower == "commercial") && (identifierLower.contains("c1_") || identifierLower.contains("c2_") || identifierLower.contains("c3_")) {
+                    return true
+                }
+                if normalizedCategoryLower == "review" && identifierLower.contains("review") {
+                    return true
+                }
+            }
+            return false
         }
         
-        guard !categoryChecklists.isEmpty else { return 0.0 }
+        guard !categoryAssignments.isEmpty else { return 0.0 }
         
-        var totalItems = 0
-        var completedItems = 0
-        
-        for checklist in categoryChecklists {
-            guard let items = checklist.items else { continue }
-            totalItems += items.count
-            completedItems += items.filter { $0.isComplete }.count
-        }
+        let totalItems = categoryAssignments.reduce(0) { $0 + $1.totalItemsCount }
+        let completedItems = categoryAssignments.reduce(0) { $0 + $1.completedItemsCount }
         
         guard totalItems > 0 else { return 0.0 }
         return Double(completedItems) / Double(totalItems)
     }
     
-    // Get all categories this student has checklists for
-    var enrolledCategories: [String] {
-        guard let checklists = checklists else { return [] }
-        
-        var categories = Set<String>()
-        
-        for checklist in checklists {
-            let category = getCategoryFromTemplateName(checklist.templateName)
-            categories.insert(category)
-        }
-        
-        // If no categories found from templates, use assigned category
-        if categories.isEmpty, let assigned = assignedCategory {
-            categories.insert(assigned)
-        }
-        
-        return Array(categories).sorted()
-    }
     
     // Get primary progress (for the main category)
     var primaryProgress: Double {
         return progressForCategory(primaryCategory)
     }
     
-    // Get the current active category (lowest incomplete category)
+    // Get the current active category - simplified to just use assigned category
     var currentActiveCategory: String? {
-        guard let checklists = checklists else { return nil }
-        
-        // Define category hierarchy (lowest to highest)
-        let categoryHierarchy = ["PPL", "IFR", "CPL", "CFI", "Review"]
-        
-        var enrolledCategories = Set<String>()
-        
-        for checklist in checklists {
-            let category = getCategoryFromTemplateName(checklist.templateName)
-            enrolledCategories.insert(category)
-        }
-        
-        // If no categories found from templates, use assigned category
-        if enrolledCategories.isEmpty, let assigned = assignedCategory {
-            enrolledCategories.insert(assigned)
-        }
-        
-        // Special case: if only Review category, show it regardless of completion
-        if enrolledCategories.count == 1 && enrolledCategories.contains("Review") {
-            return "Review"
-        }
-        
-        // Find the lowest incomplete category
-        for category in categoryHierarchy {
-            if enrolledCategories.contains(category) {
-                let progress = progressForCategory(category)
-                if progress < 1.0 { // Not 100% complete
-                    return category
-                }
-            }
-        }
-        
-        // If all categories are 100% complete, return the highest one
-        for category in categoryHierarchy.reversed() {
-            if enrolledCategories.contains(category) {
-                return category
-            }
-        }
-        
-        return nil
+        return assignedCategory
     }
     
     // Get progress for the current active category
     var currentActiveProgress: Double {
         guard let category = currentActiveCategory else { return 0.0 }
         return progressForCategory(category)
+    }
+    
+    // MARK: - Weighted Progress Calculation (matches student app)
+    
+    /// Calculate weighted overall progress for assigned category
+    var weightedCategoryProgress: Double {
+        // Auto-detect category if not assigned
+        let category = assignedCategory ?? autoDetectCategory()
+        
+        guard let category = category else { 
+            // If no category can be determined, calculate progress from all checklists
+            return calculateOverallProgress()
+        }
+        
+        // Normalize category for consistent comparison
+        let normalizedCat = normalizedCategory(category) ?? category
+        let isReviewCategory = normalizedCat == "Review"
+        
+        var totalWeightedProgress = 0.0
+        
+        // Training goals progress
+        let goalProgress = categoryGoalProgress(for: category)
+        
+        // Documents progress
+        let docProgress = documentProgress
+        
+        // Personal information progress
+        let personalInfo = personalInfoProgress
+        
+        // Adjust weighting based on category
+        if isReviewCategory {
+            // For Review category: 85% goals, 15% personal info (no documents)
+            totalWeightedProgress += goalProgress * 0.85
+            totalWeightedProgress += personalInfo * 0.15
+        } else {
+            // For other categories: 70% goals, 15% documents, 15% personal info
+            totalWeightedProgress += goalProgress * 0.7
+            totalWeightedProgress += docProgress * 0.15
+            totalWeightedProgress += personalInfo * 0.15
+        }
+        
+        // First, check if we should return 100% based on completion status
+        // This check happens BEFORE the weighted calculation to ensure accurate results
+        if let assignments = checklistAssignments, !assignments.isEmpty {
+            // Check all assignments (both category-specific and all) for completion
+            let allAssignmentsComplete = assignments.allSatisfy { assignment in
+                let total = assignment.totalItemsCount
+                guard total > 0 else { 
+                    #if DEBUG
+                    print("⚠️ Assignment '\(assignment.displayName)' has totalItemsCount = 0")
+                    #endif
+                    return false 
+                }
+                let isComplete = assignment.isComplete
+                #if DEBUG
+                if !isComplete {
+                    let completed = assignment.completedItemsCount
+                    print("⚠️ Assignment '\(assignment.displayName)' not complete: \(completed)/\(total) items")
+                }
+                #endif
+                return isComplete
+            }
+            
+            // Check if category is Review (documents not required)
+            let normalizedCat = normalizedCategory(category) ?? category
+            let isReviewCategory = normalizedCat == "Review"
+            
+            // Return 100% based on category requirements
+            if isReviewCategory {
+                // Review category: only need checklists complete and personal info
+                if allAssignmentsComplete && personalInfo >= 100.0 {
+                    print("✅ All assigned items complete for \(displayName) (Review category - no documents required) - returning 100% progress")
+                    print("   - Personal info: \(personalInfo)%")
+                    print("   - All checklists complete: \(allAssignmentsComplete)")
+                    print("   - Total assignments checked: \(assignments.count)")
+                    return 1.0
+                } else {
+                    #if DEBUG
+                    print("⚠️ 100% condition not met for \(displayName) (Review category):")
+                    print("   - All checklists complete: \(allAssignmentsComplete)")
+                    print("   - Personal info >= 100%: \(personalInfo >= 100.0) (actual: \(personalInfo)%)")
+                    #endif
+                }
+            } else {
+                // Other categories: need checklists, personal info, AND documents
+                if allAssignmentsComplete && personalInfo >= 100.0 && docProgress >= 100.0 {
+                    print("✅ All assigned items complete for \(displayName) - returning 100% progress")
+                    print("   - Personal info: \(personalInfo)%")
+                    print("   - Documents: \(docProgress)%")
+                    print("   - All checklists complete: \(allAssignmentsComplete)")
+                    print("   - Total assignments checked: \(assignments.count)")
+                    return 1.0
+                } else {
+                    #if DEBUG
+                    print("⚠️ 100% condition not met for \(displayName):")
+                    print("   - All checklists complete: \(allAssignmentsComplete)")
+                    print("   - Personal info >= 100%: \(personalInfo >= 100.0) (actual: \(personalInfo)%)")
+                    print("   - Documents >= 100%: \(docProgress >= 100.0) (actual: \(docProgress)%)")
+                    #endif
+                }
+            }
+        } else {
+            // No checklists assigned
+            let normalizedCat = normalizedCategory(category) ?? category
+            let isReviewCategory = normalizedCat == "Review"
+            
+            if isReviewCategory {
+                // Review category: only need personal info
+                if personalInfo >= 100.0 {
+                    print("✅ Personal info complete (no checklists assigned, Review category) for \(displayName) - returning 100% progress")
+                    return 1.0
+                }
+            } else {
+                // Other categories: need personal info and documents
+                if personalInfo >= 100.0 && docProgress >= 100.0 {
+                    print("✅ Personal info and documents complete (no checklists assigned) for \(displayName) - returning 100% progress")
+                    return 1.0
+                }
+            }
+        }
+        
+        // Debug logging
+        #if DEBUG
+        if let assignments = checklistAssignments {
+            let normalizedTarget = normalizedCategory(category) ?? category
+            print("📊 Progress calculation for \(displayName):")
+            print("   - Category: \(category) (normalized: \(normalizedTarget))")
+            print("   - Total assignments: \(assignments.count)")
+            if !assignments.isEmpty {
+                let categoryAssignments = assignments.filter { assignment in
+                    if let templateCategory = assignment.template?.category {
+                        return categoriesMatch(templateCategory, normalizedTarget)
+                    }
+                    return false
+                }
+                print("   - Category assignments (matched): \(categoryAssignments.count)")
+            }
+            for assignment in assignments {
+                let completed = assignment.completedItemsCount
+                let total = assignment.totalItemsCount
+                let isComplete = assignment.isComplete
+                let templateCategory = assignment.template?.category ?? "nil"
+                let normalizedTemplateCategory = normalizedCategory(templateCategory) ?? "nil"
+                print("   - Assignment: \(assignment.displayName)")
+                print("     Template Category: '\(templateCategory)' (normalized: '\(normalizedTemplateCategory)')")
+                print("     Completed: \(completed)/\(total), isComplete: \(isComplete), progress: \(assignment.progressPercentage * 100)%")
+            }
+            print("   - Personal info: \(personalInfo)%")
+            print("   - Documents: \(docProgress)%")
+            print("   - Goal progress: \(goalProgress)%")
+            
+            // Check why 100% condition wasn't met
+            let allAssignmentsComplete = assignments.allSatisfy { assignment in
+                let total = assignment.totalItemsCount
+                guard total > 0 else { return false }
+                return assignment.isComplete
+            }
+            print("   - All assignments complete: \(allAssignmentsComplete)")
+            print("   - Personal info >= 100%: \(personalInfo >= 100.0)")
+            print("   - Documents >= 100%: \(docProgress >= 100.0)")
+        }
+        #endif
+        
+        let calculatedProgress = totalWeightedProgress / 100.0 // Return as 0.0-1.0 for progress bars
+        
+        #if DEBUG
+        print("   - Calculated progress: \(calculatedProgress * 100)%")
+        #endif
+        
+        return calculatedProgress
+    }
+    
+    /// Auto-detect category from assigned checklists
+    private func autoDetectCategory() -> String? {
+        guard let assignments = checklistAssignments, !assignments.isEmpty else {
+            return nil
+        }
+        
+        // Count checklists by category (using normalized categories)
+        var categoryCounts: [String: Int] = [:]
+        
+        for assignment in assignments {
+            // Try template relationship first
+            if let templateCategory = assignment.template?.category {
+                // Normalize the category to canonical form
+                let normalized = normalizedCategory(templateCategory) ?? templateCategory
+                categoryCounts[normalized, default: 0] += 1
+            } else if let identifier = assignment.templateIdentifier {
+                // Infer from templateIdentifier
+                let identifierLower = identifier.lowercased()
+                if identifierLower.contains("p1_") || identifierLower.contains("p2_") || identifierLower.contains("p3_") || identifierLower.contains("p4_") || identifierLower.contains("pre_solo") || identifierLower.contains("solo") {
+                    categoryCounts["PPL", default: 0] += 1
+                } else if identifierLower.contains("i1_") || identifierLower.contains("i2_") || identifierLower.contains("i3_") || identifierLower.contains("i4_") || identifierLower.contains("i5_") {
+                    categoryCounts["IFR", default: 0] += 1
+                } else if identifierLower.contains("c1_") || identifierLower.contains("c2_") || identifierLower.contains("c3_") {
+                    categoryCounts["CPL", default: 0] += 1
+                } else if identifierLower.contains("review") {
+                    categoryCounts["Review", default: 0] += 1
+                }
+            }
+        }
+        
+        // Return the category with the most checklists
+        if let mostCommonCategory = categoryCounts.max(by: { $0.value < $1.value }) {
+            return mostCommonCategory.key
+        }
+        
+        // Default to PPL if no category detected
+        return "PPL"
+    }
+    
+    /// Calculate overall progress when category is unknown
+    private func calculateOverallProgress() -> Double {
+        guard let assignments = checklistAssignments, !assignments.isEmpty else {
+            return 0.0
+        }
+        
+        let totalItems = assignments.reduce(0) { $0 + $1.totalItemsCount }
+        let completedItems = assignments.reduce(0) { $0 + $1.completedItemsCount }
+        
+        guard totalItems > 0 else { 
+            #if DEBUG
+            print("⚠️ Progress calculation: Student \(displayName) has \(assignments.count) assignments but totalItemsCount is 0")
+            #endif
+            return 0.0 
+        }
+        
+        // Use a simplified progress calculation (just checklist progress, no weighting)
+        let checklistProgress = Double(completedItems) / Double(totalItems)
+        
+        // Check if student is in Review category (documents not required)
+        let category = assignedCategory ?? autoDetectCategory()
+        let normalizedCat = normalizedCategory(category) ?? category
+        let isReviewCategory = normalizedCat == "Review"
+        
+        let personalInfo = personalInfoProgress
+        
+        // Adjust weighting based on category
+        let calculatedProgress: Double
+        if isReviewCategory {
+            // Review category: 85% checklist, 15% personal info (no documents)
+            calculatedProgress = (checklistProgress * 0.85) + (personalInfo / 100.0 * 0.15)
+        } else {
+            // Other categories: 70% checklist, 15% documents, 15% personal info
+            let docProgress = documentProgress
+            calculatedProgress = (checklistProgress * 0.7) + (docProgress / 100.0 * 0.15) + (personalInfo / 100.0 * 0.15)
+        }
+        
+        #if DEBUG
+        if calculatedProgress == 0.0 && completedItems > 0 {
+            print("⚠️ Progress calculation: Student \(displayName) has \(completedItems)/\(totalItems) items completed but progress is 0")
+            print("   - Assignments count: \(assignments.count)")
+            for assignment in assignments {
+                print("   - Assignment: \(assignment.displayName), completed: \(assignment.completedItemsCount)/\(assignment.totalItemsCount), template: \(assignment.template?.name ?? "nil")")
+            }
+        }
+        #endif
+        
+        return calculatedProgress
+    }
+    
+    /// Calculate goal progress for specific category (0-100)
+    private func categoryGoalProgress(for category: String) -> Double {
+        var progress = 0.0
+        
+        // Base checklist progress (up to 83%)
+        let checklistProgress = checklistProgressForCategory(category)
+        progress += checklistProgress
+        
+        #if DEBUG
+        if progress == 0.0 {
+            let normalizedTarget = normalizedCategory(category) ?? category
+            print("⚠️ Category goal progress: Student \(displayName) category '\(category)' (normalized: '\(normalizedTarget)') has 0 progress")
+            if let assignments = checklistAssignments {
+                print("   - Total assignments: \(assignments.count)")
+                let categoryAssignments = assignments.filter { assignment in
+                    if let templateCategory = assignment.template?.category {
+                        return categoriesMatch(templateCategory, normalizedTarget)
+                    }
+                    return false
+                }
+                print("   - Assignments matching category: \(categoryAssignments.count)")
+                for assignment in assignments {
+                    let templateCategory = assignment.template?.category ?? "nil"
+                    print("     - Assignment '\(assignment.displayName)': template category = '\(templateCategory)'")
+                }
+            }
+        }
+        #endif
+        
+        // Add milestone bonuses
+        // Normalize category for switch statement
+        let normalizedCat = normalizedCategory(category) ?? category
+        
+        switch normalizedCat {
+        case "PPL":
+            if pplGroundSchoolCompleted { progress += 15.0 }
+            if pplWrittenTestCompleted { progress += 2.0 }
+        case "IFR", "Instrument":
+            if instrumentGroundSchoolCompleted { progress += 15.0 }
+            if instrumentWrittenTestCompleted { progress += 2.0 }
+        case "CPL", "Commercial":
+            if commercialGroundSchoolCompleted { progress += 15.0 }
+            if commercialWrittenTestCompleted { progress += 2.0 }
+        case "CFI":
+            if cfiGroundSchoolCompleted { progress += 15.0 }
+            if cfiWrittenTestCompleted { progress += 2.0 }
+        case "Review":
+            // Review category doesn't have ground school or written test milestones
+            // Progress comes entirely from checklist completion (already calculated above)
+            break
+        default:
+            break
+        }
+        
+        return min(100.0, progress)
+    }
+    
+    /// Calculate checklist progress for category (0-83)
+    private func checklistProgressForCategory(_ category: String) -> Double {
+        guard let assignments = checklistAssignments else { return 0.0 }
+        
+        // Normalize the target category
+        let normalizedTarget = normalizedCategory(category) ?? category
+        
+        // Filter by category, handling both template relationship and fallback
+        let categoryAssignments = assignments.filter { assignment in
+            // First try template relationship with normalized matching
+            if let templateCategory = assignment.template?.category {
+                if categoriesMatch(templateCategory, normalizedTarget) {
+                    return true
+                }
+            }
+            // Fallback: try to infer from templateIdentifier if available
+            if let identifier = assignment.templateIdentifier {
+                let identifierLower = identifier.lowercased()
+                let normalizedCategoryLower = normalizedTarget.lowercased()
+                
+                if normalizedCategoryLower == "ppl" && (identifierLower.contains("p1_") || identifierLower.contains("p2_") || identifierLower.contains("p3_") || identifierLower.contains("p4_") || identifierLower.contains("pre_solo") || identifierLower.contains("solo")) {
+                    return true
+                }
+                if (normalizedCategoryLower == "ifr" || normalizedCategoryLower == "instrument") && (identifierLower.contains("i1_") || identifierLower.contains("i2_") || identifierLower.contains("i3_") || identifierLower.contains("i4_") || identifierLower.contains("i5_")) {
+                    return true
+                }
+                if (normalizedCategoryLower == "cpl" || normalizedCategoryLower == "commercial") && (identifierLower.contains("c1_") || identifierLower.contains("c2_") || identifierLower.contains("c3_")) {
+                    return true
+                }
+                if normalizedCategoryLower == "review" && identifierLower.contains("review") {
+                    return true
+                }
+            }
+            return false
+        }
+        
+        guard !categoryAssignments.isEmpty else {
+            #if DEBUG
+            print("⚠️ checklistProgressForCategory: No assignments found for category '\(category)' (normalized: '\(normalizedTarget)')")
+            if let assignments = checklistAssignments {
+                print("   - Total assignments: \(assignments.count)")
+                for assignment in assignments {
+                    let templateCategory = assignment.template?.category ?? "nil"
+                    print("   - Assignment '\(assignment.displayName)': template category = '\(templateCategory)'")
+                }
+            }
+            #endif
+            return 0.0
+        }
+        
+        // Calculate average progress percentage across all checklists (not just count completed ones)
+        // This gives a more accurate representation of overall progress
+        let totalProgress = categoryAssignments.reduce(0.0) { sum, assignment in
+            let total = assignment.totalItemsCount
+            guard total > 0 else { return sum }
+            // Use progressPercentage which calculates (completedItemsCount / totalItemsCount)
+            return sum + assignment.progressPercentage
+        }
+        
+        let averageProgress = totalProgress / Double(categoryAssignments.count)
+        
+        // Scale to 83% maximum to leave room for milestones (15% + 2%)
+        // For Review category, we don't have milestones, so scale to 100% instead
+        if normalizedTarget == "Review" {
+            return averageProgress * 100.0
+        }
+        
+        return averageProgress * 83.0
+    }
+    
+    /// Document upload progress (0-100)
+    var documentProgress: Double {
+        // Check if student is in Review category - documents are not required for Review students
+        let category = assignedCategory ?? autoDetectCategory()
+        let normalizedCat = normalizedCategory(category) ?? category
+        
+        if normalizedCat == "Review" {
+            // Review students don't need documents - return 100% to not penalize progress
+            return 100.0
+        }
+        
+        guard let docs = documents else { 
+            // If no documents system is set up, default to 100% so it doesn't penalize progress
+            // This handles cases where documents might not be applicable to all students
+            return 100.0
+        }
+        let requiredDocs = docs.filter { !$0.documentType.isOptional }
+        let requiredCount = DocumentType.allCases.filter { !$0.isOptional }.count
+        
+        // If no documents are required, consider it 100% complete
+        guard requiredCount > 0 else { return 100.0 }
+        
+        return Double(requiredDocs.count) / Double(requiredCount) * 100.0
+    }
+    
+    /// Personal information completeness (0-100)
+    var personalInfoProgress: Double {
+        var progress = 0.0
+        if !firstName.isEmpty { progress += 20.0 }
+        if !lastName.isEmpty { progress += 20.0 }
+        if !email.isEmpty { progress += 20.0 }
+        if !telephone.isEmpty { progress += 20.0 }
+        if !homeAddress.isEmpty { progress += 20.0 }
+        return progress
     }
     
     init(firstName: String, lastName: String, email: String, telephone: String, homeAddress: String, ftnNumber: String) {

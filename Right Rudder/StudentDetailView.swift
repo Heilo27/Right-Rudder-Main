@@ -7,20 +7,26 @@
 
 import SwiftUI
 import SwiftData
+import PDFKit
+import Combine
+
+extension Notification.Name {
+    static let checklistItemCompleted = Notification.Name("checklistItemCompleted")
+}
 
 struct StudentDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
-    @State private var student: Student
+    @Bindable var student: Student
     @State private var showingEditStudent = false
     @State private var showingAddChecklist = false
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedImage: UIImage?
     @State private var showingStudentRecord = false
-    @State private var checklistToDelete: StudentChecklist?
+    @State private var checklistToDelete: ChecklistAssignment?
     @State private var showingDeleteConfirmation = false
-    @State private var sortedChecklists: [StudentChecklist] = []
+    @State private var sortedChecklists: [ChecklistAssignment] = []
     @State private var sortedEndorsements: [EndorsementImage] = []
     @State private var showingShareSheet = false
     @State private var showingDocuments = false
@@ -32,86 +38,56 @@ struct StudentDetailView: View {
     @State private var hasUnresolvedConflicts = false
     @State private var lastSyncDate = Date()
     @State private var isCheckingForUpdates = false
+    @State private var refreshTrigger = 0
+    @StateObject private var syncService = CloudKitSyncService()
     
-    init(student: Student) {
-        self._student = State(initialValue: student)
-        print("🏗️ StudentDetailView INIT for student: \(student.displayName)")
-    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                studentInfoHeader
-                
-                // Only show sharing section if not linked
-                if !isStudentLinked {
-                    sharingSection
-                }
-                
-                backgroundInformation
-                checklistsSection
-                endorsementsSection
-                trainingGoalsSection
-                documentsSection
-                exportButton
-                
-                // Show sync status section if linked
-                if isStudentLinked {
-                    syncStatusSection
-                }
-                
-                // Show unlink section at bottom if linked
-                if isStudentLinked {
-                    unlinkSection
+        mainContentView
+            .navigationTitle("Student Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingEditStudent = true
+                    }) {
+                        Image(systemName: "ellipsis")
+                    }
+                    .buttonStyle(.noHaptic)
                 }
             }
-            .padding()
-        }
-        .navigationTitle("Student Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingEditStudent = true
-                }) {
-                    Image(systemName: "ellipsis")
-                }
-                .buttonStyle(.noHaptic)
+        .onChange(of: showingAddChecklist) { _, newValue in
+            // When sheet dismisses, refresh the lists
+            if !newValue {
+                print("🔄 Add checklist sheet dismissed, refreshing lists")
+                updateSortedLists()
             }
-        }
-        .sheet(isPresented: $showingEditStudent) {
-            EditStudentView(student: student)
-        }
-        .sheet(isPresented: $showingAddChecklist) {
-            AddChecklistToStudentView(student: student, templates: getTemplates())
-        }
-        .sheet(isPresented: $showingCamera) {
-            CameraView { image in
-                addEndorsementImage(image)
-            }
-        }
-        .sheet(isPresented: $showingPhotoLibrary) {
-            PhotoLibraryView { image in
-                addEndorsementImage(image)
-            }
-        }
-        .sheet(isPresented: $showingStudentRecord) {
-            PDFExportService.showStudentRecord(student)
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            StudentShareView(student: student)
-        }
-        .sheet(isPresented: $showingDocuments) {
-            NavigationView {
-                StudentDocumentsView(student: student)
-            }
-        }
-        .sheet(isPresented: $showingConflictResolution) {
-            ConflictResolutionView(student: student, conflicts: detectedConflicts)
         }
         .onAppear {
             print("👁️ StudentDetailView APPEARED for student: \(student.displayName)")
+            
+            // Set model context for sync service
+            syncService.setModelContext(modelContext)
+            
+            // Repair any broken template relationships
+            ChecklistAssignmentService.repairTemplateRelationships(for: student, modelContext: modelContext)
+            
             updateSortedLists()
+            
+            // CRITICAL: Auto-sync to CloudKit if student has active share
+            // This ensures all assignments are synced to shared zone when viewing student
+            // Only sync if student has actually accepted the share (not just URL generated)
+            Task {
+                let shareService = CloudKitShareService()
+                let hasActive = await shareService.hasActiveShare(for: student)
+                if hasActive {
+                    print("🔄 Student has active share (accepted) - triggering automatic sync for: \(student.displayName)")
+                    await syncService.forceSyncStudentAssignments(student)
+                } else {
+                    print("⚠️ Student \(student.displayName) has share URL but hasn't accepted yet - skipping sync")
+                }
+            }
+            
             // Only check for updates if student is linked and we haven't checked recently
             if isStudentLinked && lastSyncDate.timeIntervalSinceNow < -300 { // 5 minutes
                 Task {
@@ -121,6 +97,20 @@ struct StudentDetailView: View {
             
             // Pre-warm gesture recognizers to prevent stuttery first swipe
             preWarmGestureRecognizers()
+        }
+        .onChange(of: student.endorsements?.count) { _, _ in
+            // Refresh endorsements when the count changes
+            updateSortedLists()
+            refreshTrigger += 1
+        }
+        .onChange(of: student.checklistAssignments?.count) { _, _ in
+            // Refresh checklists when assignments change
+            updateSortedLists()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("checklistItemCompleted"))) { _ in
+            // Refresh when any checklist item is completed
+            print("🔄 Received checklist completion notification, updating lists")
+            updateSortedLists()
         }
         .onDisappear {
             print("👋 StudentDetailView DISAPPEARED for student: \(student.displayName)")
@@ -143,7 +133,7 @@ struct StudentDetailView: View {
             }
         } message: {
             if let checklist = checklistToDelete {
-                Text("Are you sure you want to delete '\(checklist.templateName)'? This action cannot be undone.")
+                Text("Are you sure you want to delete '\(checklist.displayName)'? This action cannot be undone.")
             }
         }
         .alert("Unlink Student App", isPresented: $showingUnlinkConfirmation) {
@@ -154,14 +144,57 @@ struct StudentDetailView: View {
         } message: {
             Text("This will remove the student's access to their companion app. They will no longer be able to view their profile or upload documents. You can re-link them later if needed.")
         }
-        .sheet(isPresented: $showingEndorsementDetail) {
-            if let endorsement = selectedEndorsement {
-                EndorsementDetailView(endorsement: endorsement) {
-                    deleteEndorsement(endorsement)
-                    showingEndorsementDetail = false
+    }
+    
+    // MARK: - Main Content View
+    
+    private var mainContentView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                studentInfoHeader
+                
+                // Only show sharing section if not linked
+                if !isStudentLinked {
+                    sharingSection
+                }
+                
+                backgroundInformation
+                checklistsSection
+                endorsementsSection
+                    .id(refreshTrigger)
+                trainingGoalsSection
+                documentsSection
+                exportButton
+                
+                // Show sync status section if linked
+                if isStudentLinked {
+                    syncStatusSection
+                }
+                
+                // Show unlink section at bottom if linked
+                if isStudentLinked {
+                    unlinkSection
                 }
             }
+            .padding()
         }
+        .modifier(StudentDetailSheets(
+            showingEditStudent: $showingEditStudent,
+            showingAddChecklist: $showingAddChecklist,
+            showingCamera: $showingCamera,
+            showingPhotoLibrary: $showingPhotoLibrary,
+            showingStudentRecord: $showingStudentRecord,
+            showingShareSheet: $showingShareSheet,
+            showingDocuments: $showingDocuments,
+            showingConflictResolution: $showingConflictResolution,
+            showingEndorsementDetail: $showingEndorsementDetail,
+            selectedEndorsement: $selectedEndorsement,
+            detectedConflicts: detectedConflicts,
+            student: student,
+            getTemplates: getTemplates,
+            addEndorsementImage: addEndorsementImage,
+            deleteEndorsement: deleteEndorsement
+        ))
     }
     
     // MARK: - Helper Methods
@@ -185,8 +218,17 @@ struct StudentDetailView: View {
     }
     
     private func updateSortedLists() {
-        print("📊 Updating sorted lists - student has \(student.checklists?.count ?? 0) checklists")
-        sortedChecklists = sortChecklists(student.checklists ?? [])
+        print("📊 Updating sorted lists - student has \(student.checklistAssignments?.count ?? 0) checklist assignment records")
+        print("📊 Student checklistAssignments is nil: \(student.checklistAssignments == nil)")
+        if let assignments = student.checklistAssignments {
+            print("📊 Assignment records:")
+            for (index, assignment) in assignments.enumerated() {
+                let completedCount = assignment.itemProgress?.filter { $0.isComplete }.count ?? 0
+                let totalCount = assignment.itemProgress?.count ?? 0
+                print("📊   [\(index)] ID: \(assignment.id), Template: \(assignment.template?.name ?? "nil"), DisplayName: \(assignment.displayName), Progress: \(completedCount)/\(totalCount)")
+            }
+        }
+        sortedChecklists = sortChecklistProgress(student.checklistAssignments ?? [])
         sortedEndorsements = (student.endorsements ?? []).sorted { 
             $0.createdAt > $1.createdAt 
         }
@@ -223,68 +265,67 @@ struct StudentDetailView: View {
         return Int(templateName[numberRange])
     }
     
-    private func sortChecklists(_ checklists: [StudentChecklist]) -> [StudentChecklist] {
+    private func sortChecklistProgress(_ progress: [ChecklistAssignment]) -> [ChecklistAssignment] {
         // Split into incomplete and completed checklists
-        let incompleteChecklists = checklists.filter { !isChecklistComplete($0) }
-        let completedChecklists = checklists.filter { isChecklistComplete($0) }
+        let incompleteProgress = progress.filter { !$0.isComplete }
+        let completedProgress = progress.filter { $0.isComplete }
         
         // Sort incomplete checklists by phase order
-        let sortedIncomplete = incompleteChecklists.sorted { checklist1, checklist2 in
-            let phase1 = getPhasePriority(for: checklist1.templateName)
-            let phase2 = getPhasePriority(for: checklist2.templateName)
+        let sortedIncomplete = incompleteProgress.sorted { progress1, progress2 in
+            let phase1 = getPhasePriority(for: progress1.template?.name ?? "")
+            let phase2 = getPhasePriority(for: progress2.template?.name ?? "")
             
             if phase1 != phase2 {
                 return phase1 < phase2
             }
             
             // Within same phase, sort by lesson number if available
-            let lesson1 = extractLessonNumber(from: checklist1.templateName)
-            let lesson2 = extractLessonNumber(from: checklist2.templateName)
+            let lesson1 = extractLessonNumber(from: progress1.template?.name ?? "")
+            let lesson2 = extractLessonNumber(from: progress2.template?.name ?? "")
             
             if let num1 = lesson1, let num2 = lesson2 {
                 return num1 < num2
             }
             
-            return checklist1.templateName.localizedCaseInsensitiveCompare(checklist2.templateName) == .orderedAscending
+            return (progress1.template?.name ?? "").localizedCaseInsensitiveCompare(progress2.template?.name ?? "") == .orderedAscending
         }
         
         // Sort completed checklists by phase order (not by date)
-        let sortedCompleted = completedChecklists.sorted { checklist1, checklist2 in
-            let phase1 = getPhasePriority(for: checklist1.templateName)
-            let phase2 = getPhasePriority(for: checklist2.templateName)
+        let sortedCompleted = completedProgress.sorted { progress1, progress2 in
+            let phase1 = getPhasePriority(for: progress1.template?.name ?? "")
+            let phase2 = getPhasePriority(for: progress2.template?.name ?? "")
             
             if phase1 != phase2 {
                 return phase1 < phase2
             }
             
             // Within same phase, sort by lesson number if available
-            let lesson1 = extractLessonNumber(from: checklist1.templateName)
-            let lesson2 = extractLessonNumber(from: checklist2.templateName)
+            let lesson1 = extractLessonNumber(from: progress1.template?.name ?? "")
+            let lesson2 = extractLessonNumber(from: progress2.template?.name ?? "")
             
             if let num1 = lesson1, let num2 = lesson2 {
                 return num1 < num2
             }
             
-            return checklist1.templateName.localizedCaseInsensitiveCompare(checklist2.templateName) == .orderedAscending
+            return (progress1.template?.name ?? "").localizedCaseInsensitiveCompare(progress2.template?.name ?? "") == .orderedAscending
         }
         
         // Return incomplete first, then completed
         return sortedIncomplete + sortedCompleted
     }
     
-    private func isChecklistComplete(_ checklist: StudentChecklist) -> Bool {
-        guard let items = checklist.items, !items.isEmpty else { return false }
-        return items.allSatisfy { $0.isComplete }
+    private func isChecklistComplete(_ progress: ChecklistAssignment) -> Bool {
+        return progress.isComplete
     }
     
     private func getPhasePriority(for templateName: String) -> Int {
-        // Define phase order: Onboarding > Phase 1 > Pre-Solo/Solo > Phase 2 > Phase 3 > Phase 4
+        // Define phase order: Onboarding > Phase 1 > Phase 1.5 Pre-Solo/Solo > Phase 2 > Phase 3 > Phase 4
         if templateName.contains("Student Onboard") || templateName.contains("Training Overview") {
             return 0 // Onboarding - highest priority
         } else if templateName.contains("P1-L") || templateName.contains("Phase 1") {
             return 1 // Phase 1
         } else if templateName.contains("Pre-Solo") || templateName.contains("Solo") || templateName.contains("First Solo") {
-            return 2 // Pre-Solo/Solo
+            return 2 // Phase 1.5 Pre-Solo/Solo
         } else if templateName.contains("P2-L") || templateName.contains("Phase 2") {
             return 3 // Phase 2
         } else if templateName.contains("P3-L") || templateName.contains("Phase 3") {
@@ -321,7 +362,7 @@ struct StudentDetailView: View {
                 .foregroundColor(.red)
             }
             .padding()
-            .background(Color.appMutedBox)
+            .background(Color.appAdaptiveMutedBox)
             .cornerRadius(12)
         }
     }
@@ -379,7 +420,7 @@ struct StudentDetailView: View {
             }
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -407,7 +448,7 @@ struct StudentDetailView: View {
                 .buttonStyle(.rounded)
             }
             .padding()
-            .background(Color.appMutedBox)
+            .background(Color.appAdaptiveMutedBox)
             .cornerRadius(12)
         }
     }
@@ -433,7 +474,7 @@ struct StudentDetailView: View {
                 .buttonStyle(.rounded)
             }
             .padding()
-            .background(Color.appMutedBox)
+            .background(Color.appAdaptiveMutedBox)
             .cornerRadius(12)
         }
     }
@@ -458,7 +499,7 @@ struct StudentDetailView: View {
                 .font(.body)
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -470,7 +511,7 @@ struct StudentDetailView: View {
                 .font(.body)
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -492,14 +533,14 @@ struct StudentDetailView: View {
             List {
                 
                 // Incomplete checklists
-                ForEach(Array(incompleteChecklists.enumerated()), id: \.element.id) { index, checklist in
-                    NavigationLink(destination: destinationView(for: checklist)) {
+                ForEach(Array(incompleteChecklists.enumerated()), id: \.element.id) { index, progress in
+                    NavigationLink(destination: destinationView(for: progress)) {
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(checklist.templateName)
+                                Text(progress.displayName)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
-                                Text("\(completedItemsCount(for: checklist))/\(checklist.items?.count ?? 0) completed")
+                                Text("\(progress.completedItemsCount)/\(progress.totalItemsCount) completed")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -512,7 +553,7 @@ struct StudentDetailView: View {
                     .adaptiveRowBackgroundModifier(for: index)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button("Delete", role: .destructive) {
-                            checklistToDelete = checklist
+                            checklistToDelete = progress
                             showingDeleteConfirmation = true
                         }
                     }
@@ -529,14 +570,14 @@ struct StudentDetailView: View {
                 // Completed section divider and checklists
                 if !completedChecklists.isEmpty {
                     Section {
-                        ForEach(Array(completedChecklists.enumerated()), id: \.element.id) { index, checklist in
-                            NavigationLink(destination: destinationView(for: checklist)) {
+                        ForEach(Array(completedChecklists.enumerated()), id: \.element.id) { index, progress in
+                            NavigationLink(destination: destinationView(for: progress)) {
                                 HStack {
                                     VStack(alignment: .leading) {
-                                        Text(checklist.templateName)
+                                        Text(progress.displayName)
                                             .font(.subheadline)
                                             .fontWeight(.medium)
-                                        Text("\(completedItemsCount(for: checklist))/\(checklist.items?.count ?? 0) completed")
+                                        Text("\(progress.completedItemsCount)/\(progress.totalItemsCount) completed")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
@@ -549,7 +590,7 @@ struct StudentDetailView: View {
                             .adaptiveRowBackgroundModifier(for: index)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button("Delete", role: .destructive) {
-                                    checklistToDelete = checklist
+                                    checklistToDelete = progress
                                     showingDeleteConfirmation = true
                                 }
                             }
@@ -563,7 +604,22 @@ struct StudentDetailView: View {
                 }
             }
             .listStyle(PlainListStyle())
-            .frame(height: CGFloat(sortedChecklists.count * 80 + (completedChecklists.isEmpty ? 0 : 40)))
+            // Calculate proper height: each checklist row needs ~80 pixels
+            // Add section header height (40px) if there are completed checklists
+            // Ensure minimum height for completed section to make it easily visible
+            .frame(height: {
+                let rowHeight: CGFloat = 80
+                let sectionHeaderHeight: CGFloat = 40
+                
+                // Base height for all checklists
+                let baseHeight = CGFloat(sortedChecklists.count) * rowHeight
+                
+                // Add section header if there are completed checklists
+                let totalHeight = baseHeight + (completedChecklists.isEmpty ? 0 : sectionHeaderHeight)
+                
+                // Return the calculated height without excessive minimum
+                return totalHeight
+            }())
         }
     }
     
@@ -592,10 +648,50 @@ struct StudentDetailView: View {
                     .italic()
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                    ForEach(sortedEndorsements) { endorsement in
-                        EndorsementView(endorsement: endorsement) {
-                            selectedEndorsement = endorsement
-                            showingEndorsementDetail = true
+                    ForEach(Array(sortedEndorsements.enumerated()), id: \.element.id) { index, endorsement in
+                        VStack(spacing: 4) {
+                            EndorsementView(endorsement: endorsement) {
+                                print("🎯 Endorsement tapped: \(endorsement.filename)")
+                                selectedEndorsement = endorsement
+                                showingEndorsementDetail = true
+                                print("🎯 showingEndorsementDetail set to: \(showingEndorsementDetail)")
+                            }
+                            
+                            // Show endorsement metadata
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let code = endorsement.endorsementCode {
+                                    Text(getEndorsementDisplayName(for: code))
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                if let expiration = endorsement.expirationDate {
+                                    Text("Expires: \(formatDate(expiration))")
+                                        .font(.caption2)
+                                        .foregroundColor(expiration < Date() ? .red : .orange)
+                                }
+                            }
+                            
+                            // Delete button
+                            Button("Delete") {
+                                deleteEndorsement(endorsement)
+                            }
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                            .buttonStyle(.bordered)
+                        }
+                        .contextMenu {
+                            Button("View Details") {
+                                print("🎯 Context menu 'View Details' tapped: \(endorsement.filename)")
+                                selectedEndorsement = endorsement
+                                showingEndorsementDetail = true
+                                print("🎯 showingEndorsementDetail set to: \(showingEndorsementDetail)")
+                            }
+                            
+                            Button("Delete", role: .destructive) {
+                                deleteEndorsement(endorsement)
+                            }
                         }
                     }
                 }
@@ -612,30 +708,23 @@ struct StudentDetailView: View {
         .padding()
     }
     
-    private func completedItemsCount(for checklist: StudentChecklist) -> Int {
-        (checklist.items ?? []).filter { $0.isComplete }.count
+    private func completedItemsCount(for assignment: ChecklistAssignment) -> Int {
+        (assignment.itemProgress ?? []).filter { $0.isComplete }.count
     }
     
     @ViewBuilder
-    private func destinationView(for checklist: StudentChecklist) -> some View {
-        let _ = print("🎯 Creating destination view for: \(checklist.templateName)")
-        
+    private func destinationView(for progress: ChecklistAssignment) -> some View {
         Group {
-            if checklist.templateName == "Student Onboard/Training Overview" {
-                let _ = print("📋 Routing to StudentOnboardView")
-                StudentOnboardView(student: student, checklist: checklist)
-            } else if checklist.templateName == "Pre-Solo Training (61.87)" {
-                let _ = print("📋 Routing to PreSoloTrainingView")
-                PreSoloTrainingView(student: student, checklist: checklist)
-            } else if checklist.templateName == "Pre-Solo Quiz" {
-                let _ = print("📋 Routing to PreSoloQuizView")
-                PreSoloQuizView(student: student, checklist: checklist)
-            } else if checklist.templateName == "Endorsements" {
-                let _ = print("📋 Routing to EndorsementsView")
-                EndorsementsView(student: student, checklist: checklist)
+            if progress.displayName == "Student Onboard/Training Overview" {
+                StudentOnboardView(student: student, progress: progress)
+            } else if progress.displayName == "Pre-Solo Training (61.87)" {
+                PreSoloTrainingView(student: student, progress: progress)
+            } else if progress.displayName == "Pre-Solo Quiz" {
+                PreSoloQuizView(student: student, progress: progress)
+            } else if progress.displayName == "Endorsements" {
+                EndorsementsView(student: student, progress: progress)
             } else {
-                let _ = print("📋 Routing to LessonView")
-                LessonView(student: student, checklist: checklist)
+                LessonView(student: student, progress: progress)
             }
         }
     }
@@ -645,9 +734,26 @@ struct StudentDetailView: View {
             sortBy: [SortDescriptor(\.name)]
         )
         do {
-            return try modelContext.fetch(request)
+            let allTemplates = try modelContext.fetch(request)
+            print("📋 Fetched \(allTemplates.count) total templates from database")
+            
+            // Filter to only include the expected categories: PPL, Instrument, Commercial, Reviews
+            let validCategories = ["PPL", "Instrument", "Commercial", "Reviews"]
+            let filteredTemplates = allTemplates.filter { validCategories.contains($0.category) }
+            print("📋 Filtered to \(filteredTemplates.count) templates in valid categories")
+            
+            if filteredTemplates.isEmpty && !allTemplates.isEmpty {
+                print("⚠️ WARNING: Templates exist but none match valid categories!")
+                print("📋 Available categories: \(Set(allTemplates.map { $0.category }))")
+            }
+            
+            return filteredTemplates
         } catch {
-            print("Failed to fetch templates: \(error)")
+            print("❌ Failed to fetch templates: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+            }
             return []
         }
     }
@@ -687,11 +793,37 @@ struct StudentDetailView: View {
         }
     }
     
-    private func deleteChecklist(_ checklist: StudentChecklist) {
-        // Remove the checklist from the student's checklists
-        if let index = student.checklists?.firstIndex(where: { $0.id == checklist.id }) {
-            student.checklists?.remove(at: index)
+    private func deleteEndorsement(_ endorsement: EndorsementImage) {
+        // Remove from student's endorsements array
+        student.endorsements?.removeAll { $0.id == endorsement.id }
+        
+        // Delete from model context
+        modelContext.delete(endorsement)
+        
+        // Save changes
+        do {
+            try modelContext.save()
+            print("✅ Deleted endorsement: \(endorsement.filename)")
+            // Update sorted lists after deletion
+            updateSortedLists()
+        } catch {
+            print("❌ Failed to delete endorsement: \(error)")
         }
+    }
+    
+    private func deleteChecklist(_ progress: ChecklistAssignment) {
+        // Remove the checklist assignment from the student's assignments
+        if let index = student.checklistAssignments?.firstIndex(where: { $0.id == progress.id }) {
+            student.checklistAssignments?.remove(at: index)
+        }
+        
+        // Remove from template's student assignment tracking
+        if let template = progress.template {
+            template.studentAssignments?.removeAll { $0.id == progress.id }
+        }
+        
+        // Delete the assignment record
+        modelContext.delete(progress)
         
         // Save the changes
         do {
@@ -703,22 +835,76 @@ struct StudentDetailView: View {
         }
     }
     
-    private func deleteEndorsement(_ endorsement: EndorsementImage) {
-        // Remove the endorsement from the student's endorsements
-        if let index = student.endorsements?.firstIndex(where: { $0.id == endorsement.id }) {
-            student.endorsements?.remove(at: index)
-        }
-        
-        // Delete the endorsement from the model context
-        modelContext.delete(endorsement)
-        
-        // Save the changes
-        do {
-            try modelContext.save()
-            // Update sorted lists after deleting endorsement
-            updateSortedLists()
-        } catch {
-            print("Failed to save after deleting endorsement: \(error)")
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd/yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func getEndorsementDisplayName(for code: String) -> String {
+        switch code {
+        case "A.1":
+            return "Authorization to Take Practical Test"
+        case "A.2":
+            return "Authorization for Solo Flight"
+        case "A.3":
+            return "Aeronautical Knowledge"
+        case "A.4":
+            return "Pre-Solo Training to Proficiency"
+        case "A.5":
+            return "Solo Flight Training"
+        case "A.6":
+            return "Solo Cross-Country Flight Training"
+        case "A.7":
+            return "Solo Flight in Complex Airplane"
+        case "A.8":
+            return "Instrument Proficiency Check"
+        case "A.9":
+            return "Instrument Training"
+        case "A.10":
+            return "Instrument Experience"
+        case "A.11":
+            return "Instrument Recency"
+        case "A.12":
+            return "Instrument Approach Procedures"
+        case "A.13":
+            return "Instrument Training for Private Pilot"
+        case "A.14":
+            return "Instrument Training for Commercial Pilot"
+        case "A.15":
+            return "Instrument Training for Airline Transport Pilot"
+        case "A.16":
+            return "Instrument Training for Flight Instructor"
+        case "A.17":
+            return "Instrument Training for Ground Instructor"
+        case "A.18":
+            return "Instrument Training for Instrument Instructor"
+        case "A.19":
+            return "Instrument Training for Multi-Engine Instructor"
+        case "A.20":
+            return "Instrument Training for Sport Pilot"
+        case "A.21":
+            return "Instrument Training for Recreational Pilot"
+        case "A.22":
+            return "Instrument Training for Glider Pilot"
+        case "A.23":
+            return "Instrument Training for Lighter-Than-Air Pilot"
+        case "A.24":
+            return "Instrument Training for Powered-Lift Pilot"
+        case "A.25":
+            return "Instrument Training for Rotorcraft Pilot"
+        case "A.26":
+            return "Instrument Training for Powered Parachute Pilot"
+        case "A.27":
+            return "Instrument Training for Weight-Shift-Control Pilot"
+        case "A.28":
+            return "Instrument Training for Balloon Pilot"
+        case "A.29":
+            return "Instrument Training for Airship Pilot"
+        case "A.30":
+            return "Instrument Training for Powered-Lift Pilot"
+        default:
+            return code // Fallback to code if not recognized
         }
     }
     
@@ -773,62 +959,62 @@ struct StudentDetailView: View {
                 Spacer()
             }
             
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "icloud.and.arrow.up.and.down")
-                        .foregroundColor(.appPrimary)
+            HStack {
+                Image(systemName: "icloud.and.arrow.up.and.down")
+                    .foregroundColor(.appPrimary)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Last synced: \(lastSyncDate, style: .relative)")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Last synced: \(lastSyncDate, style: .relative)")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                        
-                        Text("Connected to student app")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    if hasUnresolvedConflicts {
-                        Badge(count: detectedConflicts.count, color: .orange)
-                    }
+                    Text("Connected to student app")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+                
+                Spacer()
                 
                 Button(action: {
                     Task {
                         await checkForStudentUpdates()
                     }
                 }) {
-                    HStack {
+                    HStack(spacing: 4) {
                         if isCheckingForUpdates {
                             ProgressView()
-                                .scaleEffect(0.8)
+                                .scaleEffect(0.7)
                         } else {
                             Image(systemName: "arrow.clockwise")
+                                .font(.caption)
                         }
-                        Text(isCheckingForUpdates ? "Checking..." : "Check for Updates")
+                        Text(isCheckingForUpdates ? "Syncing..." : "Sync")
+                            .font(.caption)
                     }
                 }
                 .buttonStyle(.bordered)
                 .disabled(isCheckingForUpdates)
                 
                 if hasUnresolvedConflicts {
-                    Button(action: {
-                        showingConflictResolution = true
-                    }) {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle")
-                            Text("Resolve \(detectedConflicts.count) Conflicts")
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+                    Badge(count: detectedConflicts.count, color: .orange)
                 }
+            }
+            
+            if hasUnresolvedConflicts {
+                Button(action: {
+                    showingConflictResolution = true
+                }) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                        Text("Resolve \(detectedConflicts.count) Conflicts")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
             }
         }
         .padding()
-        .background(Color.appMutedBox)
+        .background(Color.appAdaptiveMutedBox)
         .cornerRadius(12)
     }
     
@@ -886,13 +1072,13 @@ struct EndorsementView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 100)
+                        .frame(height: 60)
                         .clipped()
                         .cornerRadius(8)
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(height: 100)
+                        .frame(height: 60)
                         .cornerRadius(8)
                         .overlay(
                             Image(systemName: "photo")
@@ -901,10 +1087,6 @@ struct EndorsementView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
-            Text(endorsement.filename)
-                .font(.caption)
-                .lineLimit(1)
         }
         .onAppear {
             loadImage()
@@ -912,13 +1094,34 @@ struct EndorsementView: View {
     }
     
     private func loadImage() {
-        guard let imageData = endorsement.imageData else { return }
+        guard let imageData = endorsement.imageData else { 
+            print("⚠️ No image data found for endorsement: \(endorsement.filename)")
+            return 
+        }
         
-        // Load image on background queue to avoid blocking UI
-        DispatchQueue.global(qos: .userInitiated).async {
-            let image = UIImage(data: imageData)
-            DispatchQueue.main.async {
-                self.uiImage = image
+        // Check if this is PDF data or image data
+        if endorsement.filename.hasSuffix(".pdf") {
+            // For PDF files, create a PDF thumbnail
+            DispatchQueue.global(qos: .userInitiated).async {
+                if let pdfDocument = PDFDocument(data: imageData) {
+                    let page = pdfDocument.page(at: 0)
+                    let thumbnailSize = CGSize(width: 200, height: 200)
+                    let thumbnail = page?.thumbnail(of: thumbnailSize, for: .mediaBox)
+                    
+                    DispatchQueue.main.async {
+                        self.uiImage = thumbnail
+                    }
+                } else {
+                    print("⚠️ Failed to create PDF document from data")
+                }
+            }
+        } else {
+            // For regular image files
+            DispatchQueue.global(qos: .userInitiated).async {
+                let image = UIImage(data: imageData)
+                DispatchQueue.main.async {
+                    self.uiImage = image
+                }
             }
         }
     }
@@ -930,7 +1133,6 @@ struct EndorsementDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var uiImage: UIImage?
     @State private var showingDeleteConfirmation = false
-    @State private var showingCropView = false
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -982,6 +1184,9 @@ struct EndorsementDetailView: View {
                             .foregroundColor(.white)
                         Text("Loading...")
                             .foregroundColor(.white)
+                        Text("Debug: \(endorsement.filename)")
+                            .foregroundColor(.white)
+                            .font(.caption)
                     }
                 }
             }
@@ -996,26 +1201,17 @@ struct EndorsementDetailView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            showingCropView = true
-                        } label: {
-                            Label("Crop", systemImage: "crop")
-                        }
-                        
-                        Button(role: .destructive) {
-                            showingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                    Button(role: .destructive) {
+                        showingDeleteConfirmation = true
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Label("Delete", systemImage: "trash")
                             .foregroundColor(.white)
                     }
                 }
             }
         }
         .onAppear {
+            print("🚀 EndorsementDetailView onAppear called for: \(endorsement.filename)")
             loadImage()
         }
         .alert("Delete Endorsement", isPresented: $showingDeleteConfirmation) {
@@ -1026,69 +1222,83 @@ struct EndorsementDetailView: View {
         } message: {
             Text("Are you sure you want to delete this endorsement? This action cannot be undone.")
         }
-        .sheet(isPresented: $showingCropView) {
-            if let uiImage = uiImage {
-                ImageCropView(image: uiImage) { croppedImage in
-                    // Handle cropped image - for now just dismiss
-                    showingCropView = false
-                }
-            }
-        }
     }
     
     private func loadImage() {
-        guard let imageData = endorsement.imageData else { return }
+        print("🚀 EndorsementDetailView loadImage() called for: \(endorsement.filename)")
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            let image = UIImage(data: imageData)
-            DispatchQueue.main.async {
-                self.uiImage = image
+        guard let imageData = endorsement.imageData else { 
+            print("⚠️ No image data found for endorsement: \(endorsement.filename)")
+            return 
+        }
+        
+        print("🔍 Loading image for endorsement: \(endorsement.filename), data size: \(imageData.count) bytes")
+        
+        // Check if this is PDF data or image data
+        if endorsement.filename.hasSuffix(".pdf") {
+            // For PDF files, try multiple approaches to render the page
+            DispatchQueue.global(qos: .userInitiated).async {
+                print("🔍 Attempting to create PDF document from data...")
+                
+                guard let pdfDocument = PDFDocument(data: imageData) else {
+                    print("❌ FAILED: Could not create PDFDocument from data")
+                    print("❌ Data size: \(imageData.count) bytes")
+                    print("❌ Data preview: \(imageData.prefix(20).map { String(format: "%02x", $0) }.joined(separator: " "))")
+                    return
+                }
+                
+                print("✅ PDF document created successfully, page count: \(pdfDocument.pageCount)")
+                
+                guard let page = pdfDocument.page(at: 0) else {
+                    print("❌ FAILED: Could not get page 0 from PDF document")
+                    return
+                }
+                
+                let pageBounds = page.bounds(for: .mediaBox)
+                print("🔍 Page bounds: \(pageBounds)")
+                
+                // Try direct rendering first (more reliable)
+                print("🔍 Attempting direct PDF rendering...")
+                let scale: CGFloat = 2.0
+                let size = CGSize(width: pageBounds.width * scale, height: pageBounds.height * scale)
+                print("🔍 Target render size: \(size)")
+                
+                let renderer = UIGraphicsImageRenderer(size: size)
+                let image = renderer.image { context in
+                    // Set white background
+                    context.cgContext.setFillColor(UIColor.white.cgColor)
+                    context.cgContext.fill(CGRect(origin: .zero, size: size))
+                    
+                    // Scale and draw the page
+                    context.cgContext.scaleBy(x: scale, y: scale)
+                    page.draw(with: .mediaBox, to: context.cgContext)
+                }
+                
+                print("🔍 Direct rendering completed, image size: \(image.size)")
+                print("🔍 Image has content: \(image.size.width > 0 && image.size.height > 0)")
+                
+                DispatchQueue.main.async {
+                    self.uiImage = image
+                    print("🔍 Set rendered image in detail view: \(self.uiImage != nil ? "SUCCESS" : "FAILED")")
+                    if self.uiImage == nil {
+                        print("❌ CRITICAL: uiImage is still nil after setting!")
+                    }
+                }
+            }
+        } else {
+            // For regular image files
+            print("🔍 Loading regular image file...")
+            DispatchQueue.global(qos: .userInitiated).async {
+                let image = UIImage(data: imageData)
+                print("🔍 Regular image loaded: \(image != nil ? "SUCCESS" : "FAILED")")
+                DispatchQueue.main.async {
+                    self.uiImage = image
+                }
             }
         }
     }
 }
 
-struct ImageCropView: View {
-    let image: UIImage
-    let onCrop: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var cropRect = CGRect(x: 0, y: 0, width: 200, height: 200)
-    @State private var imageSize = CGSize.zero
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .overlay(
-                        Rectangle()
-                            .stroke(Color.white, lineWidth: 2)
-                            .frame(width: cropRect.width, height: cropRect.height)
-                            .position(x: cropRect.midX, y: cropRect.midY)
-                    )
-            }
-            .navigationTitle("Crop Image")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        // For now, just dismiss - full crop implementation would be more complex
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
 
 struct Badge: View {
     let count: Int
@@ -1106,8 +1316,76 @@ struct Badge: View {
     }
 }
 
+// MARK: - Student Detail Sheets Modifier
+
+struct StudentDetailSheets: ViewModifier {
+    @Binding var showingEditStudent: Bool
+    @Binding var showingAddChecklist: Bool
+    @Binding var showingCamera: Bool
+    @Binding var showingPhotoLibrary: Bool
+    @Binding var showingStudentRecord: Bool
+    @Binding var showingShareSheet: Bool
+    @Binding var showingDocuments: Bool
+    @Binding var showingConflictResolution: Bool
+    @Binding var showingEndorsementDetail: Bool
+    @Binding var selectedEndorsement: EndorsementImage?
+    let detectedConflicts: [DataConflict]
+    let student: Student
+    let getTemplates: () -> [ChecklistTemplate]
+    let addEndorsementImage: (UIImage) -> Void
+    let deleteEndorsement: (EndorsementImage) -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $showingEditStudent) {
+                EditStudentView(student: student)
+            }
+            .sheet(isPresented: $showingAddChecklist) {
+                AddChecklistToStudentView(student: student, templates: getTemplates())
+            }
+            .sheet(isPresented: $showingCamera) {
+                CameraView { image in
+                    addEndorsementImage(image)
+                }
+            }
+            .sheet(isPresented: $showingPhotoLibrary) {
+                PhotoLibraryView { image in
+                    addEndorsementImage(image)
+                }
+            }
+            .sheet(isPresented: $showingStudentRecord) {
+                PDFExportService.showStudentRecord(student)
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                StudentShareView(student: student)
+            }
+            .sheet(isPresented: $showingDocuments) {
+                NavigationView {
+                    StudentDocumentsView(student: student)
+                }
+            }
+            .sheet(isPresented: $showingConflictResolution) {
+                ConflictResolutionView(student: student, conflicts: detectedConflicts)
+            }
+            .sheet(isPresented: $showingEndorsementDetail) {
+                if let endorsement = selectedEndorsement {
+                    EndorsementDetailView(endorsement: endorsement) {
+                        deleteEndorsement(endorsement)
+                        showingEndorsementDetail = false
+                    }
+                    .onAppear {
+                        print("🎯 Sheet is being presented, selectedEndorsement: \(endorsement.filename)")
+                    }
+                } else {
+                    Text("No endorsement selected")
+                        .foregroundColor(.red)
+                }
+            }
+    }
+}
+
 #Preview {
     let student = Student(firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234", homeAddress: "123 Main St", ftnNumber: "123456789")
     StudentDetailView(student: student)
-        .modelContainer(for: [Student.self, StudentChecklist.self, StudentChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
 }
