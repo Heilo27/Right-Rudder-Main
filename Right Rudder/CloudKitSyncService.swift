@@ -23,6 +23,99 @@ class CloudKitSyncService: ObservableObject {
         offlineSyncManager.setModelContext(context)
     }
     
+    /// Initializes CloudKit schema by creating initial records for each record type
+    /// This ensures all record types are deployed in CloudKit (especially in Development)
+    /// In Development, CloudKit will auto-create the schema when we save a record
+    /// In Production, schema must be manually deployed via CloudKit Dashboard
+    /// Should be called once on app startup
+    func initializeCloudKitSchema() async {
+        print("🔄 Initializing CloudKit schema...")
+        
+        do {
+            // Check CloudKit availability
+            let accountStatus = try await container.accountStatus()
+            guard accountStatus == .available else {
+                print("⚠️ CloudKit account not available - cannot initialize schema")
+                return
+            }
+            
+            let database = container.privateCloudDatabase
+            
+            // Initialize CustomChecklistDefinition record type
+            // Create a temporary dummy record to trigger schema creation in Development
+            // This causes CloudKit to auto-register the record type in Development environment
+            let dummyRecordID = CKRecord.ID(recordName: "__schema_init__CustomChecklistDefinition")
+            
+            // Try to create the schema by saving a dummy record
+            // In Development, this will auto-create the record type if it doesn't exist
+            // In Production, this will fail and require manual deployment
+            print("📝 Creating CustomChecklistDefinition record type in CloudKit...")
+            let schemaRecord = CKRecord(recordType: "CustomChecklistDefinition", recordID: dummyRecordID)
+            schemaRecord["templateId"] = UUID().uuidString
+            schemaRecord["customName"] = "__SCHEMA_INIT__"
+            schemaRecord["customCategory"] = "__SCHEMA_INIT__"
+            schemaRecord["studentId"] = UUID().uuidString
+            schemaRecord["lastModified"] = Date()
+            
+            do {
+                _ = try await database.save(schemaRecord)
+                print("✅ Created CustomChecklistDefinition record type in CloudKit")
+                
+                // Delete the dummy record immediately
+                _ = try? await database.deleteRecord(withID: dummyRecordID)
+                print("🧹 Cleaned up schema initialization record")
+            } catch let saveError as CKError {
+                // Handle different error cases
+                if saveError.code == .unknownItem {
+                    // Record was already deleted or doesn't exist - schema exists
+                    print("✅ CustomChecklistDefinition record type exists in CloudKit")
+                } else if saveError.code == .internalError || saveError.localizedDescription.contains("Production") || saveError.localizedDescription.contains("deploy") {
+                    // Production environment requires manual schema deployment
+                    print("⚠️ CustomChecklistDefinition needs manual deployment in Production")
+                    print("   Go to: https://icloud.developer.apple.com/dashboard/")
+                    print("   Navigate to Schema > Record Types > Add CustomChecklistDefinition")
+                    print("   Required fields:")
+                    print("     - templateId (String, Indexed)")
+                    print("     - customName (String)")
+                    print("     - customCategory (String)")
+                    print("     - studentId (String, Indexed)")
+                    print("     - lastModified (Date/Time)")
+                    print("     - customItems (String)")
+                } else {
+                    // Other error - might already exist
+                    print("ℹ️ CustomChecklistDefinition schema check: \(saveError.localizedDescription)")
+                    // Try to delete in case it was created
+                    _ = try? await database.deleteRecord(withID: dummyRecordID)
+                }
+            } catch {
+                print("⚠️ Unexpected error initializing CustomChecklistDefinition schema: \(error)")
+            }
+            
+            print("✅ CloudKit schema initialization complete")
+        } catch {
+            print("❌ Failed to initialize CloudKit schema: \(error)")
+        }
+    }
+    
+    /// Force a complete re-sync of all assignments for a specific student to the shared zone
+    /// This is useful when assignments aren't appearing in the student app
+    func forceSyncStudentAssignments(_ student: Student) async {
+        guard modelContext != nil else {
+            print("❌ Cannot force sync: No model context")
+            return
+        }
+        
+        print("🔄 FORCE SYNC: Starting complete re-sync of assignments for: \(student.displayName)")
+        
+        // First ensure student is synced
+        await syncStudentToCloudKit(student)
+        
+        // Then do a full shared zone sync
+        await syncStudentChecklistsToSharedZone(student)
+        
+        print("✅ FORCE SYNC: Completed for: \(student.displayName)")
+    }
+    
     func syncToCloudKit() async {
         guard !isSyncing, let _ = modelContext else { return }
         
@@ -85,6 +178,37 @@ class CloudKitSyncService: ObservableObject {
         await offlineSyncManager.processPendingOperations()
     }
     
+    /// Gets the correct template ID for CloudKit sync (maps to student app library IDs)
+    private func getCorrectTemplateID(for assignment: ChecklistAssignment) -> String {
+        // If this is a default template, use the mapped ID from the student app library
+        if let templateIdentifier = assignment.templateIdentifier,
+           let mappedID = TemplateIDMappingService.getTemplateID(for: templateIdentifier) {
+            return mappedID.uuidString
+        }
+        
+        // For custom templates, use the original template ID
+        return assignment.templateId.uuidString
+    }
+    
+    /// Gets the correct template item ID for CloudKit sync (maps to student app library IDs)
+    private func getCorrectTemplateItemID(for item: ItemProgress, assignment: ChecklistAssignment) -> String {
+        // If this is a default template, try to map the item ID
+        if let templateIdentifier = assignment.templateIdentifier,
+           let mappedItemIDs = TemplateIDMappingService.getTemplateItemIDs(for: templateIdentifier) {
+            
+            // Find the item by order/index in the template
+            if let template = assignment.template,
+               let templateItems = template.items,
+               let itemIndex = templateItems.firstIndex(where: { $0.id == item.templateItemId }),
+               itemIndex < mappedItemIDs.count {
+                return mappedItemIDs[itemIndex].uuidString
+            }
+        }
+        
+        // For custom templates or if mapping fails, use the original item ID
+        return item.templateItemId.uuidString
+    }
+    
     /// Checks if an error is network-related
     private func isNetworkError(_ error: Error) -> Bool {
         if let ckError = error as? CKError {
@@ -96,6 +220,48 @@ class CloudKitSyncService: ObservableObject {
             }
         }
         return false
+    }
+    
+    /// Checks if a student has an active share (share exists AND has participants)
+    /// Returns true only if:
+    /// 1. shareRecordID exists
+    /// 2. Share record exists in CloudKit
+    /// 3. Share has participants (meaning student has accepted the invitation)
+    /// CRITICAL: This prevents syncing to students who haven't accepted their share URL yet
+    private func hasActiveShare(_ student: Student) async -> Bool {
+        guard let shareRecordName = student.shareRecordID else {
+            return false
+        }
+        
+        do {
+            let database = container.privateCloudDatabase
+            let customZoneName = "SharedStudentsZone"
+            let zoneID = CKRecordZone.ID(zoneName: customZoneName, ownerName: CKCurrentUserDefaultName)
+            
+            // Ensure zone exists
+            let _ = try await database.recordZone(for: zoneID)
+            
+            // Fetch the share record
+            let shareRecordID = CKRecord.ID(recordName: shareRecordName, zoneID: zoneID)
+            let shareRecord = try await database.record(for: shareRecordID)
+            
+            // Check if it's actually a CKShare
+            guard let share = shareRecord as? CKShare else {
+                print("⚠️ Record is not a CKShare for student: \(student.displayName)")
+                return false
+            }
+            
+            // CRITICAL: Only return true if share has participants (student has accepted)
+            // A share without participants means the URL was generated but not accepted yet
+            let hasParticipants = !share.participants.isEmpty
+            if !hasParticipants {
+                print("⚠️ Share exists but has no participants (student hasn't accepted) for: \(student.displayName)")
+            }
+            return hasParticipants
+        } catch {
+            print("⚠️ Failed to check share status for \(student.displayName): \(error)")
+            return false
+        }
     }
     
     private func syncStudents() async {
@@ -122,54 +288,129 @@ class CloudKitSyncService: ObservableObject {
             let existingRecord = try? await database.record(for: recordID)
             
             let record: CKRecord
+            var hasChanges = false
+            
             if let existing = existingRecord {
                 record = existing
+                
+                // Only update fields that have actually changed
+                // Compare each field with existing value before setting
+                func updateIfChanged<T: Equatable & CKRecordValue>(_ key: String, newValue: T?) {
+                    let existingValue = record[key] as? T
+                    if existingValue != newValue {
+                        record[key] = newValue
+                        hasChanges = true
+                    }
+                }
+                
+                func updateIfChangedString(_ key: String, newValue: String?) {
+                    let existingValue = record[key] as? String
+                    if existingValue != newValue {
+                        record[key] = newValue
+                        hasChanges = true
+                    }
+                }
+                
+                func updateIfChangedDate(_ key: String, newValue: Date?) {
+                    let existingValue = record[key] as? Date
+                    if existingValue != newValue {
+                        record[key] = newValue
+                        hasChanges = true
+                    }
+                }
+                
+                func updateIfChangedBool(_ key: String, newValue: Bool) {
+                    // CloudKit requires Bool values to be wrapped in NSNumber
+                    let existingValue = (record[key] as? NSNumber)?.boolValue ?? false
+                    if existingValue != newValue {
+                        record[key] = NSNumber(value: newValue)
+                        hasChanges = true
+                    }
+                }
+                
+                // Update only changed fields
+                updateIfChangedString("firstName", newValue: student.firstName)
+                updateIfChangedString("lastName", newValue: student.lastName)
+                updateIfChangedString("email", newValue: student.email)
+                updateIfChangedString("telephone", newValue: student.telephone)
+                updateIfChangedString("homeAddress", newValue: student.homeAddress)
+                updateIfChangedString("ftnNumber", newValue: student.ftnNumber)
+                updateIfChangedString("biography", newValue: student.biography)
+                updateIfChangedString("backgroundNotes", newValue: student.backgroundNotes)
+                updateIfChangedString("instructorName", newValue: student.instructorName)
+                updateIfChangedString("instructorCFINumber", newValue: student.instructorCFINumber)
+                updateIfChangedDate("lastModified", newValue: student.lastModified)
+                
+                // Training goals
+                updateIfChangedBool("goalPPL", newValue: student.goalPPL)
+                updateIfChangedBool("goalInstrument", newValue: student.goalInstrument)
+                updateIfChangedBool("goalCommercial", newValue: student.goalCommercial)
+                updateIfChangedBool("goalCFI", newValue: student.goalCFI)
+                
+                // Training milestones - PPL
+                updateIfChangedBool("pplGroundSchoolCompleted", newValue: student.pplGroundSchoolCompleted)
+                updateIfChangedBool("pplWrittenTestCompleted", newValue: student.pplWrittenTestCompleted)
+                
+                // Training milestones - Instrument
+                updateIfChangedBool("instrumentGroundSchoolCompleted", newValue: student.instrumentGroundSchoolCompleted)
+                updateIfChangedBool("instrumentWrittenTestCompleted", newValue: student.instrumentWrittenTestCompleted)
+                
+                // Training milestones - Commercial
+                updateIfChangedBool("commercialGroundSchoolCompleted", newValue: student.commercialGroundSchoolCompleted)
+                updateIfChangedBool("commercialWrittenTestCompleted", newValue: student.commercialWrittenTestCompleted)
+                
+                // Training milestones - CFI
+                updateIfChangedBool("cfiGroundSchoolCompleted", newValue: student.cfiGroundSchoolCompleted)
+                updateIfChangedBool("cfiWrittenTestCompleted", newValue: student.cfiWrittenTestCompleted)
+                
+                // Always ensure studentId is set (for backward compatibility)
+                if (record["studentId"] as? String) != student.id.uuidString {
+                    record["studentId"] = student.id.uuidString
+                    hasChanges = true
+                }
             } else {
+                // New record - set all fields
                 record = CKRecord(recordType: "Student", recordID: recordID)
+                record["firstName"] = student.firstName
+                record["lastName"] = student.lastName
+                record["email"] = student.email
+                record["telephone"] = student.telephone
+                record["homeAddress"] = student.homeAddress
+                record["ftnNumber"] = student.ftnNumber
+                record["biography"] = student.biography
+                record["backgroundNotes"] = student.backgroundNotes
+                record["instructorName"] = student.instructorName
+                record["instructorCFINumber"] = student.instructorCFINumber
+                record["lastModified"] = student.lastModified
+                // CloudKit requires Bool values to be wrapped in NSNumber
+                record["goalPPL"] = NSNumber(value: student.goalPPL)
+                record["goalInstrument"] = NSNumber(value: student.goalInstrument)
+                record["goalCommercial"] = NSNumber(value: student.goalCommercial)
+                record["goalCFI"] = NSNumber(value: student.goalCFI)
+                record["pplGroundSchoolCompleted"] = NSNumber(value: student.pplGroundSchoolCompleted)
+                record["pplWrittenTestCompleted"] = NSNumber(value: student.pplWrittenTestCompleted)
+                record["instrumentGroundSchoolCompleted"] = NSNumber(value: student.instrumentGroundSchoolCompleted)
+                record["instrumentWrittenTestCompleted"] = NSNumber(value: student.instrumentWrittenTestCompleted)
+                record["commercialGroundSchoolCompleted"] = NSNumber(value: student.commercialGroundSchoolCompleted)
+                record["commercialWrittenTestCompleted"] = NSNumber(value: student.commercialWrittenTestCompleted)
+                record["cfiGroundSchoolCompleted"] = NSNumber(value: student.cfiGroundSchoolCompleted)
+                record["cfiWrittenTestCompleted"] = NSNumber(value: student.cfiWrittenTestCompleted)
+                record["studentId"] = student.id.uuidString
+                hasChanges = true
             }
             
-            // Update record with student data
-            record["firstName"] = student.firstName
-            record["lastName"] = student.lastName
-            record["email"] = student.email
-            record["telephone"] = student.telephone
-            record["homeAddress"] = student.homeAddress
-            record["ftnNumber"] = student.ftnNumber
-            record["biography"] = student.biography
-            record["backgroundNotes"] = student.backgroundNotes
-            record["instructorName"] = student.instructorName
-            record["instructorCFINumber"] = student.instructorCFINumber
-            record["lastModified"] = student.lastModified
+            // Only save if there are actual changes
+            if hasChanges {
+                let savedRecord = try await database.save(record)
+                student.cloudKitRecordID = savedRecord.recordID.recordName
+                student.lastModified = Date()
+                print("✅ Synced student profile changes to CloudKit: \(student.displayName)")
+            } else {
+                print("ℹ️ Student profile unchanged, skipping CloudKit sync: \(student.displayName)")
+            }
             
-            // Training goals
-            record["goalPPL"] = student.goalPPL
-            record["goalInstrument"] = student.goalInstrument
-            record["goalCommercial"] = student.goalCommercial
-            record["goalCFI"] = student.goalCFI
-            
-            // Training milestones - PPL
-            record["pplGroundSchoolCompleted"] = student.pplGroundSchoolCompleted
-            record["pplWrittenTestCompleted"] = student.pplWrittenTestCompleted
-            
-            // Training milestones - Instrument
-            record["instrumentGroundSchoolCompleted"] = student.instrumentGroundSchoolCompleted
-            record["instrumentWrittenTestCompleted"] = student.instrumentWrittenTestCompleted
-            
-            // Training milestones - Commercial
-            record["commercialGroundSchoolCompleted"] = student.commercialGroundSchoolCompleted
-            record["commercialWrittenTestCompleted"] = student.commercialWrittenTestCompleted
-            
-            // Training milestones - CFI
-            record["cfiGroundSchoolCompleted"] = student.cfiGroundSchoolCompleted
-            record["cfiWrittenTestCompleted"] = student.cfiWrittenTestCompleted
-            
-            // Save to CloudKit
-            let savedRecord = try await database.save(record)
-            student.cloudKitRecordID = savedRecord.recordID.recordName
-            student.lastModified = Date()
-            
-            // Sync related data
-            await syncStudentChecklists(student)
+            // Sync related data (assignments and endorsements may have changed)
+            await syncStudentChecklistAssignments(student)
             await syncStudentEndorsements(student)
             
         } catch {
@@ -177,49 +418,178 @@ class CloudKitSyncService: ObservableObject {
         }
     }
     
-    private func syncStudentChecklists(_ student: Student) async {
+    private func syncStudentChecklistAssignments(_ student: Student) async {
         do {
             let database = container.privateCloudDatabase
             
-            for checklist in student.checklists ?? [] {
-                let recordID = CKRecord.ID(recordName: checklist.id.uuidString)
+            // DIAGNOSTIC: Fetch assignments directly from SwiftData to verify relationship
+            guard let modelContext = modelContext else {
+                print("❌ Cannot sync: No model context")
+                return
+            }
+            
+            // Fetch assignments directly using student ID to verify count
+            // Use a filter approach since optional relationship predicates can be tricky
+            let studentId = student.id
+            let allAssignmentsFromDB = try modelContext.fetch(FetchDescriptor<ChecklistAssignment>()).filter { assignment in
+                assignment.student?.id == studentId
+            }
+            
+            let assignmentsFromRelationship = student.checklistAssignments ?? []
+            
+            print("🔄 Starting sync for student: \(student.displayName)")
+            print("📊 Assignments from relationship: \(assignmentsFromRelationship.count)")
+            print("📊 Assignments from direct DB query: \(allAssignmentsFromDB.count)")
+            
+            // Use direct DB query results if relationship count is wrong
+            let assignments: [ChecklistAssignment]
+            if allAssignmentsFromDB.count != assignmentsFromRelationship.count {
+                print("⚠️ WARNING: Relationship count (\(assignmentsFromRelationship.count)) doesn't match DB count (\(allAssignmentsFromDB.count))")
+                print("   Using direct DB query results instead")
+                assignments = allAssignmentsFromDB
+            } else {
+                assignments = assignmentsFromRelationship
+            }
+            
+            print("📊 Total assignments to sync: \(assignments.count)")
+            
+            // List first 10 assignment names for debugging
+            if assignments.count > 0 {
+                print("📋 Sample assignments (first \(min(10, assignments.count))):")
+                for (index, assignment) in assignments.prefix(10).enumerated() {
+                    print("   \(index + 1). \(assignment.displayName) (ID: \(assignment.id.uuidString))")
+                }
+                if assignments.count > 10 {
+                    print("   ... and \(assignments.count - 10) more")
+                }
+            }
+            
+            // Check if student has active share - we'll sync to shared zone immediately if so
+            // CRITICAL: Only sync if share exists AND has participants (student has accepted)
+            let hasActiveShare = await hasActiveShare(student)
+            var sharedZone: CKRecordZone?
+            
+            if hasActiveShare {
+                do {
+                    let customZoneName = "SharedStudentsZone"
+                    let zoneID = CKRecordZone.ID(zoneName: customZoneName, ownerName: CKCurrentUserDefaultName)
+                    sharedZone = try await container.privateCloudDatabase.recordZone(for: zoneID)
+                    print("✅ Student has active share (accepted by student) - syncing \(assignments.count) assignments to shared zone: \(customZoneName)")
+                } catch {
+                    print("⚠️ Student has active share but couldn't fetch shared zone: \(error)")
+                }
+            } else {
+                print("⚠️ Student \(student.displayName) does NOT have an active share - assignments will only sync to private database")
+                print("   (Share URL may exist but student hasn't accepted it yet)")
+            }
+            
+            var syncedToPrivate = 0
+            var syncedToShared = 0
+            var errors = 0
+            
+            for (index, assignment) in assignments.enumerated() {
+                let assignmentName = assignment.displayName
+                let assignmentID = assignment.id.uuidString
+                
+                if index % 10 == 0 || index == 0 || index == assignments.count - 1 {
+                    print("   📋 Progress: Syncing assignment \(index + 1)/\(assignments.count): \(assignmentName)")
+                }
+                let recordID = CKRecord.ID(recordName: assignmentID)
                 let existingRecord = try? await database.record(for: recordID)
                 
                 let record: CKRecord
+                var hasAssignmentChanges = false
                 let hadComments = (existingRecord?["instructorComments"] as? String)?.isEmpty == false
-                let nowHasComments = !(checklist.instructorComments?.isEmpty ?? true)
+                let nowHasComments = !(assignment.instructorComments?.isEmpty ?? true)
                 let commentsChanged = !hadComments && nowHasComments
                 
                 // Check if checklist just reached 100% completion
                 let wasComplete = (existingRecord?["isComplete"] as? Bool) ?? false
-                let isNowComplete = isChecklistComplete(checklist)
+                let isNowComplete = assignment.isComplete
                 let completionChanged = !wasComplete && isNowComplete
+                
+                // Check if assignment has changed compared to CloudKit record
+                let cloudKitLastModified = existingRecord?["lastModified"] as? Date
+                let localLastModified = assignment.lastModified
+                let needsSync = existingRecord == nil || cloudKitLastModified == nil || localLastModified > cloudKitLastModified!
                 
                 if let existing = existingRecord {
                     record = existing
+                    
+                    if needsSync {
+                        // Only update fields that have changed
+                        let newTemplateId = getCorrectTemplateID(for: assignment)
+                        if (record["templateId"] as? String) != newTemplateId {
+                            record["templateId"] = newTemplateId
+                            hasAssignmentChanges = true
+                        }
+                        
+                        if (record["templateIdentifier"] as? String) != assignment.templateIdentifier {
+                            record["templateIdentifier"] = assignment.templateIdentifier
+                            hasAssignmentChanges = true
+                        }
+                        
+                        let isCustom = assignment.templateIdentifier == nil
+                        if (record["isCustomChecklist"] as? Bool) != isCustom {
+                            record["isCustomChecklist"] = isCustom
+                            hasAssignmentChanges = true
+                        }
+                        
+                        if (record["instructorComments"] as? String) != assignment.instructorComments {
+                            record["instructorComments"] = assignment.instructorComments
+                            hasAssignmentChanges = true
+                        }
+                        
+                        if (record["studentId"] as? String) != student.id.uuidString {
+                            record["studentId"] = student.id.uuidString
+                            hasAssignmentChanges = true
+                        }
+                        
+                        let existingAssignedAt = record["assignedAt"] as? Date
+                        if existingAssignedAt != assignment.assignedAt {
+                            record["assignedAt"] = assignment.assignedAt
+                            hasAssignmentChanges = true
+                        }
+                        
+                        if (record["dualGivenHours"] as? Double) != assignment.dualGivenHours {
+                            record["dualGivenHours"] = assignment.dualGivenHours
+                            hasAssignmentChanges = true
+                        }
+                        
+                        // Always update lastModified if we're syncing
+                        record["lastModified"] = assignment.lastModified
+                        hasAssignmentChanges = true
+                    }
                 } else {
-                    record = CKRecord(recordType: "StudentChecklist", recordID: recordID)
+                    // New record - set all fields
+                    record = CKRecord(recordType: "ChecklistAssignment", recordID: recordID)
+                    record["templateId"] = getCorrectTemplateID(for: assignment)
+                    record["templateIdentifier"] = assignment.templateIdentifier
+                    record["isCustomChecklist"] = assignment.templateIdentifier == nil
+                    record["instructorComments"] = assignment.instructorComments
+                    record["studentId"] = student.id.uuidString
+                    record["assignedAt"] = assignment.assignedAt
+                    record["lastModified"] = assignment.lastModified
+                    record["dualGivenHours"] = assignment.dualGivenHours
+                    hasAssignmentChanges = true
                 }
                 
-                record["templateId"] = checklist.templateId.uuidString
-                record["templateName"] = checklist.templateName
-                record["instructorComments"] = checklist.instructorComments
-                record["studentId"] = student.id.uuidString
-                record["lastModified"] = checklist.lastModified
-                record["dualGivenHours"] = checklist.dualGivenHours
-                record["isComplete"] = isNowComplete
-                record["completionPercentage"] = calculateCompletionPercentage(checklist)
-                
-                let savedRecord = try await database.save(record)
-                checklist.cloudKitRecordID = savedRecord.recordID.recordName
-                checklist.lastModified = Date()
+                // Only save if there are actual changes
+                if hasAssignmentChanges {
+                    let savedRecord = try await database.save(record)
+                    assignment.cloudKitRecordID = savedRecord.recordID.recordName
+                    assignment.lastModified = Date()
+                    syncedToPrivate += 1
+                } else {
+                    print("      ℹ️ Assignment unchanged, skipping: \(assignmentName)")
+                }
                 
                 // If instructor just added comments, send notification
                 if commentsChanged {
                     await PushNotificationService.shared.notifyStudentOfComment(
                         studentId: student.id,
-                        checklistId: checklist.id,
-                        checklistName: checklist.templateName
+                        checklistId: assignment.id,
+                        checklistName: assignment.displayName
                     )
                 }
                 
@@ -227,17 +597,55 @@ class CloudKitSyncService: ObservableObject {
                 if completionChanged {
                     await PushNotificationService.shared.notifyStudentOfCompletion(
                         studentId: student.id,
-                        checklistId: checklist.id,
-                        checklistName: checklist.templateName
+                        checklistId: assignment.id,
+                        checklistName: assignment.displayName
                     )
                 }
                 
-                // Sync checklist items
-                await syncChecklistItems(checklist)
+                // Sync checklist items to private database
+                await syncChecklistItems(assignment)
+                
+                // CRITICAL: If student has active share, sync to shared zone IMMEDIATELY
+                // This ensures ALL assignments are available to student app, even if they were created before share existed
+                // Only sync if assignment has changes
+                if hasAssignmentChanges, let customZone = sharedZone {
+                    print("      🔄 Syncing to shared zone: \(assignmentName) (ID: \(assignmentID))")
+                    do {
+                        try await syncChecklistToSharedZone(assignment, student: student, customZone: customZone)
+                        syncedToShared += 1
+                        if syncedToShared % 10 == 0 || syncedToShared == assignments.count {
+                            print("      ✅ Synced \(syncedToShared)/\(assignments.count) to shared zone")
+                        }
+                    } catch {
+                        errors += 1
+                        print("   ❌ FAILED to sync assignment \(assignmentName) (ID: \(assignmentID)) to shared zone: \(error)")
+                    }
+                } else if !hasAssignmentChanges {
+                    print("      ℹ️ Assignment unchanged, skipping shared zone sync: \(assignmentName)")
+                } else {
+                    print("      ⚠️ Skipping shared zone sync - no active share for assignment: \(assignmentName)")
+                }
             }
             
-            // Also sync to shared zone if student has an active share
-            if student.shareRecordID != nil {
+            print("📊 Sync Summary for \(student.displayName):")
+            print("   ✅ Synced to private database: \(syncedToPrivate)/\(assignments.count)")
+            if hasActiveShare {
+                print("   ✅ Synced to shared zone: \(syncedToShared)/\(assignments.count)")
+                if syncedToShared < assignments.count {
+                    print("   ⚠️ WARNING: Only \(syncedToShared) of \(assignments.count) assignments synced to shared zone!")
+                }
+            }
+            if errors > 0 {
+                print("   ❌ Errors during sync: \(errors)")
+            }
+            
+            // Sync custom checklist definitions (one-time)
+            await syncCustomChecklistDefinitions(student)
+            
+            // Also do a full sync pass to shared zone if student has an active share (catches any missed assignments)
+            // This is a safety net to ensure ALL assignments are synced
+            if hasActiveShare && sharedZone != nil {
+                print("🔄 Performing full sync pass to shared zone to ensure all assignments are synced")
                 await syncStudentChecklistsToSharedZone(student)
             }
         } catch {
@@ -245,36 +653,136 @@ class CloudKitSyncService: ObservableObject {
         }
     }
     
-    private func syncChecklistItems(_ checklist: StudentChecklist) async {
+    private func syncChecklistItems(_ assignment: ChecklistAssignment) async {
         do {
             let database = container.privateCloudDatabase
             
-            for item in checklist.items ?? [] {
+            for item in assignment.itemProgress ?? [] {
                 let recordID = CKRecord.ID(recordName: item.id.uuidString)
                 let existingRecord = try? await database.record(for: recordID)
                 
                 let record: CKRecord
+                var hasItemChanges = false
+                
+                // Check if item has changed compared to CloudKit record
+                let cloudKitLastModified = existingRecord?["lastModified"] as? Date
+                let localLastModified = item.lastModified
+                let needsSync = existingRecord == nil || cloudKitLastModified == nil || localLastModified > cloudKitLastModified!
+                
                 if let existing = existingRecord {
                     record = existing
+                    
+                    if needsSync {
+                        // Only update fields that have changed
+                        let newTemplateItemId = getCorrectTemplateItemID(for: item, assignment: assignment)
+                        if (record["templateItemId"] as? String) != newTemplateItemId {
+                            record["templateItemId"] = newTemplateItemId
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["isComplete"] as? Bool) != item.isComplete {
+                            record["isComplete"] = item.isComplete
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["notes"] as? String) != item.notes {
+                            record["notes"] = item.notes
+                            hasItemChanges = true
+                        }
+                        
+                        let existingCompletedAt = record["completedAt"] as? Date
+                        if existingCompletedAt != item.completedAt {
+                            record["completedAt"] = item.completedAt
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["assignmentId"] as? String) != assignment.id.uuidString {
+                            record["assignmentId"] = assignment.id.uuidString
+                            hasItemChanges = true
+                        }
+                        
+                        // Always update lastModified if we're syncing
+                        record["lastModified"] = item.lastModified
+                        hasItemChanges = true
+                    }
                 } else {
-                    record = CKRecord(recordType: "StudentChecklistItem", recordID: recordID)
+                    // New record - set all fields
+                    record = CKRecord(recordType: "ItemProgress", recordID: recordID)
+                    record["templateItemId"] = getCorrectTemplateItemID(for: item, assignment: assignment)
+                    record["isComplete"] = item.isComplete
+                    record["notes"] = item.notes
+                    record["completedAt"] = item.completedAt
+                    record["lastModified"] = item.lastModified
+                    record["assignmentId"] = assignment.id.uuidString
+                    hasItemChanges = true
                 }
                 
-                record["templateItemId"] = item.templateItemId.uuidString
-                record["title"] = item.title
-                record["isComplete"] = item.isComplete
-                record["notes"] = item.notes
-                record["completedAt"] = item.completedAt
-                record["order"] = item.order
-                record["checklistId"] = checklist.id.uuidString
-                record["lastModified"] = item.lastModified
+                // Set parent reference to ChecklistAssignment if needed
+                if let assignmentRecordID = assignment.cloudKitRecordID {
+                    let assignmentCKRecordID = CKRecord.ID(recordName: assignmentRecordID)
+                    if record.parent?.recordID != assignmentCKRecordID {
+                        record.parent = CKRecord.Reference(recordID: assignmentCKRecordID, action: .none)
+                        hasItemChanges = true
+                    }
+                }
                 
-                let savedRecord = try await database.save(record)
-                item.cloudKitRecordID = savedRecord.recordID.recordName
-                item.lastModified = Date()
+                // Only save if there are actual changes
+                if hasItemChanges {
+                    let savedRecord = try await database.save(record)
+                    item.cloudKitRecordID = savedRecord.recordID.recordName
+                    item.lastModified = Date()
+                }
             }
         } catch {
             print("Failed to sync checklist items: \(error)")
+        }
+    }
+    
+    /// Syncs custom checklist definitions for student app (one-time sync)
+    private func syncCustomChecklistDefinitions(_ student: Student) async {
+        do {
+            let database = container.privateCloudDatabase
+            
+            for assignment in student.checklistAssignments ?? [] {
+                // Only sync custom checklists (those without templateIdentifier)
+                guard assignment.templateIdentifier == nil else { continue }
+                
+                let recordID = CKRecord.ID(recordName: "custom-definition-\(assignment.templateId.uuidString)")
+                let existingRecord = try? await database.record(for: recordID)
+                
+                // Skip if already synced
+                if existingRecord != nil { continue }
+                
+                let record = CKRecord(recordType: "CustomChecklistDefinition", recordID: recordID)
+                
+                record["templateId"] = assignment.templateId.uuidString
+                record["customName"] = assignment.displayName
+                record["customCategory"] = assignment.template?.category ?? "Custom"
+                record["studentId"] = student.id.uuidString
+                record["lastModified"] = Date()
+                
+                // Store custom items as JSON
+                if let template = assignment.template, let items = template.items {
+                    let customItems = items.map { item in
+                        [
+                            "id": item.id.uuidString,
+                            "title": item.title,
+                            "notes": item.notes ?? "",
+                            "order": item.order
+                        ]
+                    }
+                    
+                    if let jsonData = try? JSONSerialization.data(withJSONObject: customItems),
+                       let jsonString = String(data: jsonData, encoding: .utf8) {
+                        record["customItems"] = jsonString
+                    }
+                }
+                
+                let _ = try await database.save(record)
+                print("✅ Synced custom checklist definition: \(assignment.displayName)")
+            }
+        } catch {
+            print("Failed to sync custom checklist definitions: \(error)")
         }
     }
     
@@ -322,7 +830,7 @@ class CloudKitSyncService: ObservableObject {
         }
     }
     
-    private func syncTemplateToCloudKit(_ template: ChecklistTemplate) async {
+    func syncTemplateToCloudKit(_ template: ChecklistTemplate) async {
         do {
             let database = container.privateCloudDatabase
             let recordID = CKRecord.ID(recordName: template.id.uuidString)
@@ -499,49 +1007,52 @@ class CloudKitSyncService: ObservableObject {
         guard let modelContext = modelContext else { return }
         
         do {
-            let checklistId = UUID(uuidString: record.recordID.recordName)
-            guard let id = checklistId else { return }
+            let progressId = UUID(uuidString: record.recordID.recordName)
+            guard let id = progressId else { return }
             
-            let request = FetchDescriptor<StudentChecklist>(
+            let request = FetchDescriptor<ChecklistAssignment>(
                 predicate: #Predicate { $0.id == id }
             )
-            let existingChecklists = try modelContext.fetch(request)
+            let existingAssignments = try modelContext.fetch(request)
             
-            if existingChecklists.isEmpty {
-                let checklist = StudentChecklist(
+            if existingAssignments.isEmpty {
+                // Create new assignment record
+                let assignment = ChecklistAssignment(
                     templateId: UUID(uuidString: record["templateId"] as? String ?? "") ?? UUID(),
-                    templateName: record["templateName"] as? String ?? ""
+                    templateIdentifier: record["templateIdentifier"] as? String,
+                    isCustomChecklist: record["isCustomChecklist"] as? Bool ?? false
                 )
                 
-                checklist.id = id
-                checklist.instructorComments = record["instructorComments"] as? String
-                checklist.cloudKitRecordID = record.recordID.recordName
-                checklist.lastModified = record["lastModified"] as? Date ?? Date()
+                assignment.id = id
+                assignment.instructorComments = record["instructorComments"] as? String
+                assignment.cloudKitRecordID = record.recordID.recordName
+                assignment.lastModified = record["lastModified"] as? Date ?? Date()
+                assignment.dualGivenHours = record["dualGivenHours"] as? Double ?? 0.0
                 
-                if student.checklists == nil {
-                    student.checklists = []
+                if student.checklistAssignments == nil {
+                    student.checklistAssignments = []
                 }
-                student.checklists?.append(checklist)
-                modelContext.insert(checklist)
+                student.checklistAssignments?.append(assignment)
+                modelContext.insert(assignment)
                 
                 // Restore checklist items
-                await restoreChecklistItems(checklist)
+                await restoreChecklistItems(assignment)
             }
         } catch {
-            print("Failed to restore checklist: \(error)")
+            print("Failed to restore checklist progress: \(error)")
         }
     }
     
-    private func restoreChecklistItems(_ checklist: StudentChecklist) async {
+    private func restoreChecklistItems(_ assignment: ChecklistAssignment) async {
         do {
             let database = container.privateCloudDatabase
-            let query = CKQuery(recordType: "StudentChecklistItem", predicate: NSPredicate(format: "checklistId == %@", checklist.id.uuidString))
+            let query = CKQuery(recordType: "ItemProgress", predicate: NSPredicate(format: "assignmentId == %@", assignment.id.uuidString))
             let results = try await database.records(matching: query)
             
             for (_, result) in results.matchResults {
                 switch result {
                 case .success(let record):
-                    await restoreChecklistItemFromRecord(record, checklist: checklist)
+                    await restoreChecklistItemFromRecord(record, assignment: assignment)
                 case .failure(let error):
                     print("Failed to fetch checklist item record: \(error)")
                 }
@@ -551,23 +1062,21 @@ class CloudKitSyncService: ObservableObject {
         }
     }
     
-    private func restoreChecklistItemFromRecord(_ record: CKRecord, checklist: StudentChecklist) async {
+    private func restoreChecklistItemFromRecord(_ record: CKRecord, assignment: ChecklistAssignment) async {
         guard let modelContext = modelContext else { return }
         
         do {
             let itemId = UUID(uuidString: record.recordID.recordName)
             guard let id = itemId else { return }
             
-            let request = FetchDescriptor<StudentChecklistItem>(
+            let request = FetchDescriptor<ItemProgress>(
                 predicate: #Predicate { $0.id == id }
             )
             let existingItems = try modelContext.fetch(request)
             
             if existingItems.isEmpty {
-                let item = StudentChecklistItem(
-                    templateItemId: UUID(uuidString: record["templateItemId"] as? String ?? "") ?? UUID(),
-                    title: record["title"] as? String ?? "",
-                    order: record["order"] as? Int ?? 0
+                let item = ItemProgress(
+                    templateItemId: UUID(uuidString: record["templateItemId"] as? String ?? "") ?? UUID()
                 )
                 
                 item.id = id
@@ -577,7 +1086,10 @@ class CloudKitSyncService: ObservableObject {
                 item.cloudKitRecordID = record.recordID.recordName
                 item.lastModified = record["lastModified"] as? Date ?? Date()
                 
-                checklist.items?.append(item)
+                if assignment.itemProgress == nil {
+                    assignment.itemProgress = []
+                }
+                assignment.itemProgress?.append(item)
                 modelContext.insert(item)
             }
         } catch {
@@ -669,8 +1181,15 @@ class CloudKitSyncService: ObservableObject {
             let existingTemplates = try modelContext.fetch(request)
             
             if existingTemplates.isEmpty {
+                let templateName = record["name"] as? String ?? ""
+                // Skip templates with empty names
+                guard !templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    print("Skipping template with empty name from CloudKit")
+                    return
+                }
+                
                 let template = ChecklistTemplate(
-                    name: record["name"] as? String ?? "",
+                    name: templateName,
                     category: record["category"] as? String ?? "PPL",
                     phase: record["phase"] as? String
                 )
@@ -741,9 +1260,13 @@ class CloudKitSyncService: ObservableObject {
     // MARK: - Shared Zone Synchronization
     
     /// Syncs student checklists to shared zone for student app access
+    /// This ensures ALL assignments are synced to shared zone so student app can see them
+    /// CRITICAL: Only syncs if student has accepted the share (has participants)
     private func syncStudentChecklistsToSharedZone(_ student: Student) async {
-        guard student.shareRecordID != nil else {
-            print("No active share for student \(student.displayName), skipping shared zone sync")
+        // CRITICAL: Only sync if share exists AND has participants (student has accepted)
+        let hasActive = await hasActiveShare(student)
+        guard hasActive else {
+            print("⚠️ No active share (student hasn't accepted) for \(student.displayName), skipping shared zone sync")
             return
         }
         
@@ -754,87 +1277,365 @@ class CloudKitSyncService: ObservableObject {
             // Try to fetch the custom zone
             let customZone = try await container.privateCloudDatabase.recordZone(for: zoneID)
             
-            for checklist in student.checklists ?? [] {
-                await syncChecklistToSharedZone(checklist, student: student, customZone: customZone)
+            // CRITICAL: Ensure student record in shared zone has studentId field set
+            // This ensures student app can correctly match assignments
+            let studentRecordID = CKRecord.ID(recordName: student.id.uuidString, zoneID: customZone.zoneID)
+            if let studentRecord = try? await container.privateCloudDatabase.record(for: studentRecordID) {
+                if studentRecord["studentId"] == nil || (studentRecord["studentId"] as? String) != student.id.uuidString {
+                    studentRecord["studentId"] = student.id.uuidString
+                    do {
+                        _ = try await container.privateCloudDatabase.save(studentRecord)
+                        print("   📝 Updated studentId field in student record: \(student.id.uuidString)")
+                    } catch {
+                        print("   ⚠️ Failed to update studentId in student record: \(error)")
+                    }
+                }
+            }
+            
+            // DIAGNOSTIC: Fetch assignments directly from SwiftData to verify relationship
+            guard let modelContext = modelContext else {
+                print("❌ Cannot sync: No model context")
+                return
+            }
+            
+            // Fetch assignments directly using student ID to verify count
+            // Use a filter approach since optional relationship predicates can be tricky
+            let studentId = student.id
+            let allAssignmentsFromDB = try modelContext.fetch(FetchDescriptor<ChecklistAssignment>()).filter { assignment in
+                assignment.student?.id == studentId
+            }
+            
+            let assignmentsFromRelationship = student.checklistAssignments ?? []
+            
+            print("🔄 Full sync pass: Syncing assignments to shared zone for student: \(student.displayName)")
+            print("   📊 Assignments from relationship: \(assignmentsFromRelationship.count)")
+            print("   📊 Assignments from direct DB query: \(allAssignmentsFromDB.count)")
+            
+            // Use direct DB query results if relationship count is wrong or if relationship is smaller
+            let assignments: [ChecklistAssignment]
+            if allAssignmentsFromDB.count > assignmentsFromRelationship.count {
+                print("   ⚠️ WARNING: Relationship count (\(assignmentsFromRelationship.count)) is LESS than DB count (\(allAssignmentsFromDB.count))")
+                print("   Using direct DB query results to ensure all assignments are synced")
+                assignments = allAssignmentsFromDB
+            } else {
+                assignments = assignmentsFromRelationship
+            }
+            
+            print("   📊 Total assignments to sync: \(assignments.count)")
+            
+            // First, verify what's actually in the shared zone
+            do {
+                let query = CKQuery(recordType: "ChecklistAssignment", predicate: NSPredicate(format: "studentId == %@", student.id.uuidString))
+                let results = try await container.privateCloudDatabase.records(matching: query, inZoneWith: customZone.zoneID)
+                var existingCount = 0
+                for (_, _) in results.matchResults {
+                    existingCount += 1
+                }
+                print("   🔍 Found \(existingCount) existing assignment records in shared zone before sync")
+            } catch {
+                print("   ⚠️ Could not query existing assignments: \(error)")
+            }
+            
+            var syncedCount = 0
+            var errorCount = 0
+            
+            for (index, assignment) in assignments.enumerated() {
+                do {
+                    try await syncChecklistToSharedZone(assignment, student: student, customZone: customZone)
+                    syncedCount += 1
+                    
+                    if index == 0 || (index + 1) % 10 == 0 || index == assignments.count - 1 {
+                        print("   ✅ Synced \(syncedCount)/\(assignments.count) assignments: \(assignment.displayName)")
+                    }
+                } catch {
+                    errorCount += 1
+                    print("   ❌ Failed to sync assignment \(assignment.displayName) (ID: \(assignment.id.uuidString)): \(error)")
+                }
+            }
+            
+            // Verify final count
+            do {
+                let query = CKQuery(recordType: "ChecklistAssignment", predicate: NSPredicate(format: "studentId == %@", student.id.uuidString))
+                query.sortDescriptors = [NSSortDescriptor(key: "assignedAt", ascending: true)]
+                
+                let results = try await container.privateCloudDatabase.records(matching: query, inZoneWith: customZone.zoneID)
+                var finalCount = 0
+                for (_, result) in results.matchResults {
+                    switch result {
+                    case .success:
+                        finalCount += 1
+                    case .failure(let error):
+                        print("   ⚠️ Error reading record: \(error)")
+                    }
+                }
+                print("✅ Full sync pass completed:")
+                print("   📊 Synced: \(syncedCount) successful, \(errorCount) failed out of \(assignments.count) total assignments")
+                print("   🔍 Final count in shared zone: \(finalCount) assignment records")
+                if finalCount < assignments.count {
+                    print("   ⚠️ WARNING: Only \(finalCount) assignments found in shared zone, expected \(assignments.count)!")
+                }
+            } catch {
+                print("   ⚠️ Could not verify final count: \(error)")
+                print("✅ Full sync pass completed: \(syncedCount) successful, \(errorCount) failed out of \(assignments.count) total assignments")
             }
         } catch {
-            print("Failed to sync student checklists to shared zone: \(error)")
+            print("❌ Failed to sync student checklists to shared zone: \(error)")
         }
     }
     
-    /// Syncs a specific checklist to the shared zone
-    private func syncChecklistToSharedZone(_ checklist: StudentChecklist, student: Student, customZone: CKRecordZone) async {
+    /// Syncs a specific checklist assignment to the shared zone (LEGACY)
+    /// CRITICAL: This ensures the assignment is available to the student app via CloudKit sharing
+    private func syncChecklistToSharedZone(_ assignment: ChecklistAssignment, student: Student, customZone: CKRecordZone) async throws {
         do {
             // Create record ID in custom zone
-            let recordID = CKRecord.ID(recordName: checklist.id.uuidString, zoneID: customZone.zoneID)
+            let recordID = CKRecord.ID(recordName: assignment.id.uuidString, zoneID: customZone.zoneID)
             let existingRecord = try? await container.privateCloudDatabase.record(for: recordID)
             
+            let isNewRecord = existingRecord == nil
             let record: CKRecord
+            var hasChanges = false
+            
             if let existing = existingRecord {
                 record = existing
+                
+                // Check if assignment has changed compared to CloudKit record
+                let cloudKitLastModified = existing["lastModified"] as? Date
+                let localLastModified = assignment.lastModified
+                let needsSync = cloudKitLastModified == nil || localLastModified > cloudKitLastModified!
+                
+                if needsSync {
+                    // Only update fields that have changed
+                    let newTemplateId = getCorrectTemplateID(for: assignment)
+                    if (record["templateId"] as? String) != newTemplateId {
+                        record["templateId"] = newTemplateId
+                        hasChanges = true
+                    }
+                    
+                    if (record["templateName"] as? String) != assignment.displayName {
+                        record["templateName"] = assignment.displayName
+                        hasChanges = true
+                    }
+                    
+                    if (record["templateIdentifier"] as? String) != assignment.templateIdentifier {
+                        record["templateIdentifier"] = assignment.templateIdentifier
+                        hasChanges = true
+                    }
+                    
+                    if (record["instructorComments"] as? String) != assignment.instructorComments {
+                        record["instructorComments"] = assignment.instructorComments
+                        hasChanges = true
+                    }
+                    
+                    let studentIdString = student.id.uuidString
+                    if (record["studentId"] as? String) != studentIdString {
+                        record["studentId"] = studentIdString
+                        print("      📝 Setting studentId on assignment record: \(studentIdString)")
+                        hasChanges = true
+                    }
+                    
+                    let existingAssignedAt = record["assignedAt"] as? Date
+                    if existingAssignedAt != assignment.assignedAt {
+                        record["assignedAt"] = assignment.assignedAt
+                        hasChanges = true
+                    }
+                    
+                    if (record["dualGivenHours"] as? Double) != assignment.dualGivenHours {
+                        record["dualGivenHours"] = assignment.dualGivenHours
+                        hasChanges = true
+                    }
+                    
+                    if (record["isComplete"] as? Bool) != assignment.isComplete {
+                        record["isComplete"] = assignment.isComplete
+                        hasChanges = true
+                    }
+                    
+                    if (record["completionPercentage"] as? Double) != assignment.progressPercentage {
+                        record["completionPercentage"] = assignment.progressPercentage
+                        hasChanges = true
+                    }
+                    
+                    if (record["completedItemsCount"] as? Int) != assignment.completedItemsCount {
+                        record["completedItemsCount"] = assignment.completedItemsCount
+                        hasChanges = true
+                    }
+                    
+                    if (record["totalItemsCount"] as? Int) != assignment.totalItemsCount {
+                        record["totalItemsCount"] = assignment.totalItemsCount
+                        hasChanges = true
+                    }
+                    
+                    let isCustom = assignment.templateIdentifier == nil
+                    if (record["isCustomChecklist"] as? Bool) != isCustom {
+                        record["isCustomChecklist"] = isCustom
+                        hasChanges = true
+                    }
+                    
+                    // Always update lastModified if we're syncing
+                    record["lastModified"] = assignment.lastModified
+                    hasChanges = true
+                }
             } else {
-                record = CKRecord(recordType: "StudentChecklist", recordID: recordID)
+                // New record - set all fields
+                record = CKRecord(recordType: "ChecklistAssignment", recordID: recordID)
+                record["templateId"] = getCorrectTemplateID(for: assignment)
+                record["templateName"] = assignment.displayName
+                record["templateIdentifier"] = assignment.templateIdentifier
+                record["instructorComments"] = assignment.instructorComments
+                let studentIdString = student.id.uuidString
+                record["studentId"] = studentIdString
+                print("      📝 Setting studentId on assignment record: \(studentIdString)")
+                record["assignedAt"] = assignment.assignedAt
+                record["lastModified"] = assignment.lastModified
+                record["dualGivenHours"] = assignment.dualGivenHours
+                record["isComplete"] = assignment.isComplete
+                record["completionPercentage"] = assignment.progressPercentage
+                record["completedItemsCount"] = assignment.completedItemsCount
+                record["totalItemsCount"] = assignment.totalItemsCount
+                record["isCustomChecklist"] = assignment.templateIdentifier == nil
+                hasChanges = true
             }
             
-            // Update record with checklist data
-            record["templateId"] = checklist.templateId.uuidString
-            record["templateName"] = checklist.templateName
-            record["instructorComments"] = checklist.instructorComments
-            record["studentId"] = student.id.uuidString
-            record["lastModified"] = checklist.lastModified
-            record["dualGivenHours"] = checklist.dualGivenHours
-            record["isComplete"] = isChecklistComplete(checklist)
-            record["completionPercentage"] = calculateCompletionPercentage(checklist)
-            
-            // Set parent reference to student record for sharing
+            // Set parent reference to student record for sharing (required for CloudKit sharing)
             let studentRecordID = CKRecord.ID(recordName: student.id.uuidString, zoneID: customZone.zoneID)
-            record.parent = CKRecord.Reference(recordID: studentRecordID, action: .none)
+            if record.parent?.recordID != studentRecordID {
+                record.parent = CKRecord.Reference(recordID: studentRecordID, action: .none)
+                hasChanges = true
+            }
             
-            let savedRecord = try await container.privateCloudDatabase.save(record)
-            checklist.cloudKitRecordID = savedRecord.recordID.recordName
-            checklist.lastModified = Date()
-            
-            // Sync checklist items
-            await syncChecklistItemsToSharedZone(checklist, customZone: customZone)
-            
+            // Only save if there are actual changes
+            if hasChanges {
+                let savedRecord = try await saveRecordWithConflictResolution(record, database: container.privateCloudDatabase)
+                assignment.cloudKitRecordID = savedRecord.recordID.recordName
+                assignment.lastModified = Date()
+                
+                // Sync checklist items (ItemProgress records) to shared zone
+                // This includes isComplete status so student can see instructor checkmarks
+                await syncChecklistItemsToSharedZone(assignment, customZone: customZone)
+                
+                if isNewRecord {
+                    print("      ✅ Created assignment in shared zone: \(assignment.displayName)")
+                } else {
+                    print("      ✅ Updated assignment in shared zone: \(assignment.displayName)")
+                }
+            } else {
+                print("      ℹ️ Assignment unchanged in shared zone, skipping: \(assignment.displayName)")
+            }
+        } catch let error as CKError {
+            print("      ❌ FAILED to sync checklist \(assignment.displayName) to shared zone:")
+            print("         Error Code: \(error.errorCode)")
+            print("         Error Description: \(error.localizedDescription)")
+            throw error  // Re-throw so caller knows it failed
         } catch {
-            print("Failed to sync checklist \(checklist.templateName) to shared zone: \(error)")
+            print("      ❌ FAILED to sync checklist \(assignment.displayName) to shared zone: \(error)")
+            throw error  // Re-throw so caller knows it failed
         }
     }
     
-    /// Syncs checklist items to the shared zone
-    private func syncChecklistItemsToSharedZone(_ checklist: StudentChecklist, customZone: CKRecordZone) async {
+    /// Syncs checklist items to the shared zone (LEGACY)
+    /// CRITICAL: This syncs ItemProgress records including isComplete status so student app can see instructor checkmarks
+    private func syncChecklistItemsToSharedZone(_ assignment: ChecklistAssignment, customZone: CKRecordZone) async {
         do {
-            for item in checklist.items ?? [] {
+            let items = assignment.itemProgress ?? []
+            var itemsSynced = 0
+            var itemsWithProgress = 0
+            
+            for item in items {
                 let recordID = CKRecord.ID(recordName: item.id.uuidString, zoneID: customZone.zoneID)
                 let existingRecord = try? await container.privateCloudDatabase.record(for: recordID)
                 
+                let wasComplete = (existingRecord?["isComplete"] as? Bool) ?? false
+                let isNowComplete = item.isComplete
                 let record: CKRecord
+                var hasItemChanges = false
+                
+                // Check if item has changed compared to CloudKit record
+                let cloudKitLastModified = existingRecord?["lastModified"] as? Date
+                let localLastModified = item.lastModified
+                let needsSync = existingRecord == nil || cloudKitLastModified == nil || localLastModified > cloudKitLastModified!
+                
                 if let existing = existingRecord {
                     record = existing
+                    
+                    if needsSync {
+                        // Only update fields that have changed
+                        let newTemplateItemId = getCorrectTemplateItemID(for: item, assignment: assignment)
+                        if (record["templateItemId"] as? String) != newTemplateItemId {
+                            record["templateItemId"] = newTemplateItemId
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["title"] as? String) != item.displayTitle {
+                            record["title"] = item.displayTitle
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["isComplete"] as? Bool) != item.isComplete {
+                            record["isComplete"] = item.isComplete
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["notes"] as? String) != item.notes {
+                            record["notes"] = item.notes
+                            hasItemChanges = true
+                        }
+                        
+                        let existingCompletedAt = record["completedAt"] as? Date
+                        if existingCompletedAt != item.completedAt {
+                            record["completedAt"] = item.completedAt
+                            hasItemChanges = true
+                        }
+                        
+                        if (record["assignmentId"] as? String) != assignment.id.uuidString {
+                            record["assignmentId"] = assignment.id.uuidString
+                            hasItemChanges = true
+                        }
+                        
+                        // Always update lastModified if we're syncing
+                        record["lastModified"] = item.lastModified
+                        hasItemChanges = true
+                    }
                 } else {
-                    record = CKRecord(recordType: "StudentChecklistItem", recordID: recordID)
+                    // New record - set all fields
+                    record = CKRecord(recordType: "ItemProgress", recordID: recordID)
+                    record["templateItemId"] = getCorrectTemplateItemID(for: item, assignment: assignment)
+                    record["title"] = item.displayTitle
+                    record["isComplete"] = item.isComplete
+                    record["notes"] = item.notes
+                    record["completedAt"] = item.completedAt
+                    record["assignmentId"] = assignment.id.uuidString
+                    record["lastModified"] = item.lastModified
+                    hasItemChanges = true
                 }
                 
-                record["templateItemId"] = item.templateItemId.uuidString
-                record["title"] = item.title
-                record["isComplete"] = item.isComplete
-                record["notes"] = item.notes
-                record["completedAt"] = item.completedAt
-                record["order"] = item.order
-                record["checklistId"] = checklist.id.uuidString
-                record["lastModified"] = item.lastModified
+                // Set parent reference to assignment record (for CloudKit sharing hierarchy)
+                let assignmentRecordID = CKRecord.ID(recordName: assignment.id.uuidString, zoneID: customZone.zoneID)
+                if record.parent?.recordID != assignmentRecordID {
+                    record.parent = CKRecord.Reference(recordID: assignmentRecordID, action: .none)
+                    hasItemChanges = true
+                }
                 
-                // Set parent reference to checklist record
-                let checklistRecordID = CKRecord.ID(recordName: checklist.id.uuidString, zoneID: customZone.zoneID)
-                record.parent = CKRecord.Reference(recordID: checklistRecordID, action: .none)
-                
-                let savedRecord = try await container.privateCloudDatabase.save(record)
-                item.cloudKitRecordID = savedRecord.recordID.recordName
-                item.lastModified = Date()
+                // Only save if there are actual changes
+                if hasItemChanges {
+                    let savedRecord = try await container.privateCloudDatabase.save(record)
+                    item.cloudKitRecordID = savedRecord.recordID.recordName
+                    item.lastModified = Date()
+                    itemsSynced += 1
+                    
+                    // Log when completion status changes (instructor checked/unchecked item)
+                    if wasComplete != isNowComplete {
+                        itemsWithProgress += 1
+                        if isNowComplete {
+                            print("      ✅ Synced checked item: \(item.displayTitle) (isComplete=true)")
+                        }
+                    }
+                }
+            }
+            
+            if itemsWithProgress > 0 {
+                print("      📊 Synced \(itemsWithProgress) items with progress changes, \(itemsSynced) total items")
             }
         } catch {
-            print("Failed to sync checklist items to shared zone: \(error)")
+            print("      ❌ Failed to sync checklist items to shared zone: \(error)")
         }
     }
     
@@ -1055,16 +1856,237 @@ class CloudKitSyncService: ObservableObject {
         }
     }
     
-    /// Checks if a checklist is 100% complete
-    private func isChecklistComplete(_ checklist: StudentChecklist) -> Bool {
-        guard let items = checklist.items, !items.isEmpty else { return false }
+    /// Checks if a checklist assignment is 100% complete
+    private func isChecklistComplete(_ assignment: ChecklistAssignment) -> Bool {
+        guard let items = assignment.itemProgress, !items.isEmpty else { return false }
         return items.allSatisfy { $0.isComplete }
     }
     
-    /// Calculates completion percentage for a checklist
-    private func calculateCompletionPercentage(_ checklist: StudentChecklist) -> Double {
-        guard let items = checklist.items, !items.isEmpty else { return 0.0 }
+    /// Calculates completion percentage for a checklist assignment
+    private func calculateCompletionPercentage(_ assignment: ChecklistAssignment) -> Double {
+        guard let items = assignment.itemProgress, !items.isEmpty else { return 0.0 }
         let completedCount = items.filter { $0.isComplete }.count
         return Double(completedCount) / Double(items.count)
+    }
+    
+    /// Saves a CloudKit record with automatic conflict resolution
+    private func saveRecordWithConflictResolution(_ record: CKRecord, database: CKDatabase) async throws -> CKRecord {
+        var retryCount = 0
+        let maxRetries = 3
+        
+        while retryCount < maxRetries {
+            do {
+                return try await database.save(record)
+            } catch let error as CKError {
+                if error.code == .serverRecordChanged {
+                    retryCount += 1
+                    print("⚠️ Server record changed conflict detected for \(record.recordType) (attempt \(retryCount)/\(maxRetries)). Attempting resolution...")
+                    
+                    // Fetch the latest version from server
+                    let latestRecord = try await database.record(for: record.recordID)
+                    
+                    // Use intelligent merge strategy based on record type
+                    let mergedRecord = intelligentMerge(ourRecord: record, serverRecord: latestRecord)
+                    
+                    // Update our record with the merged version
+                    record.setValuesForKeys(mergedRecord.allKeys().reduce(into: [String: Any]()) { result, key in
+                        result[key] = mergedRecord[key]
+                    })
+                    
+                    // Add a small delay to prevent rapid retry loops
+                    try await Task.sleep(for: .milliseconds(100 * retryCount))
+                    
+                } else {
+                    throw error
+                }
+            }
+        }
+        
+        // If we've exhausted retries, log detailed error and throw
+        print("❌ Failed to resolve conflict after \(maxRetries) attempts for \(record.recordType)")
+        print("   Record ID: \(record.recordID)")
+        print("   Our record keys: \(record.allKeys())")
+        if let latestRecord = try? await database.record(for: record.recordID) {
+            print("   Server record keys: \(latestRecord.allKeys())")
+        }
+        throw CKError(.serverRecordChanged)
+    }
+    
+    /// Intelligent merge strategy based on record type and field
+    private func intelligentMerge(ourRecord: CKRecord, serverRecord: CKRecord) -> CKRecord {
+        var mergedRecord = serverRecord // Start with server version (latest metadata)
+        
+        // Merge strategy depends on record type
+        switch ourRecord.recordType {
+        case "StudentChecklist":
+            mergedRecord = mergeChecklistRecord(ourRecord: ourRecord, serverRecord: serverRecord)
+        case "StudentChecklistItem":
+            mergedRecord = mergeChecklistItemRecord(ourRecord: ourRecord, serverRecord: serverRecord)
+        default:
+            // Default merge strategy
+            mergedRecord = mergeGenericRecord(ourRecord: ourRecord, serverRecord: serverRecord)
+        }
+        
+        // Always update lastModified to current time
+        mergedRecord["lastModified"] = Date()
+        
+        return mergedRecord
+    }
+    
+    /// Merge strategy for StudentChecklist records
+    private func mergeChecklistRecord(ourRecord: CKRecord, serverRecord: CKRecord) -> CKRecord {
+        // Check if either record is marked as complete
+        let ourComplete = ourRecord["isComplete"] as? Bool ?? false
+        let serverComplete = serverRecord["isComplete"] as? Bool ?? false
+        
+        // If either record is complete, use "last writer wins" strategy
+        // since completed checklists are unlikely to be edited again
+        if ourComplete || serverComplete {
+            print("📝 Using 'last writer wins' for completed checklist conflict resolution")
+            
+            // Use the record with the more recent lastModified date
+            let ourLastModified = ourRecord["lastModified"] as? Date ?? Date.distantPast
+            let serverLastModified = serverRecord["lastModified"] as? Date ?? Date.distantPast
+            
+            if ourLastModified > serverLastModified {
+                print("   → Using our version (more recent: \(ourLastModified))")
+                return ourRecord
+            } else {
+                print("   → Using server version (more recent: \(serverLastModified))")
+                return serverRecord
+            }
+        }
+        
+        // For incomplete checklists, use intelligent merge strategy
+        print("📝 Using intelligent merge for incomplete checklist conflict resolution")
+        let mergedRecord = serverRecord
+        
+        // For instructor comments, prefer the longer/more recent one
+        if let ourComments = ourRecord["instructorComments"] as? String,
+           let serverComments = serverRecord["instructorComments"] as? String {
+            if ourComments.count > serverComments.count {
+                mergedRecord["instructorComments"] = ourComments
+            }
+        } else if ourRecord["instructorComments"] != nil {
+            mergedRecord["instructorComments"] = ourRecord["instructorComments"]
+        }
+        
+        // For completion status, prefer the more complete one
+        if let ourComplete = ourRecord["isComplete"] as? Bool,
+           let serverComplete = serverRecord["isComplete"] as? Bool {
+            mergedRecord["isComplete"] = ourComplete || serverComplete
+        } else if ourRecord["isComplete"] != nil {
+            mergedRecord["isComplete"] = ourRecord["isComplete"]
+        }
+        
+        // For dual given hours, use the higher value
+        if let ourHours = ourRecord["dualGivenHours"] as? Double,
+           let serverHours = serverRecord["dualGivenHours"] as? Double {
+            mergedRecord["dualGivenHours"] = max(ourHours, serverHours)
+        } else if ourRecord["dualGivenHours"] != nil {
+            mergedRecord["dualGivenHours"] = ourRecord["dualGivenHours"]
+        }
+        
+        // For counts and percentages, use the higher values
+        if let ourCompleted = ourRecord["completedItemsCount"] as? Int,
+           let serverCompleted = serverRecord["completedItemsCount"] as? Int {
+            mergedRecord["completedItemsCount"] = max(ourCompleted, serverCompleted)
+        } else if ourRecord["completedItemsCount"] != nil {
+            mergedRecord["completedItemsCount"] = ourRecord["completedItemsCount"]
+        }
+        
+        if let ourPercentage = ourRecord["completionPercentage"] as? Double,
+           let serverPercentage = serverRecord["completionPercentage"] as? Double {
+            mergedRecord["completionPercentage"] = max(ourPercentage, serverPercentage)
+        } else if ourRecord["completionPercentage"] != nil {
+            mergedRecord["completionPercentage"] = ourRecord["completionPercentage"]
+        }
+        
+        // Handle any other fields that might exist
+        for key in ourRecord.allKeys() {
+            if mergedRecord[key] == nil && ourRecord[key] != nil {
+                mergedRecord[key] = ourRecord[key]
+            }
+        }
+        
+        return mergedRecord
+    }
+    
+    /// Merge strategy for StudentChecklistItem records
+    private func mergeChecklistItemRecord(ourRecord: CKRecord, serverRecord: CKRecord) -> CKRecord {
+        // Check if either record is marked as complete
+        let ourComplete = ourRecord["isComplete"] as? Bool ?? false
+        let serverComplete = serverRecord["isComplete"] as? Bool ?? false
+        
+        // If either record is complete, use "last writer wins" strategy
+        // since completed items are unlikely to be edited again
+        if ourComplete || serverComplete {
+            print("📝 Using 'last writer wins' for completed checklist item conflict resolution")
+            
+            // Use the record with the more recent lastModified date
+            let ourLastModified = ourRecord["lastModified"] as? Date ?? Date.distantPast
+            let serverLastModified = serverRecord["lastModified"] as? Date ?? Date.distantPast
+            
+            if ourLastModified > serverLastModified {
+                print("   → Using our version (more recent: \(ourLastModified))")
+                return ourRecord
+            } else {
+                print("   → Using server version (more recent: \(serverLastModified))")
+                return serverRecord
+            }
+        }
+        
+        // For incomplete items, use intelligent merge strategy
+        print("📝 Using intelligent merge for incomplete checklist item conflict resolution")
+        let mergedRecord = serverRecord
+        
+        // For completion status, prefer completed (true wins)
+        if let ourComplete = ourRecord["isComplete"] as? Bool,
+           let serverComplete = serverRecord["isComplete"] as? Bool {
+            mergedRecord["isComplete"] = ourComplete || serverComplete
+        } else if ourRecord["isComplete"] != nil {
+            mergedRecord["isComplete"] = ourRecord["isComplete"]
+        }
+        
+        // For notes, prefer the longer/more recent one
+        if let ourNotes = ourRecord["notes"] as? String,
+           let serverNotes = serverRecord["notes"] as? String {
+            if ourNotes.count > serverNotes.count {
+                mergedRecord["notes"] = ourNotes
+            }
+        } else if ourRecord["notes"] != nil {
+            mergedRecord["notes"] = ourRecord["notes"]
+        }
+        
+        // For completion date, use the earlier date (when it was first completed)
+        if let ourDate = ourRecord["completedAt"] as? Date,
+           let serverDate = serverRecord["completedAt"] as? Date {
+            mergedRecord["completedAt"] = min(ourDate, serverDate)
+        } else if ourRecord["completedAt"] != nil {
+            mergedRecord["completedAt"] = ourRecord["completedAt"]
+        }
+        
+        // Handle any other fields that might exist
+        for key in ourRecord.allKeys() {
+            if mergedRecord[key] == nil && ourRecord[key] != nil {
+                mergedRecord[key] = ourRecord[key]
+            }
+        }
+        
+        return mergedRecord
+    }
+    
+    /// Generic merge strategy for other record types
+    private func mergeGenericRecord(ourRecord: CKRecord, serverRecord: CKRecord) -> CKRecord {
+        let mergedRecord = serverRecord
+        
+        // For most fields, prefer our local changes
+        for key in ourRecord.allKeys() {
+            if let ourValue = ourRecord[key] {
+                mergedRecord[key] = ourValue
+            }
+        }
+        
+        return mergedRecord
     }
 }
