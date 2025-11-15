@@ -121,6 +121,8 @@ class DatabaseRecoveryService: ObservableObject {
     }
   }
 
+  // MARK: - Recovery Helpers
+
   /// Backs up any data that can be recovered from CloudKit
   private func backupRecoverableData() async -> [String: Any] {
     var backupData: [String: Any] = [:]
@@ -197,6 +199,8 @@ class DatabaseRecoveryService: ObservableObject {
     print("✅ Default templates will be re-initialized")
   }
 
+  // MARK: - Utility Methods
+
   /// Gets the URL of the default store
   private func getDefaultStoreURL() -> URL {
     let documentsPath = FileManager.default.urls(
@@ -204,6 +208,8 @@ class DatabaseRecoveryService: ObservableObject {
     ).first!
     return documentsPath.appendingPathComponent("default.store")
   }
+
+  // MARK: - User Interaction
 
   /// Shows recovery alert to user
   func presentRecoveryAlert() {
@@ -244,6 +250,8 @@ class DatabaseRecoveryService: ObservableObject {
   }
 }
 
+// MARK: - ModelContainer Extension
+
 /// Extension to add recovery functionality to ModelContainer
 extension ModelContainer {
   /// Creates a ModelContainer with corruption detection and recovery
@@ -278,6 +286,8 @@ extension ModelContainer {
     }
   }
 }
+
+// MARK: - DatabaseCorruptionError
 
 /// Custom error types for database corruption
 enum DatabaseCorruptionError: LocalizedError {
