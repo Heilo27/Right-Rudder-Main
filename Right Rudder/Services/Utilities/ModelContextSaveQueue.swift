@@ -49,8 +49,19 @@ actor ModelContextSaveQueue {
       // Process any pending changes first
       unsafeContext.processPendingChanges()
 
-      // Perform the save
-      try unsafeContext.save()
+      // Perform the save with error handling
+      do {
+        try unsafeContext.save()
+      } catch {
+        // Check if this is a disk I/O error and trigger recovery
+        if DatabaseErrorHandler.isDiskIOError(error) {
+          print("⚠️ Disk I/O error detected during save - triggering recovery...")
+          Task {
+            await DatabaseRecoveryService.shared.handleDiskIOErrorAggressive()
+          }
+        }
+        throw error
+      }
     }
   }
 

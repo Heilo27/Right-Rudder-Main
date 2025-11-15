@@ -242,10 +242,27 @@ class DatabaseRecoveryService: ObservableObject {
         showRecoveryAlert = true
       }
     } else {
-      // Database might just be temporarily locked or have a transient I/O issue
-      // Try to clear any locks by waiting a moment
+      // For persistent disk I/O errors (codes 266, 10, 256), we should be more aggressive
+      // These often indicate corruption even if the file appears readable
       print("⚠️ Database appears accessible - may be transient I/O issue")
+      
+      // Wait a moment to see if it's transient
       try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+      
+      // If errors persist, we should trigger recovery anyway
+      // Disk I/O errors often indicate underlying corruption
+      print("⚠️ Disk I/O errors detected - recommending recovery")
+      await MainActor.run {
+        showRecoveryAlert = true
+      }
+    }
+  }
+
+  /// Handles disk I/O errors more aggressively - triggers recovery immediately
+  func handleDiskIOErrorAggressive() async {
+    print("⚠️ Aggressive disk I/O error handling - triggering recovery...")
+    await MainActor.run {
+      showRecoveryAlert = true
     }
   }
 }

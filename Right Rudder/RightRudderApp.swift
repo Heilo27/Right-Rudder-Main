@@ -33,6 +33,9 @@ struct RightRudderApp: App {
     // Warm up text input system to prevent cold start delays
     TextInputWarmingService.shared.warmTextInput()
 
+    // Start CoreData error observer to catch disk I/O errors globally
+    CoreDataErrorObserver.shared.startObserving()
+
     // Set up memory pressure handling
     NotificationCenter.default.addObserver(
       forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -230,7 +233,23 @@ struct RightRudderApp: App {
         NotificationCenter.default.publisher(for: Notification.Name("DatabaseInvalidationError"))
       ) { _ in
         // Handle model invalidation errors
+        print("⚠️ Database invalidation error notification received")
         showInvalidationAlert = true
+      }
+      .onReceive(
+        NotificationCenter.default.publisher(for: Notification.Name("CoreDataErrorDetected"))
+      ) { notification in
+        // Handle CoreData errors
+        if let error = notification.userInfo?["error"] as? Error {
+          print("⚠️ CoreData error notification received: \(error.localizedDescription)")
+          
+          // If it's a disk I/O error, show recovery alert
+          if DatabaseErrorHandler.isDiskIOError(error) {
+            Task {
+              await databaseRecoveryService.handleDiskIOErrorAggressive()
+            }
+          }
+        }
       }
       .onOpenURL { url in
         handleIncomingURL(url)

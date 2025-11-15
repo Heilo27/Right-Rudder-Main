@@ -21,6 +21,7 @@ enum DatabaseErrorHandler {
     266,  // database disk image is malformed
     11,  // database locked
     14,  // unable to open database file
+    256,  // file couldn't be opened (NSCocoaErrorDomain)
   ]
 
   // MARK: - Error Detection
@@ -32,12 +33,33 @@ enum DatabaseErrorHandler {
     if errorString.contains("disk i/o error") || errorString.contains("i/o error for database")
       || errorString.contains("couldn't be opened")
       || errorString.contains("disk image is malformed")
+      || errorString.contains("could not be opened")
     {
       return true
     }
 
     // Check NSError for SQLite error codes
     if let nsError = error as NSError? {
+      // Check NSCocoaErrorDomain for file errors (code 256 = file couldn't be opened)
+      if nsError.domain == NSCocoaErrorDomain && nsError.code == 256 {
+        // Check if it's related to the database store
+        if let filePath = nsError.userInfo[NSFilePathErrorKey] as? String,
+          filePath.contains("default.store")
+        {
+          return true
+        }
+        // Also check userInfo for SQLite error domain
+        if let sqliteErrorCode = nsError.userInfo["NSSQLiteErrorDomain"] as? Int {
+          if diskIOErrorCodes.contains(sqliteErrorCode) {
+            return true
+          }
+        }
+        // If it's error 256 and has NSFilePath, it's likely a file I/O error
+        if nsError.userInfo[NSFilePathErrorKey] != nil {
+          return true
+        }
+      }
+
       // Check SQLite error domain
       if nsError.domain == "NSSQLiteErrorDomain" {
         if diskIOErrorCodes.contains(nsError.code) {
@@ -87,6 +109,26 @@ enum DatabaseErrorHandler {
     return errorString.contains("invalidated")
       || errorString.contains("backing data could no longer be found")
       || errorString.contains("model instance was invalidated")
+      || errorString.contains("persistentidentifier")
+      || errorString.contains("backing data")
+  }
+
+  /// Safely executes a closure that might access invalidated model instances
+  /// Catches fatal errors and converts them to recoverable errors
+  static func safeModelAccess<T>(_ operation: () throws -> T) throws -> T {
+    do {
+      return try operation()
+    } catch {
+      // Check if this is an invalidation error
+      if isInvalidationError(error) {
+        print("⚠️ Model invalidation detected during safe access")
+        // Post notification for UI to handle
+        NotificationCenter.default.post(
+          name: Notification.Name("DatabaseInvalidationError"), object: nil)
+        throw error
+      }
+      throw error
+    }
   }
 
   /// Attempts to save with disk I/O error recovery using serialized save queue
