@@ -512,7 +512,7 @@ Codebase version (1.6.2) ahead of published version (1.6.1). Process not followe
 
 ---
 
-### HIGH-010: Verify Build Number Auto-Increment Script
+### HIGH-015: Verify Build Number Auto-Increment Script
 **Category:** Process  
 **Effort:** 1-2 hours  
 **Dependencies:** None
@@ -539,7 +539,7 @@ VERSION_MANAGEMENT_GUIDE.md describes auto-increment script but may not be confi
 
 ---
 
-### HIGH-011: Set Up CI/CD Pipeline
+### HIGH-016: Set Up CI/CD Pipeline
 **Category:** Process / Infrastructure  
 **Effort:** 8-16 hours  
 **Dependencies:** CRIT-003, CRIT-004
