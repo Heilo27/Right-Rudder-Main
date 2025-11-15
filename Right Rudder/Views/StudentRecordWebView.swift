@@ -539,52 +539,6 @@ struct StudentRecordWebView: View {
 
 }
 
-struct WebViewRepresentable: UIViewRepresentable {
-  let htmlContent: String
-
-  func makeUIView(context: Context) -> WKWebView {
-    let webView = WKWebView()
-    webView.navigationDelegate = context.coordinator
-    return webView
-  }
-
-  func updateUIView(_ webView: WKWebView, context: Context) {
-    webView.loadHTMLString(htmlContent, baseURL: nil)
-  }
-
-  func makeCoordinator() -> Coordinator {
-    Coordinator()
-  }
-
-  class Coordinator: NSObject, WKNavigationDelegate {
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-      // Web view finished loading
-    }
-  }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-  let htmlContent: String
-  let studentName: String
-
-  func makeUIViewController(context: Context) -> UIActivityViewController {
-    // Share HTML content directly as string for maximum speed
-    let activityViewController = UIActivityViewController(
-      activityItems: [htmlContent],
-      applicationActivities: nil
-    )
-
-    // Set the subject for email sharing
-    activityViewController.setValue("Student Pilot Record - \(studentName)", forKey: "subject")
-
-    return activityViewController
-  }
-
-  func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-    // No updates needed
-  }
-}
-
 #Preview {
   let student = Student(
     firstName: "John", lastName: "Doe", email: "john@example.com", telephone: "555-1234",
