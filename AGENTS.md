@@ -34,8 +34,9 @@ cd /Users/nitewriter/Development/Right Rudder
 ls -1 *.xcworkspace *.xcodeproj 2>/dev/null
 ```
 - Prefer `.xcworkspace` (e.g., `App.xcworkspace`). If both exist, ensure the workspace references every package (SPM, CocoaPods).
-- Capture the name for reuse: `export WORKSPACE=$(ls *.xcworkspace | head -n1)`.
-- List schemes to find app + test targets: `xcodebuild -list -workspace "$WORKSPACE"`.
+- **Right Rudder uses `.xcodeproj`** (`Right Rudder.xcodeproj`), not a workspace.
+- Capture the name for reuse: `export WORKSPACE=$(ls *.xcworkspace | head -n1)` or `export PROJECT=$(ls *.xcodeproj | head -n1)`.
+- List schemes to find app + test targets: `xcodebuild -list -project "$PROJECT"` or `xcodebuild -list -workspace "$WORKSPACE"`.
 - If only `.xcodeproj` exists, set `PROJECT=<name>.xcodeproj` and adjust commands accordingly.
 
 Dependency heuristics:
@@ -92,10 +93,18 @@ xcodebuild \
   test | xcbeautify
 
 # Lint + format (run if configs exist)
+# For directories, use --recursive flag:
+xcrun swift format --in-place --recursive "Right Rudder" || true
+xcrun swift format lint --recursive "Right Rudder" || true
+
+# For single files or current directory:
 xcrun swift format --in-place . || true
 xcrun swift format lint . || true
 ```
-- `xcrun swift format` runs Apple’s first-party formatter and linter bundled with the toolchain; honor any repository `.swift-format.json` when it lands.
+- `xcrun swift format` runs Apple's first-party formatter and linter bundled with the toolchain.
+- **Always use `--recursive` flag when formatting directories** (e.g., `"Right Rudder"` folder).
+- Honor any repository `.swift-format.json` configuration file (Right Rudder has one configured).
+- Formatting configuration: Line length 100, indentation 2 spaces, maximum 1 blank line.
 - Always run the `test` action with `-enableCodeCoverage YES` so CI can enforce minimum thresholds.[^xcodebuild]
 - Prefer targeted runs during development: `xcodebuild test -only-testing:<Target>/<TestCase>`.
 - If UI snapshots exist, re-record by passing `UI_TEST_RECORD=1` env vars defined by the project.
@@ -148,6 +157,8 @@ Reviewers should block merges if any checkbox is missing.
 - **Provisioning/signing issues:** Run `xcodebuild -showBuildSettings | grep -e PROVISIONING_PROFILE -e CODE_SIGN` to confirm values and ensure the correct team ID is selected in Xcode.
 - **Stuck DerivedData:** `rm -rf ~/Library/Developer/Xcode/DerivedData && xcodebuild clean`.
 - **Performance profiling:** Use Instruments (`open -a "Instruments.app"`) and capture traces before optimizing.
+- **Working without code signing credentials:** Use simulator builds with `CODE_SIGNING_REQUIRED=NO` (see Build & Run section).
+- **swift format errors on directories:** Use `--recursive` flag: `xcrun swift format --in-place --recursive "Right Rudder"`.
 
 ---
 
@@ -155,6 +166,22 @@ Reviewers should block merges if any checkbox is missing.
 - Update workspace/scheme examples whenever new targets land.
 - Expand the Testing section with concrete names (e.g., `AppTests`) once the codebase exists.
 - Keep references fresh—note Xcode or iOS SDK version bumps inline.
+- Document lessons learned from development work (build issues, formatting gotchas, etc.).
+
+## 11. Pre-Change Verification Checklist
+**Before making code changes, verify:**
+1. ✅ Project builds successfully (`xcodebuild build` succeeds)
+2. ✅ No existing compilation errors or warnings
+3. ✅ Current state is committed or stashed
+4. ✅ Formatting is up-to-date (`swift format lint` passes or violations are acceptable)
+5. ✅ Understand the change scope and impact
+
+**After making changes:**
+1. ✅ Project still builds successfully
+2. ✅ Run `swift format --in-place --recursive "Right Rudder"` if formatting changed
+3. ✅ Verify no new warnings introduced
+4. ✅ Test affected functionality (if possible)
+5. ✅ Commit changes with descriptive messages
 
 ---
 

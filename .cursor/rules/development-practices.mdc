@@ -1,0 +1,150 @@
+---
+description: General development practices and lessons learned for Right Rudder
+alwaysApply: true
+---
+
+# Right Rudder Development Practices
+
+General development practices and lessons learned from working on Right Rudder.
+
+## Build Verification
+
+**Always verify the project builds before making code changes:**
+```bash
+cd "/Users/nitewriter/Development/Right Rudder"
+xcodebuild \
+  -project "Right Rudder.xcodeproj" \
+  -scheme "Right Rudder" \
+  -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.0' \
+  -configuration Debug \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+**Why:** Ensures you're not introducing changes on top of broken code. Catches issues early.
+
+## Code Formatting
+
+**Right Rudder uses Apple's swift format with configuration:**
+
+- Configuration file: `.swift-format.json` (line length 100, 2-space indentation)
+- **Always use `--recursive` flag for directories:**
+  ```bash
+  xcrun swift format --in-place --recursive "Right Rudder"
+  xcrun swift format lint --recursive "Right Rudder"
+  ```
+- Format before committing code changes
+- The project has been formatted - maintain consistency
+
+**Lessons Learned:**
+- Without `--recursive`, swift format fails on directories
+- Formatting 74 files reduced violations from 30,444 to 25 (99.9% reduction)
+- Remaining violations are minor style warnings (end-of-line comments)
+
+## Project Structure
+
+**Right Rudder uses:**
+- `.xcodeproj` (not `.xcworkspace`)
+- Project name: `Right Rudder.xcodeproj`
+- Scheme: `Right Rudder`
+- Source directory: `Right Rudder/` (note the space in name)
+
+**When referencing paths:**
+- Always quote paths with spaces: `"Right Rudder"`
+- Use absolute paths when possible: `/Users/nitewriter/Development/Right Rudder`
+
+## Code Signing
+
+**Simulator builds don't require code signing:**
+- Use `CODE_SIGNING_REQUIRED=NO` for simulator builds
+- This allows development without Apple Developer credentials
+- Device builds will require proper signing setup
+
+**Command pattern:**
+```bash
+CODE_SIGN_IDENTITY="" \
+CODE_SIGNING_REQUIRED=NO \
+CODE_SIGNING_ALLOWED=NO
+```
+
+## Working Without Credentials
+
+**Right Rudder can be developed without code signing credentials:**
+- Simulator builds work fine without signing
+- All development and testing can be done in simulator
+- Code signing only needed for device testing or App Store submission
+- Friend can set up signing later when ready for device testing
+
+## Git Workflow
+
+**Best practices:**
+1. Verify build before starting work
+2. Make changes incrementally
+3. Format code before committing
+4. Verify build after changes
+5. Commit with descriptive messages referencing backlog items
+
+**Commit message format:**
+```
+Short description (BACKLOG-ID)
+
+- Detailed bullet point
+- Another detail
+- References backlog item if applicable
+```
+
+## Common Gotchas
+
+1. **Path with spaces:** Always quote `"Right Rudder"` in commands
+2. **swift format on directories:** Must use `--recursive` flag
+3. **Project vs Workspace:** Right Rudder uses `.xcodeproj`, not `.xcworkspace`
+4. **Code signing:** Not needed for simulator builds
+5. **Build verification:** Always verify build before and after changes
+
+## Documentation
+
+**Right Rudder has extensive documentation:**
+- `AGENTS.md` - Development playbook
+- `PRD.md` - Product requirements
+- `PROJECT_REVIEW_*.md` - Project review documents
+- `.cursor/rules/*.mdc` - Cursor-specific rules
+- CloudKit guides, version management, etc.
+
+**When adding features:**
+- Update relevant documentation
+- Reference PRD.md for requirements
+- Follow patterns in existing code
+- Document architectural decisions
+
+## Testing
+
+**Current state:** 0% test coverage (critical backlog item)
+
+**When writing code:**
+- Write testable code (extract logic from views)
+- Consider how code will be tested
+- Document test requirements in backlog items
+- Set up test infrastructure before major changes (CRIT-003)
+
+## Code Quality Standards
+
+**Right Rudder follows:**
+- DRY (Don't Repeat Yourself)
+- SOLID principles
+- YAGNI (You Aren't Gonna Need It)
+- SwiftUI best practices (see `.cursor/rules/swiftui.mdc`)
+- CloudKit best practices (see `.cursor/rules/cloudkit.mdc`)
+- Design guidelines (see `.cursor/rules/swiftui-design.mdc`)
+
+**Quality gates:**
+- Build succeeds with 0 errors
+- Formatting passes (or violations documented)
+- No new warnings introduced
+- Code follows established patterns
+
+---
+
+**Remember:** Verify builds before and after changes. Format code consistently. Document lessons learned.
