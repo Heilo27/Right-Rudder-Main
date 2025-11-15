@@ -185,6 +185,8 @@ struct EndorsementsView: View {
     }
   }
 
+  // MARK: - Methods
+
   private func addEndorsementImage(_ image: UIImage) {
     // Use background queue for image processing
     DispatchQueue.global(qos: .userInitiated).async {
