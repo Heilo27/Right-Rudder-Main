@@ -203,6 +203,8 @@ class ChecklistIntegrityService {
     }
   }
 
+  // MARK: - Missing Progress Records
+
   /// Fix missing progress records for assigned templates
   private static func fixMissingProgressRecords(modelContext: ModelContext) -> [UUID] {
     do {
@@ -250,6 +252,8 @@ class ChecklistIntegrityService {
       return []
     }
   }
+
+  // MARK: - Manual Repair
 
   /// Manual repair function for Settings
   static func manualIntegrityCheck(modelContext: ModelContext) -> (found: Int, repaired: Int) {
