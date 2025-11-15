@@ -8,8 +8,14 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - StudentTrainingGoalsView
+
 struct StudentTrainingGoalsView: View {
+  // MARK: - Properties
+
   @Bindable var student: Student
+
+  // MARK: - Body
 
   var body: some View {
     ScrollView {

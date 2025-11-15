@@ -2,11 +2,17 @@ import Combine
 import SwiftData
 import SwiftUI
 
+// MARK: - OfflineSyncStatusView
+
 /// View that displays offline sync status and pending operations
 struct OfflineSyncStatusView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @StateObject private var offlineSyncManager = OfflineSyncManager()
   @State private var showingPendingOperations = false
+
+  // MARK: - Body
 
   var body: some View {
     VStack(spacing: 12) {
@@ -88,12 +94,18 @@ struct OfflineSyncStatusView: View {
   }
 }
 
+// MARK: - PendingOperationsView
+
 /// View that shows detailed pending operations
 struct PendingOperationsView: View {
+  // MARK: - Properties
+
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
   @ObservedObject var offlineSyncManager: OfflineSyncManager
   @State private var pendingOperations: [OfflineSyncOperation] = []
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {

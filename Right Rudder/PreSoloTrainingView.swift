@@ -8,11 +8,17 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - PreSoloTrainingView
+
 struct PreSoloTrainingView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Bindable var student: Student
   @Bindable var progress: ChecklistAssignment
   @State private var template: ChecklistTemplate?
+
+  // MARK: - Body
 
   var body: some View {
     List {
@@ -134,6 +140,8 @@ struct PreSoloTrainingView: View {
       loadTemplate()
     }
   }
+
+  // MARK: - Private Helpers
 
   private func displayTitle(_ title: String) -> String {
     let pattern = "^\\d+\\.\\s*"

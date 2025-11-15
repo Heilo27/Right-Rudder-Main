@@ -8,9 +8,15 @@
 import SwiftUI
 import UIKit
 
+// MARK: - PhotoLibraryView
+
 struct PhotoLibraryView: UIViewControllerRepresentable {
+  // MARK: - Properties
+
   let onImageSelected: (UIImage) -> Void
   @Environment(\.dismiss) private var dismiss
+
+  // MARK: - UIViewControllerRepresentable
 
   func makeUIViewController(context: Context) -> UIImagePickerController {
     let picker = UIImagePickerController()
@@ -26,12 +32,20 @@ struct PhotoLibraryView: UIViewControllerRepresentable {
     Coordinator(self)
   }
 
+  // MARK: - Coordinator
+
   class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    // MARK: - Properties
+
     let parent: PhotoLibraryView
+
+    // MARK: - Initialization
 
     init(_ parent: PhotoLibraryView) {
       self.parent = parent
     }
+
+    // MARK: - UIImagePickerControllerDelegate
 
     func imagePickerController(
       _ picker: UIImagePickerController,

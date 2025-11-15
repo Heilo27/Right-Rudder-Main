@@ -8,14 +8,24 @@
 import Foundation
 import SwiftData
 
+// MARK: - ModelContextSaveQueue
+
 /// Serializes all ModelContext save operations to prevent concurrent saves and I/O errors
 actor ModelContextSaveQueue {
+  // MARK: - Singleton
+
   static let shared = ModelContextSaveQueue()
+
+  // MARK: - Properties
 
   private var isSaving = false
   private var pendingSaves: [CheckedContinuation<Void, Error>] = []
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Methods
 
   /// Serialized save operation - ensures only one save happens at a time
   func save(_ context: ModelContext) async throws {

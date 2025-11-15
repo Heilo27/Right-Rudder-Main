@@ -4,9 +4,13 @@ import Foundation
 import Network
 import SwiftData
 
+// MARK: - OfflineSyncOperation
+
 /// Represents a pending sync operation that needs to be retried when connectivity is restored
 @Model
 class OfflineSyncOperation {
+  // MARK: - Properties
+
   var id: UUID = UUID()
   var operationType: String = ""  // "checklist_update", "checklist_add", "comment_add", "completion_change"
   var studentId: UUID = UUID()
@@ -18,6 +22,8 @@ class OfflineSyncOperation {
   var maxRetries: Int = 5
   var lastAttemptedAt: Date?
   var isCompleted: Bool = false
+
+  // MARK: - Initialization
 
   init(
     operationType: String, studentId: UUID, checklistId: UUID? = nil, checklistItemId: UUID? = nil,
@@ -31,15 +37,23 @@ class OfflineSyncOperation {
   }
 }
 
+// MARK: - OfflineSyncManager
+
 /// Manages offline sync operations and retries
 @MainActor
 class OfflineSyncManager: ObservableObject {
+  // MARK: - Published Properties
+
   @Published var isOfflineMode = false
   @Published var pendingOperationsCount = 0
   @Published var lastSyncAttempt: Date?
 
+  // MARK: - Properties
+
   private var modelContext: ModelContext?
   private let networkMonitor = NetworkMonitor()
+
+  // MARK: - Initialization
 
   init() {
     setupNetworkMonitoring()
@@ -48,6 +62,8 @@ class OfflineSyncManager: ObservableObject {
   func setModelContext(_ context: ModelContext) {
     self.modelContext = context
   }
+
+  // MARK: - Methods
 
   private func setupNetworkMonitoring() {
     networkMonitor.onConnectivityChange = { [weak self] isConnected in
@@ -210,6 +226,8 @@ class OfflineSyncManager: ObservableObject {
     return await executeChecklistUpdate(operation)
   }
 
+  // MARK: - Private Helpers
+
   private func updatePendingOperationsCount() async {
     guard let modelContext = modelContext else { return }
 
@@ -252,14 +270,22 @@ class OfflineSyncManager: ObservableObject {
   }
 }
 
+// MARK: - NetworkMonitor
+
 /// Monitors network connectivity
 class NetworkMonitor: ObservableObject {
+  // MARK: - Published Properties
+
   @Published var isConnected = true
+
+  // MARK: - Properties
 
   var onConnectivityChange: ((Bool) -> Void)?
 
   private let monitor = NWPathMonitor()
   private let queue = DispatchQueue(label: "NetworkMonitor")
+
+  // MARK: - Initialization
 
   init() {
     monitor.pathUpdateHandler = { [weak self] path in

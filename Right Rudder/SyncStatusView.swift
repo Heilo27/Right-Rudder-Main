@@ -1,11 +1,17 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - SyncStatusView
+
 struct SyncStatusView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   // Use CloudKitShareService for all sync operations (shared database only)
   private let shareService = CloudKitShareService.shared
   @State private var showingSyncOptions = false
+
+  // MARK: - Body
 
   var body: some View {
     VStack(spacing: 20) {

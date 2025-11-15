@@ -7,7 +7,11 @@
 
 import SwiftUI
 
+// MARK: - SelectableTextField
+
 struct SelectableTextField: View {
+  // MARK: - Properties
+
   let placeholder: String
   @Binding var value: Double
   let format: FloatingPointFormatStyle<Double>
@@ -16,11 +20,15 @@ struct SelectableTextField: View {
   @State private var isUserTyping: Bool = false
   @FocusState private var isFocused: Bool
 
+  // MARK: - Initialization
+
   init(placeholder: String, value: Binding<Double>, format: FloatingPointFormatStyle<Double>) {
     self.placeholder = placeholder
     self._value = value
     self.format = format
   }
+
+  // MARK: - Body
 
   var body: some View {
     TextField(placeholder, text: $textValue)
@@ -82,6 +90,8 @@ struct SelectableTextField: View {
         }
       }
   }
+
+  // MARK: - Private Helpers
 
   private func updateTextValue() {
     textValue = value.formatted(format)

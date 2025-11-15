@@ -10,13 +10,23 @@ import Foundation
 import SwiftUI
 import UIKit
 
+// MARK: - TextInputWarmingService
+
 /// Service to pre-warm text input components to prevent cold start delays
 class TextInputWarmingService: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = TextInputWarmingService()
+
+  // MARK: - Published Properties
 
   @Published var isWarmed = false
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Methods
 
   /// Pre-warms the text input system by creating hidden text input components
   func warmTextInput() {
@@ -136,14 +146,20 @@ class TextInputWarmingService: ObservableObject {
     }
   }
 
+  // MARK: - Computed Properties
+
   /// Check if text input has been warmed
   var isTextInputWarmed: Bool {
     return isWarmed
   }
 }
 
+// MARK: - TextInputWarmingModifier
+
 /// View modifier to automatically warm text input when the view appears
 struct TextInputWarmingModifier: ViewModifier {
+  // MARK: - ViewModifier
+
   func body(content: Content) -> some View {
     content
       .onAppear {
@@ -152,6 +168,8 @@ struct TextInputWarmingModifier: ViewModifier {
   }
 }
 
+// MARK: - View Extensions
+
 extension View {
   /// Applies text input warming to prevent cold start delays
   func warmTextInput() -> some View {
@@ -159,9 +177,15 @@ extension View {
   }
 }
 
+// MARK: - ResponsiveTextFieldModifier
+
 /// Enhanced TextField modifier for immediate keyboard response
 struct ResponsiveTextFieldModifier: ViewModifier {
+  // MARK: - Properties
+
   @FocusState private var isFocused: Bool
+
+  // MARK: - ViewModifier
 
   func body(content: Content) -> some View {
     content
@@ -182,8 +206,12 @@ struct ResponsiveTextFieldModifier: ViewModifier {
   }
 }
 
+// MARK: - TextInputWarmingOnlyModifier
+
 /// Text input warming modifier that doesn't interfere with existing focus states
 struct TextInputWarmingOnlyModifier: ViewModifier {
+  // MARK: - ViewModifier
+
   func body(content: Content) -> some View {
     content
       .onTapGesture {
@@ -192,6 +220,8 @@ struct TextInputWarmingOnlyModifier: ViewModifier {
       }
   }
 }
+
+// MARK: - TextField Extensions
 
 extension TextField {
   /// Makes TextField immediately responsive to taps with pre-warmed keyboard
@@ -204,6 +234,8 @@ extension TextField {
     self.modifier(TextInputWarmingOnlyModifier())
   }
 }
+
+// MARK: - TextEditor Extensions
 
 extension TextEditor {
   /// Makes TextEditor immediately responsive to taps with pre-warmed keyboard

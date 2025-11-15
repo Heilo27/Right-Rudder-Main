@@ -9,8 +9,12 @@ import CloudKit
 import SwiftData
 import SwiftUI
 
+// MARK: - RightRudderApp
+
 @main
 struct RightRudderApp: App {
+  // MARK: - Properties
+
   let modelContainer: ModelContainer
   @AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue
     .rawValue
@@ -19,6 +23,8 @@ struct RightRudderApp: App {
   @State private var shouldShowWhatsNew = false
   @State private var shouldShowCFIWarning = false
   @State private var showInvalidationAlert = false
+
+  // MARK: - Initialization
 
   init() {
     // Initialize memory monitoring
@@ -138,6 +144,8 @@ struct RightRudderApp: App {
       }
     }
   }
+
+  // MARK: - Body
 
   var body: some Scene {
     WindowGroup {
@@ -300,6 +308,8 @@ struct RightRudderApp: App {
   private var currentColorScheme: AppColorScheme {
     AppColorScheme(rawValue: selectedColorScheme) ?? .skyBlue
   }
+
+  // MARK: - Private Helpers
 
   /// Checks if an error indicates CoreData corruption
   private static func isCoreDataCorruptionError(_ error: Error) -> Bool {

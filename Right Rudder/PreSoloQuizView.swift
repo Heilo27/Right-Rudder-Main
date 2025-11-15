@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - PreSoloQuizView
+
 struct PreSoloQuizView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Bindable var student: Student
   @Bindable var progress: ChecklistAssignment
@@ -17,6 +21,8 @@ struct PreSoloQuizView: View {
   @State private var showingPhotoLibrary = false
   @State private var selectedImage: UIImage?
   private let cloudKitShareService = CloudKitShareService.shared
+
+  // MARK: - Body
 
   var body: some View {
     List {
@@ -193,6 +199,8 @@ struct PreSoloQuizView: View {
     student.endorsements?.append(endorsement)
   }
 
+  // MARK: - Private Helpers
+
   private func displayTitle(_ title: String) -> String {
     let pattern = "^\\d+\\.\\s*"
     return title.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
@@ -243,8 +251,14 @@ struct PreSoloQuizView: View {
   }
 }
 
+// MARK: - QuizPhotoView
+
 struct QuizPhotoView: View {
+  // MARK: - Properties
+
   let endorsement: EndorsementImage
+
+  // MARK: - Body
 
   var body: some View {
     VStack {

@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - LessonView
+
 struct LessonView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @State private var student: Student
   @State private var progress: ChecklistAssignment
@@ -18,10 +22,14 @@ struct LessonView: View {
   @State private var itemStates: [UUID: Bool] = [:]
   @State private var showingInstructorNotes = false
 
+  // MARK: - Initialization
+
   init(student: Student, progress: ChecklistAssignment) {
     self._student = State(initialValue: student)
     self._progress = State(initialValue: progress)
   }
+
+  // MARK: - Computed Properties
 
   /// Safely gets display items for the checklist
   /// This uses safe extraction to avoid accessing invalidated SwiftData objects
@@ -29,6 +37,8 @@ struct LessonView: View {
   private var displayItems: [DisplayChecklistItem] {
     ChecklistAssignmentService.getDisplayItems(for: progress)
   }
+
+  // MARK: - Methods
 
   /// Applies buffered changes to SwiftData objects and syncs to CloudKit when user exits the checklist
   private func syncChangesOnExit() async {
@@ -219,28 +229,7 @@ struct LessonView: View {
     }
   }
 
-  /// Calculate current completed count including buffered changes
-  private var currentCompletedCount: Int {
-    let displayItems = ChecklistAssignmentService.getDisplayItems(for: progress)
-
-    // Count items that are completed in either buffered state or saved state
-    var completed = 0
-    for displayItem in displayItems {
-      // Check buffered state first (most recent), then fall back to saved state
-      let isComplete = itemStates[displayItem.templateItemId] ?? displayItem.isComplete
-      if isComplete {
-        completed += 1
-      }
-    }
-
-    return completed
-  }
-
-  /// Calculate current total count
-  private var currentTotalCount: Int {
-    let displayItems = ChecklistAssignmentService.getDisplayItems(for: progress)
-    return displayItems.count
-  }
+  // MARK: - Body
 
   var body: some View {
     Group {
@@ -429,6 +418,31 @@ struct LessonView: View {
     }
   }
 
+  // MARK: - Private Helpers
+
+  /// Calculate current completed count including buffered changes
+  private var currentCompletedCount: Int {
+    let displayItems = ChecklistAssignmentService.getDisplayItems(for: progress)
+
+    // Count items that are completed in either buffered state or saved state
+    var completed = 0
+    for displayItem in displayItems {
+      // Check buffered state first (most recent), then fall back to saved state
+      let isComplete = itemStates[displayItem.templateItemId] ?? displayItem.isComplete
+      if isComplete {
+        completed += 1
+      }
+    }
+
+    return completed
+  }
+
+  /// Calculate current total count
+  private var currentTotalCount: Int {
+    let displayItems = ChecklistAssignmentService.getDisplayItems(for: progress)
+    return displayItems.count
+  }
+
   private func displayTitle(_ title: String) -> String {
     let pattern = "^\\d+\\.\\s*"
     return title.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
@@ -567,13 +581,19 @@ struct LessonView: View {
   }
 }
 
+// MARK: - BufferedChecklistItemRow
+
 struct BufferedChecklistItemRow: View {
+  // MARK: - Properties
+
   let displayItem: DisplayChecklistItem
   let bufferedState: Bool
   let onToggle: (Bool) -> Void
   let displayTitle: ((String) -> String)?
   @State private var dragOffset: CGFloat = 0
   @State private var isDragging = false
+
+  // MARK: - Initialization
 
   init(
     displayItem: DisplayChecklistItem, bufferedState: Bool, onToggle: @escaping (Bool) -> Void,
@@ -584,6 +604,8 @@ struct BufferedChecklistItemRow: View {
     self.onToggle = onToggle
     self.displayTitle = displayTitle
   }
+
+  // MARK: - Body
 
   var body: some View {
     HStack {

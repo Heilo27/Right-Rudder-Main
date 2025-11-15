@@ -9,7 +9,10 @@
 import Foundation
 import SwiftData
 
+// MARK: - StudentChecklistUpdateService
+
 class StudentChecklistUpdateService {
+  // MARK: - Methods
 
   /// Updates all student checklist progress records to match template changes
   static func updateStudentChecklistProgress(modelContext: ModelContext) {

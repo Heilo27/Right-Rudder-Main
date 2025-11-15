@@ -7,12 +7,18 @@
 
 import SwiftUI
 
+// MARK: - WhatsNewView
+
 struct WhatsNewView: View {
+  // MARK: - Properties
+
   @State private var isActive = false
   @State private var currentPage = 0
   @State private var opacity = 0.0
   @State private var autoAdvanceTimer: Timer?
   @Environment(\.modelContext) private var modelContext
+
+  // MARK: - Body
 
   private let features = [
     FeatureItem(
@@ -173,15 +179,25 @@ struct WhatsNewView: View {
   }
 }
 
+// MARK: - FeatureItem
+
 struct FeatureItem {
+  // MARK: - Properties
+
   let icon: String
   let title: String
   let description: String
   let color: Color
 }
 
+// MARK: - FeatureCard
+
 struct FeatureCard: View {
+  // MARK: - Properties
+
   let feature: FeatureItem
+
+  // MARK: - Body
 
   var body: some View {
     VStack(spacing: 20) {

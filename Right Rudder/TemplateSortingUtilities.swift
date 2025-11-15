@@ -7,13 +7,18 @@
 
 import Foundation
 
+// MARK: - TemplateSortingUtilities
+
 /// Shared utilities for template sorting and lesson number extraction
 struct TemplateSortingUtilities {
+  // MARK: - Properties
 
   // Static regex patterns for efficient compilation
   private static let lessonNumberRegex = try? NSRegularExpression(pattern: "([PCI]\\d+)-L(\\d+)")
   private static let newFormatRegex = try? NSRegularExpression(pattern: "([PCI]\\d+)-L(\\d+)")
   private static let oldFormatRegex = try? NSRegularExpression(pattern: "([PCI]\\d+)L(\\d+)")
+
+  // MARK: - Methods
 
   /// Extract lesson number from template names for sorting
   static func extractLessonNumber(from templateName: String) -> Int? {

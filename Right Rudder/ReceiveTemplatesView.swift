@@ -9,7 +9,11 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - ReceiveTemplatesView
+
 struct ReceiveTemplatesView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
   @State private var showingDocumentPicker = false
@@ -17,6 +21,8 @@ struct ReceiveTemplatesView: View {
   @State private var selectedFileURL: URL?
   @State private var importStatus = ""
   @State private var showingImportAlert = false
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {

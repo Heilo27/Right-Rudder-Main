@@ -7,9 +7,15 @@
 
 import Foundation
 
+// MARK: - WhatsNewService
+
 class WhatsNewService {
+  // MARK: - Properties
+
   private static let currentAppVersion = "1.6.0"
   private static let lastShownVersionKey = "lastShownWhatsNewVersion"
+
+  // MARK: - Methods
 
   /// Determines if the "What's New" screen should be shown
   static func shouldShowWhatsNew() -> Bool {

@@ -7,7 +7,11 @@
 
 import SwiftUI
 
+// MARK: - InstructorInfoView
+
 struct InstructorInfoView: View {
+  // MARK: - Properties
+
   @Environment(\.dismiss) private var dismiss
 
   @AppStorage("instructorName") private var instructorName: String = ""
@@ -21,6 +25,8 @@ struct InstructorInfoView: View {
   @State private var tempInstructorCFIExpirationDate: Date = Date()
   @State private var tempInstructorCFIHasExpiration: Bool = false
   @State private var showingSavedAlert = false
+
+  // MARK: - Computed Properties
 
   private var instructorCFIExpirationDate: Date {
     if instructorCFIExpirationDateString.isEmpty {

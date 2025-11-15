@@ -8,8 +8,12 @@
 import Foundation
 import SwiftData
 
+// MARK: - ExportableTemplate
+
 // Codable structs for export/import
 struct ExportableTemplate: Codable {
+  // MARK: - Properties
+
   let id: String
   let name: String
   let category: String
@@ -23,20 +27,31 @@ struct ExportableTemplate: Codable {
   let lastModified: Date
 }
 
+// MARK: - ExportableTemplateItem
+
 struct ExportableTemplateItem: Codable {
+  // MARK: - Properties
+
   let id: String
   let title: String
   let notes: String?
 }
 
+// MARK: - TemplateSharePackage
+
 struct TemplateSharePackage: Codable {
+  // MARK: - Properties
+
   let templates: [ExportableTemplate]
   let exportDate: Date
   let exportedBy: String?
   let appVersion: String
 }
 
+// MARK: - TemplateExportService
+
 class TemplateExportService {
+  // MARK: - Methods
 
   /// Cleans up old sync files (older than 7 days) from the temporary directory
   static func cleanupOldSyncFiles() {

@@ -4,17 +4,29 @@ import Foundation
 import UIKit
 import UserNotifications
 
+// MARK: - PushNotificationService
+
 @MainActor
 class PushNotificationService: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = PushNotificationService()
+
+  // MARK: - Published Properties
 
   @Published var notificationPermissionGranted = false
 
+  // MARK: - Properties
+
   private let container: CKContainer
+
+  // MARK: - Initialization
 
   init() {
     self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
   }
+
+  // MARK: - Methods
 
   /// Requests notification permissions from the user
   func requestNotificationPermission() async {

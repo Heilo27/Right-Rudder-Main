@@ -2,8 +2,12 @@ import CloudKit
 import Foundation
 import SwiftData
 
+// MARK: - EndorsementImage
+
 @Model
 class EndorsementImage {
+  // MARK: - Properties
+
   var id: UUID = UUID()
   var filename: String = ""
   var createdAt: Date = Date()
@@ -20,6 +24,8 @@ class EndorsementImage {
   // Inverse relationship
   var student: Student?
 
+  // MARK: - Initialization
+
   init(
     filename: String, imageData: Data? = nil, endorsementCode: String? = nil,
     expirationDate: Date? = nil
@@ -32,8 +38,12 @@ class EndorsementImage {
   }
 }
 
+// MARK: - Student
+
 @Model
 class Student {
+  // MARK: - Properties
+
   var id: UUID = UUID()
 
   // MARK: - Bidirectional Fields (Last Write Wins)

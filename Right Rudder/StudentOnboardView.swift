@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - StudentOnboardView
+
 struct StudentOnboardView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Bindable var student: Student
   @Bindable var progress: ChecklistAssignment

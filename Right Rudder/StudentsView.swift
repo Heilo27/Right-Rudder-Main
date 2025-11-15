@@ -9,7 +9,11 @@ import CloudKit
 import SwiftData
 import SwiftUI
 
+// MARK: - StudentsView
+
 struct StudentsView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @State private var allStudents: [Student] = []
   @State private var showingAddStudent = false
@@ -24,6 +28,8 @@ struct StudentsView: View {
   @AppStorage("showStudentPhotos") private var showStudentPhotos = false
 
   private let categories = ["PPL", "IFR", "CPL", "CFI", "Review"]
+
+  // MARK: - Initialization
 
   init() {
     print("🏗️ StudentsView INIT")

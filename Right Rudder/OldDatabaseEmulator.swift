@@ -11,17 +11,29 @@ import CoreData
 import Foundation
 import SwiftData
 
+// MARK: - OldDatabaseEmulator
+
 @MainActor
 class OldDatabaseEmulator: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = OldDatabaseEmulator()
+
+  // MARK: - Published Properties
 
   @Published var isMigrating = false
   @Published var migrationProgress: String = ""
   @Published var studentsMigrated: Int = 0
 
+  // MARK: - Properties
+
   private var modelContext: ModelContext?
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Methods
 
   func setModelContext(_ context: ModelContext) {
     self.modelContext = context

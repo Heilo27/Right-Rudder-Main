@@ -8,11 +8,17 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ShareTemplatesView
+
 struct ShareTemplatesView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
 
   @Query(sort: \ChecklistTemplate.name) private var allTemplates: [ChecklistTemplate]
+
+  // MARK: - Computed Properties
 
   // Filter out blank or invalid templates
   private var validTemplates: [ChecklistTemplate] {
@@ -28,6 +34,8 @@ struct ShareTemplatesView: View {
       return true
     }
   }
+
+  // MARK: - State
 
   @State private var selectedTemplates: Set<UUID> = []
   @State private var shareURL: URL?
@@ -74,6 +82,8 @@ struct ShareTemplatesView: View {
       return template1.name.localizedCaseInsensitiveCompare(template2.name) == .orderedAscending
     }
   }
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -220,6 +230,8 @@ struct ShareTemplatesView: View {
     }
   }
 
+  // MARK: - Methods
+
   private var userCreatedTemplates: [ChecklistTemplate] {
     sortedTemplates.filter { $0.isUserCreated }
   }
@@ -266,10 +278,16 @@ struct ShareTemplatesView: View {
   }
 }
 
+// MARK: - TemplateRow
+
 struct TemplateRow: View {
+  // MARK: - Properties
+
   let template: ChecklistTemplate
   let isSelected: Bool
   let onToggle: () -> Void
+
+  // MARK: - Body
 
   var body: some View {
     Button(action: onToggle) {
@@ -324,10 +342,15 @@ struct TemplateRow: View {
   }
 }
 
-// Template Share Sheet
+// MARK: - TemplateShareSheet
+
 struct TemplateShareSheet: UIViewControllerRepresentable {
+  // MARK: - Properties
+
   let items: [Any]
   let onComplete: (Bool) -> Void
+
+  // MARK: - UIViewControllerRepresentable
 
   func makeUIViewController(context: Context) -> UIActivityViewController {
     let controller = UIActivityViewController(

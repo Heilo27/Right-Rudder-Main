@@ -2,7 +2,11 @@ import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - StudentDocumentsView
+
 struct StudentDocumentsView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @State private var student: Student
 
@@ -16,9 +20,13 @@ struct StudentDocumentsView: View {
   @State private var sortedDocuments: [StudentDocument] = []
   @State private var capturedImage: UIImage?
 
+  // MARK: - Initialization
+
   init(student: Student) {
     self._student = State(initialValue: student)
   }
+
+  // MARK: - Body
 
   var body: some View {
     ScrollView {

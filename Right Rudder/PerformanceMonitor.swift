@@ -10,18 +10,30 @@ import Foundation
 import SwiftUI
 import os.log
 
+// MARK: - PerformanceMonitor
+
 @MainActor
 class PerformanceMonitor: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = PerformanceMonitor()
+
+  // MARK: - Published Properties
 
   @Published var isMonitoring = false
   @Published var memoryUsage: String = "0 MB"
   @Published var cpuUsage: String = "0%"
 
+  // MARK: - Properties
+
   private var timer: Timer?
   private let logger = Logger(subsystem: "com.heiloprojects.rightrudder", category: "Performance")
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Methods
 
   func startMonitoring() {
     guard !isMonitoring else { return }

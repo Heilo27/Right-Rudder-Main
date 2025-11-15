@@ -8,10 +8,15 @@
 import Foundation
 import SwiftData
 
+// MARK: - SmartTemplateUpdateService
+
 class SmartTemplateUpdateService {
+  // MARK: - Properties
 
   static let templateVersion = "1.4.7.14"  // Increment this when templates change (bumped to fix Solo Endorsements items)
   private static var isUpdating = false  // Prevent concurrent updates
+
+  // MARK: - Methods
 
   /// Force update all templates (useful for debugging or major changes)
   static func forceUpdateAllTemplates(modelContext: ModelContext) {

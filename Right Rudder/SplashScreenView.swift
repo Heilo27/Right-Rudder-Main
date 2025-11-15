@@ -8,11 +8,17 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - SplashScreenView
+
 struct SplashScreenView: View {
+  // MARK: - Properties
+
   @State private var isActive = false
   @State private var size = 0.8
   @State private var opacity = 0.5
   @Environment(\.modelContext) private var modelContext
+
+  // MARK: - Body
 
   var body: some View {
     if isActive {

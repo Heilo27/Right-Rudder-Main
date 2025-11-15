@@ -8,6 +8,8 @@
 import Foundation
 import SwiftData
 
+// MARK: - DefaultTemplates
+
 /// Centralized location for all default checklist templates
 class DefaultTemplates {
 

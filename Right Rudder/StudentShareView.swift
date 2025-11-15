@@ -2,7 +2,11 @@ import CloudKit
 import SwiftData
 import SwiftUI
 
+// MARK: - StudentShareView
+
 struct StudentShareView: View {
+  // MARK: - Properties
+
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
 
@@ -19,6 +23,8 @@ struct StudentShareView: View {
   @State private var monitoringForAcceptance = false
 
   @AppStorage("instructorName") private var instructorName: String = ""
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
