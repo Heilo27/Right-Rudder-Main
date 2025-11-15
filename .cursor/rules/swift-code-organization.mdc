@@ -56,7 +56,9 @@ class Student {
 - Views: `*View.swift` (e.g., `StudentDetailView.swift`, `SettingsView.swift`)
 - Services: `*Service.swift` (e.g., `CloudKitShareService.swift`, `PushNotificationService.swift`)
 - Models: Match model name (e.g., `Student.swift`, `ChecklistTemplate.swift`)
-- Extensions: `Type+ExtensionName.swift` (e.g., `UIView+Extensions.swift`)
+- Extensions: `Type+ExtensionName.swift` (e.g., `Color+AppColorScheme.swift`) → `Extensions/`
+- Styles: `*Style.swift`, `*ColorScheme.swift` (e.g., `AppButtonStyle.swift`, `AppColorScheme.swift`) → `Styles/`
+- Data: `Default*.swift` for seed data (e.g., `DefaultTemplates.swift`) → `Data/`
 
 **Avoid:**
 - Generic names: `NewModels.swift`, `Utils.swift`, `Helpers.swift`
@@ -101,6 +103,21 @@ Files should be placed in folders based on their type classification:
    - @main App struct
    - Example: `RightRudderApp.swift` (not `Right_RudderApp.swift`)
 
+6. **Data** (`Data/`) - Seed/default data and initialization data
+   - Static data used to initialize the app
+   - Default templates, seed data, constants
+   - Example: `DefaultTemplates.swift` → `Data/DefaultTemplates.swift`
+
+7. **Extensions** (`Extensions/`) - Type extensions
+   - Extensions on Swift/SwiftUI/Foundation types
+   - Format: `Type+ExtensionName.swift`
+   - Example: `Color+AppColorScheme.swift` → `Extensions/Color+AppColorScheme.swift`
+
+8. **Styles** (`Styles/`) - Styling and theming
+   - Color schemes, themes, button styles
+   - App-wide styling components
+   - Example: `AppColorScheme.swift` → `Styles/AppColorScheme.swift`
+
 **Common Violations:**
 - ❌ Models in Views folder (e.g., `Direction.swift` in `Views/Games/`)
 - ❌ Models in Services folder (e.g., `ExportableTemplate.swift` in `Services/`)
@@ -118,7 +135,16 @@ Is it a SwiftUI View/ViewModifier/UIViewControllerRepresentable?
 Is it a class that performs operations (Service/ObservableObject)?
   → Services/
 
-Is it a helper/utility/extension?
+Is it static seed/default data (not a service)?
+  → Data/
+
+Is it a type extension (Type+ExtensionName.swift)?
+  → Extensions/
+
+Is it styling/theming (color schemes, button styles)?
+  → Styles/
+
+Is it a helper/utility (not styling/extension)?
   → Services/Utilities/ or Utilities/
 
 Is it @main App?

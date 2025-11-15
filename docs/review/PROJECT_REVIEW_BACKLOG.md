@@ -1430,6 +1430,99 @@ App entry point had underscore in name. Renamed to follow naming conventions. Ke
 
 ---
 
+## Additional Organization Categories
+
+### MED-033: Move DefaultTemplates.swift to Data/ Folder
+**Category:** Code Organization / File Location  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+`DefaultTemplates.swift` contains static seed/default data (default checklist templates), not a service that performs operations. It should be in a `Data/` folder.
+
+**Files to Move:**
+- `Services/DefaultTemplates.swift` (class with static properties) → `Data/DefaultTemplates.swift`
+
+**Tasks:**
+1. Create `Data/` folder
+2. Move `DefaultTemplates.swift` to `Data/`
+3. Update imports in files that reference DefaultTemplates
+4. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Data folder created
+- [ ] File moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle (Data category)
+
+---
+
+### MED-034: Move Color Extension to Extensions/ Folder
+**Category:** Code Organization / File Location  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+`Color+AppColorScheme.swift` is an extension on SwiftUI's `Color` type. Extensions should be in a dedicated `Extensions/` folder.
+
+**Files to Move:**
+- `Services/Utilities/Color+AppColorScheme.swift` (extension) → `Extensions/Color+AppColorScheme.swift`
+
+**Tasks:**
+1. Create `Extensions/` folder
+2. Move `Color+AppColorScheme.swift` to `Extensions/`
+3. Update imports if needed (Swift module system usually handles automatically)
+4. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Extensions folder created
+- [ ] File moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle (Extensions category)
+
+---
+
+### MED-035: Move Styling Files to Styles/ Folder
+**Category:** Code Organization / File Location  
+**Effort:** 30 minutes  
+**Dependencies:** None
+
+**Description:**
+Styling and theming files are currently mixed with utilities. These should be in a dedicated `Styles/` folder.
+
+**Files to Move:**
+- `Services/Utilities/AppColorScheme.swift` (enum) → `Styles/AppColorScheme.swift`
+- `Services/Utilities/AppButtonStyle.swift` (struct ButtonStyle) → `Styles/AppButtonStyle.swift`
+- `Services/Utilities/RoundedButtonStyle.swift` (struct ButtonStyle) → `Styles/RoundedButtonStyle.swift`
+- `Services/Utilities/NoHapticButtonStyle.swift` (struct ButtonStyle) → `Styles/NoHapticButtonStyle.swift`
+
+**Optional:**
+- `Services/Utilities/ColorSchemeManager.swift` - Empty placeholder, consider deleting
+
+**Tasks:**
+1. Create `Styles/` folder
+2. Move styling files to `Styles/`
+3. Update imports in files that reference these styles
+4. Consider deleting `ColorSchemeManager.swift` if unused
+5. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Styles folder created
+- [ ] All styling files moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle (Styles category)
+
+---
+
 ### MED-005: Create .swift-format.json Configuration
 **Category:** Code Quality  
 **Effort:** 1-2 hours  
@@ -2080,7 +2173,7 @@ Refactor legacy code patterns as opportunities arise.
 
 ---
 
-**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations (COMPLETED) + File Organization "Is A" Principle Violations (COMPLETED)  
-**Total Items:** 74 (13 of 14 "One Type Per File" violations completed, 1 not applicable; 8 "Is A" principle violations completed)  
+**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations (COMPLETED) + File Organization "Is A" Principle Violations (COMPLETED) + Additional Organization Categories  
+**Total Items:** 77 (13 of 14 "One Type Per File" violations completed, 1 not applicable; 8 "Is A" principle violations completed; 3 additional category violations added)  
 **Next Review:** After Phase 1 completion (2 weeks)
 
