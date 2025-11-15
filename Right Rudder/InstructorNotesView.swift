@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - InstructorNotesView
+
 struct InstructorNotesView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
   private let cloudKitShareService = CloudKitShareService.shared
@@ -19,6 +23,8 @@ struct InstructorNotesView: View {
   @State private var localText: String = ""
   @State private var hasUnsavedChanges = false
   @FocusState private var isFocused: Bool
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -65,6 +71,8 @@ struct InstructorNotesView: View {
       }
     }
   }
+
+  // MARK: - Methods
 
   private func saveNotes() {
     print("🔵 DEBUG: InstructorNotesView.saveNotes() called - Notes save triggered")

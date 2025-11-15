@@ -8,15 +8,25 @@
 import Foundation
 import UIKit
 
+// MARK: - MemoryMonitor
+
 class MemoryMonitor {
+  // MARK: - Singleton
+
   static let shared = MemoryMonitor()
+
+  // MARK: - Properties
 
   private var memoryWarningCount = 0
   private let maxMemoryWarnings = 3
 
+  // MARK: - Initialization
+
   private init() {
     setupMemoryMonitoring()
   }
+
+  // MARK: - Setup
 
   private func setupMemoryMonitoring() {
     NotificationCenter.default.addObserver(
@@ -26,6 +36,8 @@ class MemoryMonitor {
       object: nil
     )
   }
+
+  // MARK: - Memory Warning Handling
 
   @objc private func handleMemoryWarning() {
     memoryWarningCount += 1
@@ -55,6 +67,8 @@ class MemoryMonitor {
     // Reset warning count
     memoryWarningCount = 0
   }
+
+  // MARK: - Memory Usage
 
   func getMemoryUsage() -> String {
     var info = mach_task_basic_info()

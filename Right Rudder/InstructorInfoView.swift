@@ -31,6 +31,8 @@ struct InstructorInfoView: View {
     return formatter.date(from: instructorCFIExpirationDateString) ?? Date()
   }
 
+  // MARK: - Body
+
   var body: some View {
     NavigationView {
       Form {

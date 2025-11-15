@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+// MARK: - View Extensions
+
 extension View {
   /// Applies iPad-optimized sheet presentation with proper detents and sizing
   func iPadSheet<Content: View>(
@@ -91,6 +93,8 @@ extension View {
     #endif
   }
 }
+
+// MARK: - UIDevice Extension
 
 #if os(iOS)
   extension UIDevice {

@@ -1,7 +1,11 @@
 import Foundation
 import SwiftData
 
+// MARK: - MigrationService
+
 class MigrationService {
+
+  // MARK: - Migration Operations
 
   /// Migrate from old StudentChecklist system to new reference-based system
   static func migrateToReferenceBasedSystem(modelContext: ModelContext) {
@@ -28,6 +32,8 @@ class MigrationService {
       print("❌ Migration failed: \(error)")
     }
   }
+
+  // MARK: - Migration Status
 
   /// Check if migration is needed
   static func isMigrationNeeded(modelContext: ModelContext) -> Bool {
@@ -92,6 +98,8 @@ class MigrationService {
       )
     }
   }
+
+  // MARK: - Cleanup
 
   /// Clean up old checklist data after successful migration
   static func cleanupOldChecklistData(modelContext: ModelContext) {

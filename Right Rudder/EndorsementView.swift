@@ -10,11 +10,13 @@ import PDFKit
 import SwiftData
 import SwiftUI
 
+// MARK: - EndorsementGeneratorView
+
 struct EndorsementGeneratorView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Query private var students: [Student]
-
-  public init() {}
 
   @State private var selectedEndorsement: FAAEndorsement?
   @State private var studentName: String = ""
@@ -41,6 +43,12 @@ struct EndorsementGeneratorView: View {
   @State private var memoizedCFIStatusText: String = ""
   @State private var memoizedCFIStatusColor: Color = .orange
 
+  // MARK: - Initialization
+
+  public init() {}
+
+  // MARK: - Computed Properties
+
   private var instructorCFIExpirationDate: Date {
     if instructorCFIExpirationDateString.isEmpty {
       return Date()
@@ -49,6 +57,8 @@ struct EndorsementGeneratorView: View {
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.date(from: instructorCFIExpirationDateString) ?? Date()
   }
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
