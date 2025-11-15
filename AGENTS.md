@@ -138,21 +138,50 @@ Recommended SwiftUI refresher: `SwiftUI by Example` offers composable recipes fo
 
 ---
 
-## 8. Code Review & PR Checklist
+## 8. Feature Development & Documentation
+
+### 8.1 Feature Requirements Documents (FRDs)
+**Before implementing any new feature:**
+1. ✅ Create FRD using `@create-frd.md` command
+2. ✅ Document all requirements, user stories, and acceptance criteria
+3. ✅ Verify App Store compliance if feature is advertised
+4. ✅ Identify dependencies and risks
+5. ✅ Get FRD reviewed and approved before coding begins
+
+**FRD Requirements:**
+- Use template: `docs/features/FRD_TEMPLATE.md`
+- Follow Q&A guide: `.cursor/commands/create-frd.md`
+- Update `docs/features/README.md` with new feature
+- Link to PRD.md for consistency
+- Reference App Store listing for advertised features
+
+**Why FRDs Matter:**
+- Ensures clear requirements before implementation
+- Verifies App Store claims are met
+- Documents gaps and known issues
+- Guides testing efforts
+- Maintains product consistency
+
+**Exception:** Small bug fixes or refactoring may not require FRDs, but any user-facing feature or significant change should have one.
+
+---
+
+## 9. Code Review & PR Checklist
 Before opening a PR:
-1. ✅ Workspace/scheme commands documented in the PR description if new targets were added.
-2. ✅ `xcodebuild build` and `xcodebuild test -enableCodeCoverage YES` logs attached (or CI link).
-3. ✅ Screenshots/video for UI changes (iPhone + iPad + dark mode).
-4. ✅ Accessibility impact noted (VoiceOver labels, Dynamic Type proof).
-5. ✅ New logic covered by unit/UI tests; updated tests for regressions.
-6. ✅ `swift format` (both format and lint) executed; no violations ignored without justification.
-7. ✅ DRY/SOLID/YAGNI considerations documented when architectural decisions deviate from defaults.
+1. ✅ FRD created and reviewed (for new features)
+2. ✅ Workspace/scheme commands documented in the PR description if new targets were added.
+3. ✅ `xcodebuild build` and `xcodebuild test -enableCodeCoverage YES` logs attached (or CI link).
+4. ✅ Screenshots/video for UI changes (iPhone + iPad + dark mode).
+5. ✅ Accessibility impact noted (VoiceOver labels, Dynamic Type proof).
+6. ✅ New logic covered by unit/UI tests; updated tests for regressions.
+7. ✅ `swift format` (both format and lint) executed; no violations ignored without justification.
+8. ✅ DRY/SOLID/YAGNI considerations documented when architectural decisions deviate from defaults.
 
 Reviewers should block merges if any checkbox is missing.
 
 ---
 
-## 9. Troubleshooting & Tips
+## 10. Troubleshooting & Tips
 - **Simulator fails to boot:** `xcrun simctl shutdown all && xcrun simctl erase all`.
 - **Provisioning/signing issues:** Run `xcodebuild -showBuildSettings | grep -e PROVISIONING_PROFILE -e CODE_SIGN` to confirm values and ensure the correct team ID is selected in Xcode.
 - **Stuck DerivedData:** `rm -rf ~/Library/Developer/Xcode/DerivedData && xcodebuild clean`.
@@ -162,19 +191,20 @@ Reviewers should block merges if any checkbox is missing.
 
 ---
 
-## 10. Maintaining This Document
+## 11. Maintaining This Document
 - Update workspace/scheme examples whenever new targets land.
 - Expand the Testing section with concrete names (e.g., `AppTests`) once the codebase exists.
 - Keep references fresh—note Xcode or iOS SDK version bumps inline.
 - Document lessons learned from development work (build issues, formatting gotchas, etc.).
 
-## 11. Pre-Change Verification Checklist
+## 12. Pre-Change Verification Checklist
 **Before making code changes, verify:**
-1. ✅ Project builds successfully (`xcodebuild build` succeeds)
-2. ✅ No existing compilation errors or warnings
-3. ✅ Current state is committed or stashed
-4. ✅ Formatting is up-to-date (`swift format lint` passes or violations are acceptable)
-5. ✅ Understand the change scope and impact
+1. ✅ FRD created (for new features) - use `@create-frd.md` command
+2. ✅ Project builds successfully (`xcodebuild build` succeeds)
+3. ✅ No existing compilation errors or warnings
+4. ✅ Current state is committed or stashed
+5. ✅ Formatting is up-to-date (`swift format lint` passes or violations are acceptable)
+6. ✅ Understand the change scope and impact
 
 **After making changes:**
 1. ✅ Project still builds successfully
