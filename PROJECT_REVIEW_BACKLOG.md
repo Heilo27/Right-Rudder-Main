@@ -488,7 +488,7 @@ App Store listing shows no accessibility features indicated. Need to audit and a
 
 ---
 
-### HIGH-009: Align Version Numbers
+### HIGH-014: Align Version Numbers
 **Category:** Process  
 **Effort:** 30 minutes  
 **Dependencies:** None
@@ -1300,7 +1300,7 @@ Refactor legacy code patterns as opportunities arise.
 
 **Process:** 6 items
 - CRIT-001: AGENTS.md fix
-- HIGH-009, HIGH-010, HIGH-011: Process setup
+- HIGH-014, HIGH-015, HIGH-016: Process setup
 - MED-011: Pre-commit hooks
 - LOW-009, LOW-010: Process improvements
 
@@ -1326,7 +1326,7 @@ Refactor legacy code patterns as opportunities arise.
 
 **Quick Wins (< 2 hours):** 5 items
 - CRIT-001: AGENTS.md fix (15 min)
-- HIGH-009: Version alignment (30 min)
+- HIGH-014: Version alignment (30 min)
 - MED-005: Format config (1-2 hours)
 - LOW-001, LOW-002: Renames (1 hour each)
 
@@ -1347,8 +1347,8 @@ Refactor legacy code patterns as opportunities arise.
 1. CRIT-001: Fix AGENTS.md paths
 2. CRIT-004: Fix formatting violations
 3. CRIT-003: Set up test infrastructure
-4. HIGH-009: Align versions
-5. HIGH-010: Verify build script
+4. HIGH-014: Align versions
+5. HIGH-015: Verify build script
 
 ### Phase 2: Critical Fixes (Weeks 3-4)
 1. CRIT-002: Fix sync issues
@@ -1358,7 +1358,7 @@ Refactor legacy code patterns as opportunities arise.
 5. HIGH-004: Write assignment tests
 
 ### Phase 3: Quality & Testing (Weeks 5-8)
-1. HIGH-011: Set up CI/CD
+1. HIGH-016: Set up CI/CD
 2. MED-001, MED-002, MED-003: Write more tests
 3. HIGH-008: Add accessibility
 4. MED-005: Create format config
