@@ -454,20 +454,6 @@ struct ChecklistTemplatesView: View {
   }
 }
 
-// MARK: - PhaseGroup
-
-struct PhaseGroup: Identifiable {
-  let id: String  // Use phase as the identifier
-  let phase: String
-  let templates: [ChecklistTemplate]
-
-  init(phase: String, templates: [ChecklistTemplate]) {
-    self.id = phase
-    self.phase = phase
-    self.templates = templates
-  }
-}
-
 #Preview {
   ChecklistTemplatesView()
     .modelContainer(
