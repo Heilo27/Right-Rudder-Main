@@ -23,8 +23,10 @@ Quick 5-minute guide to set up semantic versioning with automatic build number i
 4. Select **New Run Script Phase**
 5. **Drag the new script phase** UP to be **BEFORE** "Compile Sources"
 6. Click the triangle to expand it
-7. Paste this script:
+7. **Option A:** Paste the script inline (see script below)
+   **Option B:** Reference the script file: `"${SRCROOT}/scripts/auto_increment_build.sh"`
 
+**Inline Script:**
 ```bash
 # Auto-increment build number
 if [ "$CONFIGURATION" = "Release" ] || [ "$CONFIGURATION" = "Debug" ]; then
@@ -44,6 +46,13 @@ if [ "$CONFIGURATION" = "Release" ] || [ "$CONFIGURATION" = "Debug" ]; then
     fi
 fi
 ```
+
+**Or use the script file:**
+```bash
+"${SRCROOT}/scripts/auto_increment_build.sh"
+```
+
+The script file is available at `scripts/auto_increment_build.sh` and uses Xcode environment variables for better compatibility.
 
 8. **Rename** the phase: Double-click "Run Script" → type `Auto-Increment Build Number`
 9. **Build your project** (Cmd+B) → Watch build number increment!

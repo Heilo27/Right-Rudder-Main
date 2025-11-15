@@ -54,6 +54,8 @@ Right Rudder/
 ├── PRD.md                       # Product Requirements Document
 ├── docs/                        # Documentation
 │   └── review/                 # Project review documents
+├── scripts/                     # Build and utility scripts
+│   └── auto_increment_build.sh # Build number auto-increment script
 ├── .cursor/                     # Cursor IDE configuration
 │   ├── commands/                # Cursor commands
 │   └── rules/                   # Cursor rules (coding standards)
