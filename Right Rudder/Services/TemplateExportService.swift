@@ -8,46 +8,6 @@
 import Foundation
 import SwiftData
 
-// MARK: - ExportableTemplate
-
-// Codable structs for export/import
-struct ExportableTemplate: Codable {
-  // MARK: - Properties
-
-  let id: String
-  let name: String
-  let category: String
-  let phase: String?
-  let relevantData: String?
-  let items: [ExportableTemplateItem]
-  let isUserCreated: Bool
-  let isUserModified: Bool
-  let originalAuthor: String?
-  let createdAt: Date
-  let lastModified: Date
-}
-
-// MARK: - ExportableTemplateItem
-
-struct ExportableTemplateItem: Codable {
-  // MARK: - Properties
-
-  let id: String
-  let title: String
-  let notes: String?
-}
-
-// MARK: - TemplateSharePackage
-
-struct TemplateSharePackage: Codable {
-  // MARK: - Properties
-
-  let templates: [ExportableTemplate]
-  let exportDate: Date
-  let exportedBy: String?
-  let appVersion: String
-}
-
 // MARK: - TemplateExportService
 
 class TemplateExportService {
