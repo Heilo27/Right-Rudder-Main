@@ -1,7 +1,11 @@
 import Foundation
 import SwiftData
 
+// MARK: - ChecklistIntegrityService
+
 class ChecklistIntegrityService {
+
+  // MARK: - Main Entry Point
 
   /// Main entry point - verify and repair all checklist integrity issues
   static func verifyAndRepairAllChecklists(modelContext: ModelContext) {
@@ -47,6 +51,8 @@ class ChecklistIntegrityService {
     }
   }
 
+  // MARK: - Template Cleanup
+
   /// Clean up templates with blank or invalid names
   private static func cleanupBlankTemplates(modelContext: ModelContext) -> [UUID] {
     do {
@@ -78,6 +84,8 @@ class ChecklistIntegrityService {
     }
   }
 
+  // MARK: - Template Integrity
+
   /// Verify template content integrity using hashes
   private static func verifyTemplateIntegrity(modelContext: ModelContext) -> Int {
     do {
@@ -108,6 +116,8 @@ class ChecklistIntegrityService {
       return 0
     }
   }
+
+  // MARK: - Progress Record Management
 
   /// Fix orphaned assignment records (template deleted but assignment remains)
   private static func fixOrphanedProgressRecords(modelContext: ModelContext) -> [UUID] {
@@ -193,8 +203,10 @@ class ChecklistIntegrityService {
     }
   }
 
-  /// Fix missing progress records for assigned templates
-  private static func fixMissingProgressRecords(modelContext: ModelContext) -> [UUID] {
+  // MARK: - Manual Repair
+
+  /// Manual repair function for Settings
+  static func manualIntegrityCheck(modelContext: ModelContext) -> (found: Int, repaired: Int) {
     do {
       let studentDescriptor = FetchDescriptor<Student>()
       let students = try modelContext.fetch(studentDescriptor)

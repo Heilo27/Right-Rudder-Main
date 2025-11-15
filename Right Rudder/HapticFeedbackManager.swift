@@ -8,10 +8,16 @@
 import SwiftUI
 import UIKit
 
+// MARK: - HapticFeedbackManager
+
 class HapticFeedbackManager {
+  // MARK: - Singleton
+
   static let shared = HapticFeedbackManager()
 
   private init() {}
+
+  // MARK: - Methods
 
   // Disable haptic feedback globally
   func disableHapticFeedback() {
@@ -19,6 +25,8 @@ class HapticFeedbackManager {
     // We'll override the haptic feedback behavior
   }
 }
+
+// MARK: - Button Styles
 
 // Custom button style that completely disables haptic feedback
 struct NoHapticButtonStyle: ButtonStyle {
@@ -43,6 +51,8 @@ struct RoundedButtonStyle: ButtonStyle {
       .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
   }
 }
+
+// MARK: - ButtonStyle Extensions
 
 // Extension to provide a no-haptic button style
 extension ButtonStyle where Self == NoHapticButtonStyle {

@@ -9,12 +9,20 @@ import Foundation
 import SwiftUI
 import UIKit
 
+// MARK: - ImageOptimizationService
+
 class ImageOptimizationService {
+  // MARK: - Singleton
+
   static let shared = ImageOptimizationService()
+
+  // MARK: - Properties
 
   private let imageCache = NSCache<NSString, UIImage>()
   private let maxCacheSize = 5  // Reduced to 5 images to save memory
   private let maxCacheSizeMB = 5  // Reduced to 5MB to save memory
+
+  // MARK: - Initialization
 
   private init() {
     imageCache.countLimit = maxCacheSize
@@ -43,6 +51,8 @@ class ImageOptimizationService {
     )
   }
 
+  // MARK: - Image Optimization
+
   // Optimize image for display with compression
   func optimizeImage(_ image: UIImage, maxSize: CGSize = CGSize(width: 300, height: 300))
     -> UIImage?
@@ -65,6 +75,8 @@ class ImageOptimizationService {
 
     return compressedImage
   }
+
+  // MARK: - Private Helpers
 
   private func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage {
     let aspectRatio = image.size.width / image.size.height
@@ -89,6 +101,8 @@ class ImageOptimizationService {
     return UIImage(data: imageData)
   }
 
+  // MARK: - Cache Management
+
   // Clear cache when memory pressure is detected
   @objc func clearCache() {
     imageCache.removeAllObjects()
@@ -109,11 +123,15 @@ class ImageOptimizationService {
     }
   }
 
+  // MARK: - Cache Access
+
   // Get cached image if available
   func getCachedImage(for key: String) -> UIImage? {
     return imageCache.object(forKey: key as NSString)
   }
 }
+
+// MARK: - OptimizedImage View
 
 // SwiftUI View Modifier for optimized image display
 struct OptimizedImage: View {
@@ -126,6 +144,8 @@ struct OptimizedImage: View {
     self.image = image
     self.maxSize = maxSize
   }
+
+  // MARK: - Body
 
   var body: some View {
     Group {
@@ -150,6 +170,8 @@ struct OptimizedImage: View {
       optimizedImage = nil
     }
   }
+
+  // MARK: - Methods
 
   private func loadOptimizedImage() {
     Task {

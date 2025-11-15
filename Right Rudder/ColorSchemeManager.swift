@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+// MARK: - AppColorScheme Enum
+
 enum AppColorScheme: String, CaseIterable, Identifiable {
   case skyBlue = "Sky Blue"
   case aviation = "Aviation Orange"
@@ -15,7 +17,11 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
   case planePrincess = "Plane Princess"
   case highContrast = "High Contrast"
 
+  // MARK: - Identifiable
+
   var id: String { self.rawValue }
+
+  // MARK: - Color Properties
 
   // Primary color - used for main UI elements, buttons, navigation
   var primaryColor: Color {
@@ -161,6 +167,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
     }
   }
 
+  // MARK: - Computed Properties
+
   // Description for the settings UI
   var description: String {
     switch self {
@@ -188,6 +196,8 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
     )
   }
 }
+
+// MARK: - Color Extensions
 
 // Extension to make colors accessible throughout the app
 extension Color {
@@ -256,8 +266,9 @@ extension Color {
   }
 }
 
-// MARK: - Adaptive Color Extensions (automatically switch between light/dark mode)
+// MARK: - Adaptive Color Extensions
 
+// Adaptive Color Extensions (automatically switch between light/dark mode)
 extension Color {
   /// Adaptive background color that automatically switches between light and dark mode
   static var appAdaptiveBackground: Color {
@@ -290,6 +301,8 @@ extension Color {
   }
 }
 
+// MARK: - AppButtonStyle
+
 // Custom button style that uses the app color scheme
 struct AppButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
@@ -302,6 +315,8 @@ struct AppButtonStyle: ButtonStyle {
       .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
   }
 }
+
+// MARK: - ButtonStyle Extension
 
 extension ButtonStyle where Self == AppButtonStyle {
   static var app: AppButtonStyle { AppButtonStyle() }
