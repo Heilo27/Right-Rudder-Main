@@ -26,18 +26,28 @@ struct DataConflict: Identifiable {
   }
 }
 
+// MARK: - CloudKitConflictDetector
+
 class CloudKitConflictDetector: ObservableObject {
+  // MARK: - Published Properties
+
   @Published var isDetectingConflicts = false
   @Published var lastDetectionDate = Date()
+
+  // MARK: - Properties
 
   private let container: CKContainer
   private let privateDatabase: CKDatabase
   private let customZoneName = "SharedStudentsZone"
 
+  // MARK: - Initialization
+
   init() {
     self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
     self.privateDatabase = container.privateCloudDatabase
   }
+
+  // MARK: - Conflict Detection
 
   /// Detects conflicts between local student data and CloudKit version
   @MainActor
@@ -67,6 +77,8 @@ class CloudKitConflictDetector: ObservableObject {
       return []
     }
   }
+
+  // MARK: - Private Helpers
 
   private func compareStudentData(localStudent: Student, cloudKitRecord: CKRecord) -> [DataConflict]
   {

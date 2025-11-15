@@ -4,6 +4,8 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+// MARK: - BackupSnapshot
+
 // Backup snapshot model for restore selection
 struct BackupSnapshot: Identifiable, Codable {
   let id: String  // Date string "yyyy-MM-dd"
@@ -13,14 +15,20 @@ struct BackupSnapshot: Identifiable, Codable {
   let size: Int64?  // Optional size in bytes
 }
 
+// MARK: - CloudKitBackupService
+
 @MainActor
 class CloudKitBackupService: ObservableObject {
+  // MARK: - Published Properties
+
   @Published var isBackingUp = false
   @Published var isRestoring = false
   @Published var lastBackupDate: Date?
   @Published var backupStatus: String = "Ready"
   @Published var restoreStatus: String = "Ready"
   @Published var availableBackups: [BackupSnapshot] = []
+
+  // MARK: - Properties
 
   private var modelContext: ModelContext?
   private let container: CKContainer
@@ -35,6 +43,8 @@ class CloudKitBackupService: ObservableObject {
     return formatter
   }()
 
+  // MARK: - Initialization
+
   init() {
     // Use the specific container from entitlements
     self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
@@ -42,9 +52,13 @@ class CloudKitBackupService: ObservableObject {
     startAutomaticBackup()
   }
 
+  // MARK: - Configuration
+
   func setModelContext(_ context: ModelContext) {
     self.modelContext = context
   }
+
+  // MARK: - Backup Operations
 
   func performBackup() async {
     guard !isBackingUp, let modelContext = modelContext else { return }

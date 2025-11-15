@@ -9,7 +9,11 @@ import CoreData
 import Foundation
 import SwiftData
 
+// MARK: - DatabaseMigrationService
+
 class DatabaseMigrationService {
+
+  // MARK: - Migration
 
   /// Migrates data from old schema to new schema if needed
   static func migrateIfNeeded() {
@@ -33,6 +37,8 @@ class DatabaseMigrationService {
     UserDefaults.standard.set(true, forKey: migrationKey)
     print("✅ Migration marked as complete")
   }
+
+  // MARK: - Database Reset
 
   /// Resets local database files to allow CloudKit to sync with new schema
   private static func resetLocalDatabaseForMigration() {
@@ -72,6 +78,8 @@ class DatabaseMigrationService {
       print("ℹ️ No local database files found - nothing to migrate")
     }
   }
+
+  // MARK: - Manual Migration
 
   /// Alternative: Manual migration using Core Data (more complex but preserves unsynced data)
   /// This would require creating a temporary model with both old and new entities

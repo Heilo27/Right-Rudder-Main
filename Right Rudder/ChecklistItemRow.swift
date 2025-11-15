@@ -8,12 +8,18 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ChecklistItemRow
+
 struct ChecklistItemRow: View {
+  // MARK: - Properties
+
   let displayItem: DisplayChecklistItem
   let onToggle: (Bool) -> Void
   let displayTitle: ((String) -> String)?
   @State private var dragOffset: CGFloat = 0
   @State private var isDragging = false
+
+  // MARK: - Initialization
 
   init(
     displayItem: DisplayChecklistItem, onToggle: @escaping (Bool) -> Void,
@@ -23,6 +29,8 @@ struct ChecklistItemRow: View {
     self.onToggle = onToggle
     self.displayTitle = displayTitle
   }
+
+  // MARK: - Body
 
   var body: some View {
     HStack(spacing: 12) {

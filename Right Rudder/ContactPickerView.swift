@@ -9,8 +9,14 @@ import Contacts
 import ContactsUI
 import SwiftUI
 
+// MARK: - ContactPickerView
+
 struct ContactPickerView: UIViewControllerRepresentable {
+  // MARK: - Properties
+
   let onContactSelected: (CNContact) -> Void
+
+  // MARK: - UIViewControllerRepresentable
 
   func makeUIViewController(context: Context) -> CNContactPickerViewController {
     let picker = CNContactPickerViewController()
@@ -26,12 +32,16 @@ struct ContactPickerView: UIViewControllerRepresentable {
     Coordinator(self)
   }
 
+  // MARK: - Coordinator
+
   class Coordinator: NSObject, CNContactPickerDelegate {
     let parent: ContactPickerView
 
     init(_ parent: ContactPickerView) {
       self.parent = parent
     }
+
+    // MARK: - CNContactPickerDelegate
 
     func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
       parent.onContactSelected(contact)

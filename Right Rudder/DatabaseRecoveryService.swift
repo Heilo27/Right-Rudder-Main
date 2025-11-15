@@ -10,16 +10,26 @@ import Combine
 import Foundation
 import SwiftData
 
+// MARK: - DatabaseRecoveryService
+
 /// Service to handle database corruption and recovery
 class DatabaseRecoveryService: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = DatabaseRecoveryService()
+
+  // MARK: - Published Properties
 
   @Published var isRecovering = false
   @Published var recoveryProgress: String = ""
   @Published var showRecoveryAlert = false
   @Published var recoveryError: String?
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Corruption Detection
 
   /// Detects if the database is corrupted and needs recovery
   func detectCorruption() -> Bool {
@@ -46,6 +56,8 @@ class DatabaseRecoveryService: ObservableObject {
 
     return false
   }
+
+  // MARK: - Recovery
 
   /// Attempts to recover from database corruption
   func attemptRecovery() async -> Bool {

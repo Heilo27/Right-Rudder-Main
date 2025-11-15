@@ -8,9 +8,15 @@
 import SwiftUI
 import UIKit
 
+// MARK: - CameraView
+
 struct CameraView: UIViewControllerRepresentable {
+  // MARK: - Properties
+
   let onImageCaptured: (UIImage) -> Void
   @Environment(\.dismiss) private var dismiss
+
+  // MARK: - UIViewControllerRepresentable
 
   func makeUIViewController(context: Context) -> UIImagePickerController {
     let picker = UIImagePickerController()
@@ -26,12 +32,16 @@ struct CameraView: UIViewControllerRepresentable {
     Coordinator(self)
   }
 
+  // MARK: - Coordinator
+
   class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     let parent: CameraView
 
     init(_ parent: CameraView) {
       self.parent = parent
     }
+
+    // MARK: - UIImagePickerControllerDelegate
 
     func imagePickerController(
       _ picker: UIImagePickerController,
