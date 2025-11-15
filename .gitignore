@@ -1,0 +1,37 @@
+# Xcode
+#
+# Build artifacts
+build/
+DerivedData/
+*.xcuserdata
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods (if used in future)
+Pods/
+*.xcworkspace
+
+# App-specific
+.simulator_cache.json
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
+

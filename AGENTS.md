@@ -48,26 +48,43 @@ Dependency heuristics:
 ## 4. Build & Run
 All examples assume `WORKSPACE` and `SCHEME` exports exist. Replace with real names after discovery.
 
+**Simulator Discovery:**
+Before building, discover and cache available simulators:
+```sh
+# Discover available simulators (creates .simulator_cache.json)
+./scripts/discover_simulators.sh
+
+# Get a specific simulator destination string
+SIMULATOR=$(./scripts/get_simulator.sh "iPhone 15")
+# Or use default:
+SIMULATOR=$(./scripts/get_simulator.sh)
+```
+
+**Build Commands:**
 ```sh
 # Debug simulator build (fails fast)
 # For projects without code signing configured, disable signing for simulator builds:
+# First, get an available simulator
+SIMULATOR=$(./scripts/get_simulator.sh "iPhone 15" || ./scripts/get_simulator.sh)
+
 xcodebuild \
   -project "Right Rudder.xcodeproj" \
   -scheme "Right Rudder" \
   -sdk iphonesimulator \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.0' \
+  -destination "$SIMULATOR" \
   CODE_SIGN_IDENTITY="" \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGNING_ALLOWED=NO \
   build
 
 # Alternative with workspace (if using workspace):
+SIMULATOR=$(./scripts/get_simulator.sh "iPhone 16" || ./scripts/get_simulator.sh)
 xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+  -destination "$SIMULATOR" \
   CODE_SIGN_IDENTITY="" \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGNING_ALLOWED=NO \
@@ -75,7 +92,7 @@ xcodebuild \
 ```
 - Use `DEVELOPER_DIR` if multiple Xcode versions are installed.
 - Add `-allowProvisioningUpdates` only when signing for devices.
-- Inspect available simulators via `xcrun simctl list devices`.
+- **Simulator cache**: `.simulator_cache.json` is gitignored - each developer generates their own.
 - Simulator builds don't require code signing - disable with `CODE_SIGNING_REQUIRED=NO` if needed.
 
 Reference: `xcodebuild` CLI supports `-scheme`, `-destination`, `-derivedDataPath`, and more for scripted automation.[^xcodebuild]
@@ -85,10 +102,13 @@ Reference: `xcodebuild` CLI supports `-scheme`, `-destination`, `-derivedDataPat
 ## 5. Testing, Coverage, and Static Analysis
 ```sh
 # Unit/UI tests with coverage
+# Get an available simulator first
+SIMULATOR=$(./scripts/get_simulator.sh "iPhone 16" || ./scripts/get_simulator.sh)
+
 xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$TEST_SCHEME" \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+  -destination "$SIMULATOR" \
   -enableCodeCoverage YES \
   test | xcbeautify
 
