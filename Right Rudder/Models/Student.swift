@@ -61,6 +61,11 @@ class Student {
   var lastModifiedBy: String?  // Tracks who last modified bidirectional fields: "instructor" or "student"
   var instructorEmail: String?  // Email of instructor who created the share (for identity validation)
 
+  // MARK: - Share Status Tracking
+  var shareTerminated: Bool = false  // True if share has been terminated (instructor or student)
+  var shareTerminatedAt: Date?  // Timestamp when share was terminated
+  var lastShareSyncDate: Date?  // Last successful sync date for share validation
+
   // NEW: Library-based checklist assignments
   @Relationship(deleteRule: .cascade, inverse: \ChecklistAssignment.student)
   var checklistAssignments: [ChecklistAssignment]?

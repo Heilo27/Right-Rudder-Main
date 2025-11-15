@@ -13,12 +13,20 @@ class CloudKitSyncService: ObservableObject {
   @Published var isSyncing = false
   @Published var lastSyncDate: Date?
   @Published var syncStatus: String = "Ready to sync"
+  @Published var lastSyncError: String?  // User-friendly error message
+  @Published var syncErrorCount: Int = 0  // Track consecutive errors
 
   // MARK: - Properties
 
   private var modelContext: ModelContext?
   private let container: CKContainer
   private let offlineSyncManager = OfflineSyncManager()
+
+  // MARK: - Sync Debouncing
+
+  private var syncDebounceTask: Task<Void, Never>?
+  private let syncDebounceInterval: TimeInterval = 2.0  // 2 second debounce
+  private var pendingSyncOperations: Set<String> = []  // Track pending sync operations
 
   // MARK: - Initialization
 
@@ -134,11 +142,54 @@ class CloudKitSyncService: ObservableObject {
 
   // MARK: - Main Sync Operations
 
+  /// Immediate sync (bypasses debouncing) - use for manual sync button
   func syncToCloudKit() async {
-    guard !isSyncing, modelContext != nil else { return }
+    await performSync(immediate: true)
+  }
+
+  /// Debounced sync - batches rapid changes into single sync operation
+  /// Use this for automatic syncs triggered by user actions
+  func syncToCloudKitDebounced(operation: String = "general") {
+    Task { @MainActor [weak self] in
+      guard let self = self else { return }
+
+      // Track this operation as pending
+      self.pendingSyncOperations.insert(operation)
+
+      // Cancel existing debounce task
+      self.syncDebounceTask?.cancel()
+
+      // Create new debounce task
+      self.syncDebounceTask = Task { @MainActor [weak self] in
+        guard let self = self else { return }
+
+        // Wait for debounce interval
+        try? await Task.sleep(nanoseconds: UInt64(self.syncDebounceInterval * 1_000_000_000))
+
+        // Check if task was cancelled
+        guard !Task.isCancelled else { return }
+
+        // Perform sync with all pending operations
+        await self.performSync(immediate: false)
+
+        // Clear pending operations
+        self.pendingSyncOperations.removeAll()
+      }
+    }
+  }
+
+  /// Internal sync implementation
+  private func performSync(immediate: Bool) async {
+    guard !isSyncing, modelContext != nil else {
+      if !immediate {
+        // If not immediate and already syncing, just mark operation as pending
+        return
+      }
+      return
+    }
 
     isSyncing = true
-    syncStatus = "Starting sync..."
+    syncStatus = immediate ? "Starting sync..." : "Syncing changes..."
 
     do {
       // Check CloudKit availability
@@ -169,6 +220,9 @@ class CloudKitSyncService: ObservableObject {
 
       syncStatus = "Syncing from shared zones..."
 
+      // Validate share status before syncing
+      await validateShareStatuses()
+
       // Sync changes from shared zones (student updates)
       await syncFromSharedZones()
 
@@ -177,14 +231,25 @@ class CloudKitSyncService: ObservableObject {
 
       lastSyncDate = Date()
       syncStatus = "Sync completed successfully"
+      lastSyncError = nil
+      syncErrorCount = 0  // Reset error count on successful sync
 
     } catch {
-      syncStatus = "Sync failed: \(error.localizedDescription)"
+      syncErrorCount += 1
+      let errorMessage = formatSyncError(error)
+      syncStatus = errorMessage
+      lastSyncError = errorMessage
       print("CloudKit sync error: \(error)")
 
       // If sync fails due to network issues, queue operations for retry
       if isNetworkError(error) {
         syncStatus = "Network error - operations queued for retry"
+        lastSyncError = "Unable to sync. Changes will sync when connection is restored."
+      }
+
+      // Handle specific CloudKit errors
+      if let ckError = error as? CKError {
+        handleCloudKitError(ckError)
       }
     }
 
@@ -198,6 +263,52 @@ class CloudKitSyncService: ObservableObject {
     await offlineSyncManager.processPendingOperations()
   }
 
+  /// Validates share statuses for all students with active shares
+  /// Detects when shares have been terminated (by instructor or student)
+  private func validateShareStatuses() async {
+    guard let modelContext = modelContext else { return }
+
+    do {
+      let request = FetchDescriptor<Student>(
+        predicate: #Predicate { $0.shareRecordID != nil }
+      )
+      let studentsWithShares = try modelContext.fetch(request)
+
+      print("🔍 Validating share statuses for \(studentsWithShares.count) students...")
+
+      let shareService = CloudKitShareService.shared
+
+      for student in studentsWithShares {
+        // Check if share is still active
+        let hasActive = await shareService.hasActiveShare(for: student)
+
+        if !hasActive && student.shareRecordID != nil {
+          // Share was terminated - update local state
+          print("⚠️ Share terminated for student: \(student.displayName)")
+
+          student.shareTerminated = true
+          student.shareTerminatedAt = Date()
+          student.shareRecordID = nil
+          student.lastModified = Date()
+
+          try modelContext.save()
+          print("✅ Updated local state for terminated share: \(student.displayName)")
+        } else if hasActive {
+          // Share is active - update sync date
+          student.lastShareSyncDate = Date()
+          student.shareTerminated = false
+          student.shareTerminatedAt = nil
+
+          try modelContext.save()
+        }
+      }
+
+      print("✅ Share status validation complete")
+    } catch {
+      print("❌ Failed to validate share statuses: \(error)")
+    }
+  }
+
   /// Gets the correct template ID for CloudKit sync (uses template ID directly)
   private func getCorrectTemplateID(for assignment: ChecklistAssignment) -> String {
     return assignment.templateId.uuidString
@@ -208,6 +319,54 @@ class CloudKitSyncService: ObservableObject {
     -> String
   {
     return item.templateItemId.uuidString
+  }
+
+  /// Formats sync errors into user-friendly messages
+  private func formatSyncError(_ error: Error) -> String {
+    if let ckError = error as? CKError {
+      switch ckError.code {
+      case .networkUnavailable, .networkFailure:
+        return "Network unavailable. Please check your connection."
+      case .notAuthenticated:
+        return "iCloud account not signed in. Please sign in to iCloud in Settings."
+      case .quotaExceeded:
+        return "iCloud storage full. Please free up space."
+      case .requestRateLimited:
+        return "Too many requests. Please wait a moment and try again."
+      case .serviceUnavailable:
+        return "iCloud service temporarily unavailable. Please try again later."
+      case .partialFailure:
+        return "Some changes may not have synced. Please try again."
+      default:
+        return "Sync failed: \(ckError.localizedDescription)"
+      }
+    }
+
+    return "Sync failed: \(error.localizedDescription)"
+  }
+
+  /// Handles specific CloudKit errors with appropriate actions
+  private func handleCloudKitError(_ error: CKError) {
+    switch error.code {
+    case .requestRateLimited:
+      print("⚠️ Rate limited - consider increasing debounce interval")
+    // Could implement exponential backoff here
+
+    case .quotaExceeded:
+      print("⚠️ iCloud quota exceeded - user needs to free up space")
+    // Could show user-facing alert here
+
+    case .notAuthenticated:
+      print("⚠️ User not authenticated with iCloud")
+    // Could prompt user to sign in
+
+    case .networkUnavailable, .networkFailure:
+      print("⚠️ Network error - operations will retry when online")
+    // Already handled by offline queue
+
+    default:
+      print("⚠️ CloudKit error: \(error.localizedDescription)")
+    }
   }
 
   /// Checks if an error is network-related
@@ -1479,6 +1638,28 @@ class CloudKitSyncService: ObservableObject {
 
       guard let student = existingStudents.first else {
         print("Student not found locally: \(record.recordID.recordName)")
+        return
+      }
+
+      // CRITICAL: Check for share termination flag
+      let shareTerminated: Bool = {
+        let rawValue = record["shareTerminated"]
+        if let boolValue = rawValue as? Bool {
+          return boolValue
+        } else if let numberValue = rawValue as? NSNumber {
+          return numberValue.boolValue
+        }
+        return false
+      }()
+
+      if shareTerminated {
+        print("⚠️ Share terminated detected for student: \(student.displayName)")
+        student.shareTerminated = true
+        student.shareTerminatedAt = record["shareTerminatedAt"] as? Date ?? Date()
+        student.shareRecordID = nil
+        student.lastModified = Date()
+        try modelContext.save()
+        print("✅ Updated local state for terminated share")
         return
       }
 

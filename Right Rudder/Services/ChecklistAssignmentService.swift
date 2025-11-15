@@ -104,6 +104,7 @@ class ChecklistAssignmentService {
   // MARK: - Removal
 
   /// Remove template assignment from student
+  /// CRITICAL: Syncs deletion to CloudKit if student has active share
   static func removeTemplate(
     _ template: ChecklistTemplate, from student: Student, modelContext: ModelContext
   ) {
@@ -111,6 +112,21 @@ class ChecklistAssignmentService {
       let assignment = student.checklistAssignments?.first(where: { $0.templateId == template.id })
     else {
       return
+    }
+
+    // CRITICAL: Delete from CloudKit first (if student has active share)
+    // This ensures the student app will detect the deletion on next sync
+    if student.shareRecordID != nil {
+      Task {
+        let shareService = CloudKitShareService.shared
+        // Check if share is actually active before attempting deletion
+        let hasActive = await shareService.hasActiveShare(for: student)
+        if hasActive {
+          await shareService.deleteAssignmentFromCloudKit(assignment: assignment, student: student)
+        } else {
+          print("⚠️ Share exists but is not active - skipping CloudKit deletion")
+        }
+      }
     }
 
     // Remove from student

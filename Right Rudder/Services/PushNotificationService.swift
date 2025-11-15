@@ -215,4 +215,138 @@ class PushNotificationService: ObservableObject {
       print("⚠️ Failed to send share acceptance notification: \(error)")
     }
   }
+
+  // MARK: - Share Termination Subscriptions
+
+  /// Creates a CloudKit subscription to monitor share terminations
+  /// Monitors Student records for shareTerminated flag changes
+  func subscribeToShareTerminations() async {
+    do {
+      let database = container.privateCloudDatabase
+
+      // Subscribe to Student records where shareTerminated is true
+      let predicate = NSPredicate(format: "shareTerminated == 1")
+
+      let subscription = CKQuerySubscription(
+        recordType: "Student",
+        predicate: predicate,
+        subscriptionID: "share-termination-subscription",
+        options: [.firesOnRecordUpdate]
+      )
+
+      // Configure notification info
+      let notificationInfo = CKSubscription.NotificationInfo()
+      notificationInfo.alertBody = "A share has been terminated"
+      notificationInfo.soundName = "default"
+      notificationInfo.shouldBadge = true
+      notificationInfo.shouldSendContentAvailable = true
+
+      // Add custom fields for deep linking
+      notificationInfo.desiredKeys = [
+        "firstName", "lastName", "shareTerminated", "shareTerminatedAt",
+      ]
+
+      subscription.notificationInfo = notificationInfo
+
+      // Save the subscription
+      _ = try await database.save(subscription)
+
+      print("✅ Successfully subscribed to share termination notifications")
+
+    } catch {
+      if let ckError = error as? CKError, ckError.code == .serverRejectedRequest {
+        print("ℹ️ Share termination subscription already exists")
+      } else {
+        print("⚠️ Failed to subscribe to share terminations: \(error)")
+        print("   Note: Periodic validation will still detect terminations")
+      }
+    }
+  }
+
+  /// Creates a database subscription to monitor share record deletions
+  /// This catches when CKShare records are deleted (instructor or student unlinks)
+  func subscribeToShareDeletions() async {
+    do {
+      let database = container.privateCloudDatabase
+
+      // Use CKDatabaseSubscription to monitor share record deletions
+      let subscription = CKDatabaseSubscription(subscriptionID: "share-deletion-subscription")
+
+      // Configure notification info
+      let notificationInfo = CKSubscription.NotificationInfo()
+      notificationInfo.alertBody = "A share has been removed"
+      notificationInfo.soundName = "default"
+      notificationInfo.shouldBadge = true
+      notificationInfo.shouldSendContentAvailable = true
+
+      subscription.notificationInfo = notificationInfo
+
+      // Save the subscription
+      _ = try await database.save(subscription)
+
+      print("✅ Successfully subscribed to share deletion notifications (database subscription)")
+
+    } catch {
+      if let ckError = error as? CKError, ckError.code == .serverRejectedRequest {
+        print("ℹ️ Share deletion subscription already exists")
+      } else {
+        print("⚠️ Failed to subscribe to share deletions: \(error)")
+        print("   Note: Periodic validation will still detect deletions")
+      }
+    }
+  }
+
+  /// Removes share termination subscriptions
+  func unsubscribeFromShareTerminations() async {
+    do {
+      let database = container.privateCloudDatabase
+      try await database.deleteSubscription(withID: "share-termination-subscription")
+      try await database.deleteSubscription(withID: "share-deletion-subscription")
+      print("✅ Successfully unsubscribed from share termination notifications")
+    } catch {
+      print("⚠️ Failed to unsubscribe from share terminations: \(error)")
+    }
+  }
+
+  /// Sends a local notification when a share is terminated
+  func notifyShareTermination(studentName: String, initiatedBy: String = "unknown") async {
+    let content = UNMutableNotificationContent()
+    content.title = "Share Terminated"
+    content.body = "The share with \(studentName) has been terminated"
+    content.sound = .default
+    content.badge = 1
+
+    // Add user info for handling
+    content.userInfo = [
+      "type": "shareTermination",
+      "studentName": studentName,
+      "initiatedBy": initiatedBy,
+    ]
+
+    // Create a trigger for immediate delivery
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+    let request = UNNotificationRequest(
+      identifier: "share-termination-\(UUID().uuidString)",
+      content: content,
+      trigger: trigger
+    )
+
+    do {
+      try await UNUserNotificationCenter.current().add(request)
+      print("✅ Sent local notification for share termination: \(studentName)")
+    } catch {
+      print("⚠️ Failed to send share termination notification: \(error)")
+    }
+  }
+
+  /// Initializes all CloudKit subscriptions
+  /// Should be called on app startup after requesting notification permissions
+  func initializeAllSubscriptions() async {
+    await subscribeToInstructorComments()
+    await subscribeToShareAcceptance()
+    await subscribeToShareTerminations()
+    await subscribeToShareDeletions()
+    print("✅ All CloudKit subscriptions initialized")
+  }
 }

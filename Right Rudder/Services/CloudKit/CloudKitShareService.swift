@@ -1891,6 +1891,11 @@ class CloudKitShareService: ObservableObject {
           print("⚠️ Failed to mark share as terminated (non-critical): \(error)")
         }
       }
+      
+      // Also update local student model
+      student.shareTerminated = true
+      student.shareTerminatedAt = Date()
+      student.lastModified = Date()
 
       // Delete the share record - this will notify the student app that sharing has ended
       try await database.deleteRecord(withID: shareRecordID)

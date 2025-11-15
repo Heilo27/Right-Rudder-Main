@@ -199,8 +199,8 @@ struct RightRudderApp: App {
 
         await pushNotificationService.checkNotificationPermission()
         if pushNotificationService.notificationPermissionGranted {
-          await pushNotificationService.subscribeToInstructorComments()
-          await pushNotificationService.subscribeToShareAcceptance()
+          // Initialize all CloudKit subscriptions
+          await pushNotificationService.initializeAllSubscriptions()
         }
 
         // Monitor share acceptance for all students

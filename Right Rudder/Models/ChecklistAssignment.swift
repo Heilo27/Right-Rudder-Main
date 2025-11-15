@@ -26,6 +26,11 @@ class ChecklistAssignment {
   var assignedAt: Date = Date()
   var lastModified: Date = Date()
 
+  // MARK: - Deletion Tracking
+  // Track deletion state for sync purposes
+  var isDeleted: Bool = false  // Soft deletion flag for sync tracking
+  var deletedAt: Date?  // Timestamp when deletion occurred
+
   // Progress tracking
   @Relationship(deleteRule: .cascade, inverse: \ItemProgress.assignment) var itemProgress:
     [ItemProgress]?
