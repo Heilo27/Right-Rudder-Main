@@ -167,9 +167,9 @@ Good examples of private usage:
 - [ ] Other service files (pending review)
 
 ### Low Priority (Review)
-- [ ] All model files
-- [ ] All view files
-- [ ] Utility files
+- [x] All model files ✅ (reviewed - using appropriate default internal access)
+- [x] All view files ✅ (reviewed - fixed EndorsementView, others use appropriate access)
+- [x] Utility files ✅ (reviewed - fixed ImageOptimizationService @objc methods)
 
 ---
 
