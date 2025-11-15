@@ -202,6 +202,8 @@ struct InstructorInfoView: View {
     showingSavedAlert = true
   }
 
+  // MARK: - Methods
+
   private func formatDate(_ date: Date) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "MM/dd/yyyy"
