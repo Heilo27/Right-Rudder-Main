@@ -9,14 +9,14 @@ import SwiftUI
 
 // MARK: - BannerSegmentView
 
-public struct BannerSegmentView: View {
+struct BannerSegmentView: View {
   // MARK: - Properties
 
-  public let position: Point
-  public let index: Int
-  public let total: Int
-  public let isLast: Bool
-  public let direction: Direction
+  let position: Point
+  let index: Int
+  let total: Int
+  let isLast: Bool
+  let direction: Direction
 
   // MARK: - Initialization
 
@@ -30,7 +30,7 @@ public struct BannerSegmentView: View {
 
   // MARK: - Body
 
-  public var body: some View {
+  var body: some View {
     ZStack {
       // Banner segment - orient based on direction
       Rectangle()

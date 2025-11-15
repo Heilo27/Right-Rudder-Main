@@ -9,10 +9,10 @@ import SwiftUI
 
 // MARK: - AirplaneView
 
-public struct AirplaneView: View {
+struct AirplaneView: View {
   // MARK: - Properties
 
-  public let direction: Direction
+  let direction: Direction
 
   // MARK: - Initialization
 
@@ -22,7 +22,7 @@ public struct AirplaneView: View {
 
   // MARK: - Body
 
-  public var body: some View {
+  var body: some View {
     Image(systemName: "airplane")
       .foregroundColor(.blue)
       .font(.system(size: 16, weight: .bold))

@@ -9,10 +9,10 @@ import SwiftUI
 
 // MARK: - CloudView
 
-public struct CloudView: View {
+struct CloudView: View {
   // MARK: - Body
 
-  public var body: some View {
+  var body: some View {
     ZStack {
       Circle()
         .fill(Color.white.opacity(0.8))

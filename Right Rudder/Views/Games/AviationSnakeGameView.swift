@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - AviationSnakeGameView
 
-public struct AviationSnakeGameView: View {
+struct AviationSnakeGameView: View {
   @Environment(\.dismiss) private var dismiss
   @StateObject private var game: SnakeGame
   @State private var direction: Direction = .right
@@ -27,7 +27,7 @@ public struct AviationSnakeGameView: View {
     _game = StateObject(wrappedValue: SnakeGame(columns: cols, rows: rows))
   }
 
-  public var body: some View {
+  var body: some View {
     ZStack {
       backgroundView
       mainGameView

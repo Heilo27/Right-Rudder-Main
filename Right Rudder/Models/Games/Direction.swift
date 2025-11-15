@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Direction
 
-public enum Direction {
+enum Direction {
   case up, down, left, right
 }
 
