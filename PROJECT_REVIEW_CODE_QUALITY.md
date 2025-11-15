@@ -70,9 +70,17 @@ Right Rudder/
 
 **Issues:**
 - ⚠️ Views and services in same directory
-- ⚠️ Models split across multiple files
+- ⚠️ Models split across multiple files (`NewModels.swift` contains 4 types - violates one-type-per-file)
 - ⚠️ No clear module organization
 - ⚠️ Documentation mixed with code
+- ⚠️ Several files exceed 1000-line guideline:
+  - `DefaultTemplates.swift`: 6107 lines
+  - `CloudKitShareService.swift`: 4276 lines
+  - `CloudKitSyncService.swift`: 1879 lines
+  - `StudentDetailView.swift`: 1524 lines
+  - `EndorsementView.swift`: 1248 lines
+- ⚠️ Only 14 of 74 files use MARK comments for organization
+- ⚠️ Access control not consistently applied (private by default)
 
 **Recommendation:**
 Consider organizing into:
@@ -127,6 +135,19 @@ Right Rudder/
 - Extract progress calculation to `StudentProgressService`
 - Create shared CloudKit sync utilities
 - Continue extracting reusable view components
+- Split `NewModels.swift` into separate files (one type per file)
+- Extract subviews from large view files (`StudentDetailView`, `EndorsementView`)
+- Refactor `DefaultTemplates.swift` (consider JSON resource or category-based files)
+- Add MARK comments to all files for better organization
+- Review and improve access control (private by default)
+
+**New Backlog Items Added:**
+- HIGH-008: Split NewModels.swift into separate files
+- HIGH-009: Extract subviews from StudentDetailView
+- HIGH-010: Extract subviews from EndorsementView
+- HIGH-011: Refactor DefaultTemplates.swift
+- MED-009: Add MARK comments to all files
+- MED-010: Review and improve access control
 
 ---
 

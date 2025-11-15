@@ -327,6 +327,138 @@ Core business logic for assigning templates to students has no tests.
 
 ---
 
+### HIGH-008: Split NewModels.swift into Separate Files
+**Category:** Code Organization  
+**Effort:** 2-4 hours  
+**Dependencies:** None
+
+**Description:**
+`NewModels.swift` violates one-type-per-file rule. Contains 4 model classes that should be in separate files:
+- `ChecklistAssignment`
+- `ItemProgress`
+- `CustomChecklistDefinition`
+- `CustomChecklistItem`
+
+**Tasks:**
+1. Create `ChecklistAssignment.swift`
+2. Create `ItemProgress.swift`
+3. Create `CustomChecklistDefinition.swift`
+4. Create `CustomChecklistItem.swift`
+5. Update imports across codebase
+6. Delete `NewModels.swift`
+
+**Acceptance Criteria:**
+- [ ] Each model in its own file
+- [ ] File names match type names
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] No functionality lost
+
+**Files:**
+- `NewModels.swift` → Split into 4 files
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - One Type Per File
+
+---
+
+### HIGH-009: Extract Subviews from StudentDetailView
+**Category:** Code Organization / Architecture  
+**Effort:** 8-12 hours  
+**Dependencies:** None
+
+**Description:**
+`StudentDetailView.swift` is 1524 lines, exceeding the 1000-line guideline. Needs subview extraction.
+
+**Tasks:**
+1. Identify logical subview components
+2. Extract subviews to separate files
+3. Use MARK comments for organization
+4. Maintain functionality
+5. Improve testability
+
+**Proposed Subviews:**
+- `StudentHeaderView` - Student info header
+- `StudentChecklistsView` - Checklist list section
+- `StudentEndorsementsView` - Endorsements section
+- `StudentDocumentsView` - Documents section
+- `StudentProgressView` - Progress indicators
+
+**Acceptance Criteria:**
+- [ ] Main view < 500 lines
+- [ ] Subviews extracted to separate files
+- [ ] MARK comments organize sections
+- [ ] All functionality preserved
+- [ ] Build succeeds
+
+**Files:**
+- `StudentDetailView.swift` → Extract subviews
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - File Size Guidelines
+
+---
+
+### HIGH-010: Extract Subviews from EndorsementView
+**Category:** Code Organization / Architecture  
+**Effort:** 6-10 hours  
+**Dependencies:** None
+
+**Description:**
+`EndorsementView.swift` is 1248 lines, exceeding the 1000-line guideline. Needs subview extraction.
+
+**Tasks:**
+1. Identify logical subview components
+2. Extract subviews to separate files
+3. Use MARK comments for organization
+4. Maintain functionality
+
+**Acceptance Criteria:**
+- [ ] Main view < 500 lines
+- [ ] Subviews extracted to separate files
+- [ ] MARK comments organize sections
+- [ ] All functionality preserved
+- [ ] Build succeeds
+
+**Files:**
+- `EndorsementView.swift` → Extract subviews
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - File Size Guidelines
+
+---
+
+### HIGH-011: Refactor DefaultTemplates.swift
+**Category:** Code Organization / Technical Debt  
+**Effort:** 12-20 hours  
+**Dependencies:** None
+
+**Description:**
+`DefaultTemplates.swift` is 6107 lines - extremely large. Contains default checklist templates that should be organized better.
+
+**Tasks:**
+1. Analyze template structure
+2. Consider moving templates to JSON resource file
+3. Or split into category-based files (PPL, IFR, CPL, etc.)
+4. Create template loading service
+5. Maintain backward compatibility
+
+**Options:**
+- **Option A:** Move templates to JSON file, load via service
+- **Option B:** Split into category files (`DefaultTemplatesPPL.swift`, etc.)
+- **Option C:** Extract template definitions to separate model files
+
+**Acceptance Criteria:**
+- [ ] File size reduced significantly (< 1000 lines)
+- [ ] Templates still load correctly
+- [ ] No functionality lost
+- [ ] Better maintainability
+- [ ] Build succeeds
+
+**Files:**
+- `DefaultTemplates.swift` → Refactor
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - File Size Guidelines
+
+---
+
 ### HIGH-008: Add Accessibility Features
 **Category:** Feature / Accessibility  
 **Effort:** 16-24 hours  
@@ -534,7 +666,7 @@ SwiftData model relationships need testing to ensure integrity.
 ### MED-004: Organize Code into Logical Directories
 **Category:** Code Organization  
 **Effort:** 4-6 hours  
-**Dependencies:** None
+**Dependencies:** HIGH-008, HIGH-009, HIGH-010 (complete file splits first)
 
 **Description:**
 Views and services are mixed in same directory. Need better organization.
@@ -543,8 +675,21 @@ Views and services are mixed in same directory. Need better organization.
 ```
 Right Rudder/
 ├── Models/
+│   ├── Student.swift
+│   ├── ChecklistTemplate.swift
+│   ├── ChecklistAssignment.swift
+│   ├── ItemProgress.swift
+│   ├── CustomChecklistDefinition.swift
+│   ├── CustomChecklistItem.swift
+│   ├── StudentDocument.swift
+│   └── EndorsementImage.swift
 ├── Views/
 │   ├── Student/
+│   │   ├── StudentsView.swift
+│   │   ├── StudentDetailView.swift
+│   │   ├── StudentHeaderView.swift
+│   │   ├── StudentChecklistsView.swift
+│   │   └── ...
 │   ├── Checklist/
 │   ├── Endorsement/
 │   └── Settings/
@@ -560,6 +705,69 @@ Right Rudder/
 - [ ] Easy to find files
 - [ ] No broken imports
 - [ ] Build succeeds
+- [ ] Follows code organization rules
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - Directory Organization
+
+---
+
+### MED-009: Add MARK Comments to All Files
+**Category:** Code Organization  
+**Effort:** 4-8 hours  
+**Dependencies:** None
+
+**Description:**
+Only 14 of 74 files use MARK comments. All files should be organized with MARK comments for better navigation.
+
+**Tasks:**
+1. Audit files without MARK comments
+2. Add MARK comments to organize sections:
+   - Properties
+   - Initialization
+   - Body/Computed Properties
+   - Subviews
+   - Methods
+   - Extensions
+3. Ensure consistent MARK format
+
+**Acceptance Criteria:**
+- [ ] All files have MARK comments
+- [ ] Consistent MARK format
+- [ ] Logical section organization
+- [ ] Improved Xcode navigation
+
+**Files:**
+- All Swift files (60 files need MARK comments)
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - MARK Comment Guidelines
+
+---
+
+### MED-010: Review and Improve Access Control
+**Category:** Code Organization / Security  
+**Effort:** 6-10 hours  
+**Dependencies:** None
+
+**Description:**
+Review access control across codebase. Ensure private by default, public only when needed.
+
+**Tasks:**
+1. Audit access levels in all files
+2. Make properties/methods private by default
+3. Use internal for module-level access
+4. Use public only for APIs
+5. Document access control decisions
+
+**Acceptance Criteria:**
+- [ ] Private by default principle followed
+- [ ] Public APIs clearly identified
+- [ ] Access control documented
+- [ ] No unnecessary public exposure
+
+**Files:**
+- All Swift files
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - Access Control
 
 ---
 
@@ -891,15 +1099,15 @@ File uses underscore naming (legacy). Should be `RightRudderApp.swift`.
 ### LOW-002: Rename NewModels.swift
 **Category:** Code Quality  
 **Effort:** 1 hour  
-**Dependencies:** None
+**Dependencies:** HIGH-008 (will be split, so rename not needed)
 
 **Description:**
-File name is generic. Should be more specific (e.g., `ChecklistModels.swift`).
+File name is generic. Should be more specific (e.g., `ChecklistModels.swift`). **Note:** This will be addressed by HIGH-008 which splits the file into separate model files.
+
+**Status:** Superseded by HIGH-008
 
 **Acceptance Criteria:**
-- [ ] File renamed appropriately
-- [ ] All references updated
-- [ ] Build succeeds
+- [x] Addressed by HIGH-008
 
 ---
 
@@ -1086,8 +1294,8 @@ Refactor legacy code patterns as opportunities arise.
 
 **Code Quality:** 8 items
 - CRIT-004: Formatting violations
-- HIGH-005, HIGH-006, HIGH-007: Refactoring
-- MED-004, MED-005, MED-006: Organization
+- HIGH-005, HIGH-006, HIGH-007, HIGH-008, HIGH-009, HIGH-010, HIGH-011: Refactoring and code organization
+- MED-004, MED-005, MED-006, MED-009, MED-010: Organization and code quality
 - LOW-001, LOW-002: Naming
 
 **Process:** 6 items
@@ -1160,6 +1368,15 @@ Refactor legacy code patterns as opportunities arise.
 1. HIGH-005: Split CloudKitShareService
 2. HIGH-006: Split CloudKitSyncService
 3. HIGH-007: Extract progress calculation
+4. HIGH-008: Split NewModels.swift
+5. HIGH-009: Extract StudentDetailView subviews
+6. HIGH-010: Extract EndorsementView subviews
+7. HIGH-011: Refactor DefaultTemplates.swift
+
+### Phase 5: Code Organization (Weeks 13-14)
+1. MED-004: Organize code into directories
+2. MED-009: Add MARK comments to all files
+3. MED-010: Review access control
 4. MED-004: Organize code
 5. MED-006: Standardize errors
 
