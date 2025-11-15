@@ -12,12 +12,16 @@ import SwiftData
 
 @Model
 class CustomChecklistDefinition {
+  // MARK: - Properties
+
   var id: UUID = UUID()  // Same as templateId
   var customName: String = ""
   var customCategory: String?
   var customItems: [CustomChecklistItem]?
   var cloudKitRecordID: String?
   var lastModified: Date = Date()
+
+  // MARK: - Initialization
 
   init(id: UUID, customName: String, customCategory: String?) {
     self.id = id

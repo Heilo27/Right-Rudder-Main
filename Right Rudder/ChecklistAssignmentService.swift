@@ -1,7 +1,11 @@
 import Foundation
 import SwiftData
 
+// MARK: - ChecklistAssignmentService
+
 class ChecklistAssignmentService {
+
+  // MARK: - Assignment Management
 
   /// Assign a template to a student using new library-based system
   static func assignTemplate(
@@ -97,6 +101,8 @@ class ChecklistAssignmentService {
     }
   }
 
+  // MARK: - Removal
+
   /// Remove template assignment from student
   static func removeTemplate(
     _ template: ChecklistTemplate, from student: Student, modelContext: ModelContext
@@ -126,6 +132,8 @@ class ChecklistAssignmentService {
       }
     }
   }
+
+  // MARK: - Display Helpers
 
   /// Get display items for a student's checklist assignment
   /// Safely handles invalidated SwiftData objects
@@ -200,6 +208,8 @@ class ChecklistAssignmentService {
     }.sorted { $0.order < $1.order }
   }
 
+  // MARK: - Item Progress Updates
+
   /// Update item completion status
   static func updateItemCompletion(
     _ assignment: ChecklistAssignment, templateItemId: UUID, isComplete: Bool, notes: String? = nil,
@@ -255,6 +265,8 @@ class ChecklistAssignmentService {
     }
   }
 
+  // MARK: - Relationship Management
+
   /// Ensures the template relationship is set for an assignment by looking up the template by templateId
   /// Returns true if relationship was set, false if template not found
   static func ensureTemplateRelationship(
@@ -283,6 +295,8 @@ class ChecklistAssignmentService {
     }
   }
 }
+
+// MARK: - DisplayChecklistItem
 
 // Helper struct for display
 struct DisplayChecklistItem {

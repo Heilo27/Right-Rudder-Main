@@ -17,6 +17,8 @@ class ChecklistAssignment {
   var templateIdentifier: String?  // Fallback for custom
   var isCustomChecklist: Bool = false  // True if user-created
 
+  // MARK: - Properties
+
   // MARK: - Instructor-Owned Fields (Read-Only for Student)
   // These fields are written by instructor app, read-only in student app
   var instructorComments: String?  // INSTRUCTOR → STUDENT (read-only for student)
@@ -28,8 +30,13 @@ class ChecklistAssignment {
   @Relationship(deleteRule: .cascade, inverse: \ItemProgress.assignment) var itemProgress:
     [ItemProgress]?
 
+  // MARK: - Relationships
+
   // Relationships
   var student: Student?
+  var template: ChecklistTemplate?
+
+  // MARK: - Initialization
 
   init(templateId: UUID, templateIdentifier: String? = nil, isCustomChecklist: Bool = false) {
     self.templateId = templateId
@@ -37,6 +44,8 @@ class ChecklistAssignment {
     self.isCustomChecklist = isCustomChecklist
     self.lastModified = Date()
   }
+
+  // MARK: - Computed Properties
 
   // Computed properties for easy access
   var progressPercentage: Double {
@@ -85,7 +94,4 @@ class ChecklistAssignment {
 
     return "Unknown Checklist"
   }
-
-  // Relationship to template (for instructor app)
-  var template: ChecklistTemplate?
 }

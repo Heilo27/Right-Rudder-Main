@@ -2,6 +2,8 @@ import CloudKit
 import Foundation
 import SwiftData
 
+// MARK: - DocumentType Enum
+
 enum DocumentType: String, Codable, CaseIterable {
   case studentPilotCertificate = "Student Pilot Certificate"
   case medicalCertificate = "Medical Certificate"
@@ -22,6 +24,8 @@ enum DocumentType: String, Codable, CaseIterable {
   }
 }
 
+// MARK: - StudentDocument Model
+
 @Model
 class StudentDocument {
   var id: UUID = UUID()
@@ -37,17 +41,25 @@ class StudentDocument {
   var expirationDate: Date?
 
   // MARK: - CloudKit Sync Attributes
+
+  // CloudKit sync attributes
   var cloudKitRecordID: String?
   var lastModified: Date = Date()
   var lastModifiedBy: String?  // Tracks who last modified: "instructor" or "student"
 
+  // MARK: - Relationships
+
   // Inverse relationship
   var student: Student?
+
+  // MARK: - Computed Properties
 
   var documentType: DocumentType {
     get { DocumentType(rawValue: documentTypeRaw) ?? .studentPilotCertificate }
     set { documentTypeRaw = newValue.rawValue }
   }
+
+  // MARK: - Initialization
 
   init(
     documentType: DocumentType, filename: String, fileData: Data? = nil,

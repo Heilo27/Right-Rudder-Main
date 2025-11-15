@@ -2,6 +2,8 @@ import CloudKit
 import Foundation
 import SwiftData
 
+// MARK: - ChecklistItem Model
+
 @Model
 class ChecklistItem {
   var id: UUID = UUID()
@@ -13,8 +15,12 @@ class ChecklistItem {
   var cloudKitRecordID: String?
   var lastModified: Date = Date()
 
+  // MARK: - Relationships
+
   // Inverse relationship
   var template: ChecklistTemplate?
+
+  // MARK: - Initialization
 
   init(title: String, notes: String? = nil, order: Int = 0) {
     self.title = title
@@ -23,6 +29,8 @@ class ChecklistItem {
     self.lastModified = Date()
   }
 }
+
+// MARK: - ChecklistTemplate Model
 
 @Model
 class ChecklistTemplate {
@@ -34,6 +42,8 @@ class ChecklistTemplate {
   @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.template) var items: [ChecklistItem]?
   var createdAt: Date = Date()
 
+  // MARK: - Template Tracking
+
   // Template tracking
   var isUserCreated: Bool = false  // True if created by user (not default)
   var isUserModified: Bool = false  // True if user edited a default template
@@ -41,14 +51,20 @@ class ChecklistTemplate {
   var templateIdentifier: String?  // Unique identifier for default templates (e.g., "default_p1_l1")
   var contentHash: String?  // NEW: Integrity verification hash
 
+  // MARK: - Relationships
+
   // NEW: Track which students have this template assigned
   @Relationship(deleteRule: .nullify, inverse: \ChecklistAssignment.template)
   var studentAssignments: [ChecklistAssignment]?
+
+  // MARK: - CloudKit Sync Attributes
 
   // CloudKit sync attributes
   var cloudKitRecordID: String?
   var shareRecordID: String?  // For sharing templates to student app
   var lastModified: Date = Date()
+
+  // MARK: - Initialization
 
   init(
     name: String, category: String, phase: String? = nil, relevantData: String? = nil,
@@ -72,6 +88,8 @@ class ChecklistTemplate {
     // Compute initial content hash
     self.contentHash = computeContentHash()
   }
+
+  // MARK: - Content Hash Management
 
   // NEW: Compute content hash for integrity verification
   func computeContentHash() -> String {

@@ -10,7 +10,11 @@ import ContactsUI
 import SwiftData
 import SwiftUI
 
+// MARK: - AddStudentView
+
 struct AddStudentView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
 
@@ -27,6 +31,8 @@ struct AddStudentView: View {
   // Get instructor information from settings
   @AppStorage("instructorName") private var instructorName: String = ""
   @AppStorage("instructorCFINumber") private var instructorCFINumber: String = ""
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -94,11 +100,15 @@ struct AddStudentView: View {
     }
   }
 
+  // MARK: - Computed Properties
+
   private var isFormValid: Bool {
     !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
+
+  // MARK: - Methods
 
   private func saveStudent() async {
     let student = Student(

@@ -8,9 +8,15 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ContentView
+
 struct ContentView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @State private var selectedTab = 0
+
+  // MARK: - Body
 
   var body: some View {
     TabView(selection: $selectedTab) {

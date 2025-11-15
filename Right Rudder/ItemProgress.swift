@@ -12,6 +12,8 @@ import SwiftData
 
 @Model
 class ItemProgress {
+  // MARK: - Properties
+
   var id: UUID = UUID()
   var templateItemId: UUID = UUID()  // References library item
 
@@ -22,13 +24,19 @@ class ItemProgress {
   var completedAt: Date?
   var lastModified: Date = Date()
 
+  // MARK: - Relationships
+
   // Relationship
   var assignment: ChecklistAssignment?
+
+  // MARK: - Initialization
 
   init(templateItemId: UUID) {
     self.templateItemId = templateItemId
     self.lastModified = Date()
   }
+
+  // MARK: - Computed Properties
 
   // CloudKit compatibility - generate display title
   var displayTitle: String {

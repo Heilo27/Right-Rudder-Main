@@ -12,13 +12,19 @@ import SwiftData
 
 @Model
 class CustomChecklistItem {
+  // MARK: - Properties
+
   var id: UUID = UUID()
   var title: String = ""
   var notes: String?
   var order: Int = 0
 
+  // MARK: - Relationships
+
   // Relationship
   var definition: CustomChecklistDefinition?
+
+  // MARK: - Initialization
 
   init(id: UUID = UUID(), title: String, notes: String? = nil, order: Int) {
     self.id = id

@@ -8,8 +8,12 @@
 import Foundation
 import SwiftData
 
+// MARK: - DatabaseErrorHandler
+
 /// Utility for detecting and handling database errors, especially disk I/O errors
 enum DatabaseErrorHandler {
+  // MARK: - Constants
+
   /// SQLite error codes that indicate disk I/O problems
   static let diskIOErrorCodes: Set<Int> = [
     778,  // I/O error for database
@@ -18,6 +22,8 @@ enum DatabaseErrorHandler {
     11,  // database locked
     14,  // unable to open database file
   ]
+
+  // MARK: - Error Detection
 
   /// Checks if an error is a disk I/O error
   static func isDiskIOError(_ error: Error) -> Bool {
