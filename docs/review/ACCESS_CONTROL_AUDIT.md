@@ -159,11 +159,12 @@ Good examples of private usage:
 - [x] `Models/Games/Direction.swift` ✅ Fixed
 
 ### Medium Priority (Service APIs)
-- [ ] `Services/CloudKit/CloudKitShareService.swift`
-- [ ] `Services/CloudKit/CloudKitSyncService.swift`
-- [ ] `Services/CloudKit/CloudKitBackupService.swift`
-- [ ] `Services/CloudKit/CloudKitConflictDetector.swift`
-- [ ] Other service files
+- [x] `Services/CloudKit/CloudKitShareService.swift` ✅ (already has private init)
+- [x] `Services/CloudKit/CloudKitSyncService.swift` ✅ (reviewed, init must remain public)
+- [x] `Services/PushNotificationService.swift` ✅ (fixed: made init private)
+- [ ] `Services/CloudKit/CloudKitBackupService.swift` (pending review)
+- [ ] `Services/CloudKit/CloudKitConflictDetector.swift` (pending review)
+- [ ] Other service files (pending review)
 
 ### Low Priority (Review)
 - [ ] All model files

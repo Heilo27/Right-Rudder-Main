@@ -789,6 +789,12 @@ Review access control across codebase. Ensure private by default, public only wh
 - ✅ All game components now use internal access (default)
 - ✅ Build verified: ✅ BUILD SUCCEEDED
 
+**Phase 2 Progress:**
+- ✅ Reviewed singleton services
+- ✅ Fixed `PushNotificationService.init()` to be private (singleton pattern)
+- ✅ Reviewed `CloudKitSyncService` (init must remain public - instantiated directly)
+- ✅ Verified `CloudKitShareService` already has private init
+
 **Acceptance Criteria:**
 - [x] Phase 1: Game components fixed
 - [ ] Phase 2: Service APIs reviewed
