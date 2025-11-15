@@ -63,6 +63,9 @@ Right Rudder/
 │   ├── Models/                  # SwiftData models
 │   ├── Views/                   # SwiftUI views
 │   ├── Services/                # Business logic services
+│   ├── ChecklistLibrary/        # Checklist library data
+│   │   ├── DefaultChecklistLibrary.json  # Student app library reference
+│   │   └── item_mappings_new.txt         # Template-to-UUID mapping reference
 │   └── ...
 └── Right Rudder.xcodeproj       # Xcode project
 ```
