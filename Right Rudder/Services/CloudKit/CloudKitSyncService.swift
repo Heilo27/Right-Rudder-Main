@@ -22,7 +22,7 @@ class CloudKitSyncService: ObservableObject {
 
   // MARK: - Initialization
 
-  private init() {
+  init() {
     self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
   }
 

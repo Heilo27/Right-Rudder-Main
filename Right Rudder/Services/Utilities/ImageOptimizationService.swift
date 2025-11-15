@@ -110,7 +110,7 @@ class ImageOptimizationService {
   }
 
   // Handle low memory warnings more aggressively
-  @objc func handleLowMemory() {
+  @objc private func handleLowMemory() {
     imageCache.removeAllObjects()
     print("Image cache cleared due to low memory warning")
 

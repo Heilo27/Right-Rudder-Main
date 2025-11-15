@@ -43,7 +43,7 @@ struct EndorsementGeneratorView: View {
 
   // MARK: - Initialization
 
-  public init() {}
+  init() {}
 
   // MARK: - Computed Properties
 
