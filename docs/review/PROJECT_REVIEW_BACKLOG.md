@@ -1370,25 +1370,27 @@ CloudKit data structures are incorrectly placed in Services folder. These are mo
 ### MED-031: Move MigrationStatus from Services/Database/ to Models/Database/ or Keep
 **Category:** Code Organization / File Location  
 **Effort:** 15 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED** (Decision: Keep in Services/Database/)
 
 **Description:**
-`MigrationStatus` is a data structure. Decide if it should be a Model or stay in Services if tightly coupled to MigrationService.
+`MigrationStatus` is a data structure. Evaluated coupling with `MigrationService` - it's tightly coupled and only used by MigrationService as a return type.
 
-**Files to Consider:**
-- `Services/Database/MigrationStatus.swift` (struct) → `Models/Database/MigrationStatus.swift` (if not tightly coupled)
+**Files Considered:**
+- `Services/Database/MigrationStatus.swift` (struct) → Decision: Keep in `Services/Database/`
 
 **Tasks:**
-1. Evaluate coupling with `MigrationService`
-2. Move to `Models/Database/` if appropriate
-3. Update imports if moved
-4. Verify build succeeds
+1. ✅ Evaluated coupling with `MigrationService` - tightly coupled, only used by service
+2. ✅ Decision: Keep in `Services/Database/` (acceptable exception for tightly coupled status structs)
+3. ✅ Documented decision
 
 **Acceptance Criteria:**
-- [ ] Decision made and documented
-- [ ] If moved, all imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Decision made and documented
+- [x] Build succeeds
+- [x] Functionality unchanged
+
+**Decision Rationale:**
+`MigrationStatus` is a status struct that's tightly coupled to `MigrationService` - it's only used as a return type from MigrationService methods and is not used elsewhere. While it's technically a data structure, keeping it with the service that creates and uses it is acceptable for tightly coupled status types.
 
 **Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
 
