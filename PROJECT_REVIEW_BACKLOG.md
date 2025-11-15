@@ -1360,7 +1360,7 @@ Refactor legacy code patterns as opportunities arise.
 ### Phase 3: Quality & Testing (Weeks 5-8)
 1. HIGH-016: Set up CI/CD
 2. MED-001, MED-002, MED-003: Write more tests
-3. HIGH-008: Add accessibility
+3. HIGH-013: Add accessibility
 4. MED-005: Create format config
 5. MED-011: Add pre-commit hooks
 
