@@ -1,6 +1,6 @@
 ---
 description: General development practices and lessons learned for Right Rudder
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Right Rudder Development Practices

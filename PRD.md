@@ -911,8 +911,8 @@ Memory and performance optimizations for smooth operation.
 - **App Store Listing:** https://apps.apple.com/us/app/right-rudder/id6753633792
 - **AGENTS.md:** Development playbook
 - **CloudKitSharingGuide.md:** CloudKit sharing implementation guide
-- **VERSION_MANAGEMENT_GUIDE.md:** Version management process
-- **Project Review Documents:** See PROJECT_REVIEW_*.md files
+- **Version Management:** See `.cursor/rules/version-management.mdc` for guidelines
+- **Project Review Documents:** See `docs/review/PROJECT_REVIEW_INDEX.md` for all review documents
 
 ### Appendix C: Change Log
 

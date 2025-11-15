@@ -1,4 +1,10 @@
-# Quick Version Setup - 5 Minutes
+---
+description: Quick setup guide for version management in Right Rudder
+---
+
+# Setup Version Management
+
+Quick 5-minute guide to set up semantic versioning with automatic build number increments for Right Rudder.
 
 ## Step 1: Set Current Version (2 minutes)
 
@@ -6,8 +12,8 @@
 2. Select **Right Rudder target** (blue icon)
 3. Click **General** tab
 4. Under **Identity**, set:
-   - **Version**: `2.0.0` (for all your major features)
-   - **Build**: Leave as-is
+   - **Version**: `2.0.0` (or your current version)
+   - **Build**: Leave as-is (will auto-increment)
 
 ## Step 2: Add Auto-Increment Script (3 minutes)
 
@@ -42,7 +48,7 @@ fi
 8. **Rename** the phase: Double-click "Run Script" → type `Auto-Increment Build Number`
 9. **Build your project** (Cmd+B) → Watch build number increment!
 
-## Step 3: Understand the System
+## Understanding the System
 
 ### Automatic (Build Number)
 - Increments **every build** automatically
@@ -70,7 +76,7 @@ Use Semantic Versioning:
 - UI improvements
 - **Example:** Military time fix, sorting fix
 
-## Step 4: When to Update Version
+## When to Update Version
 
 ### Before Submitting to App Store:
 1. **Decide:** Is this a major feature (MINOR) or a fix (PATCH)?
@@ -102,4 +108,8 @@ Now:
 - ✅ Professional version management
 
 Build your project now to test it!
+
+---
+
+**For detailed version management guidelines**, see `.cursor/rules/version-management.mdc`
 

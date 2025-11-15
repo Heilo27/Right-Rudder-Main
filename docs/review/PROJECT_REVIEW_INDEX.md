@@ -1,8 +1,11 @@
 # Right Rudder Project Review - Index
 
-**Review Completed:** January 2025
+**Review Completed:** January 2025  
+**Location:** `docs/review/`
 
 This directory contains the complete project review deliverables for Right Rudder. All documents are in Markdown format and can be viewed in any Markdown viewer or GitHub.
+
+**Note:** These documents were moved from the repository root to `docs/review/` for better organization.
 
 ---
 

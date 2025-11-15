@@ -1,19 +1,23 @@
-# Version Management Guide for Right Rudder
+---
+description: Version management guidelines for Right Rudder using Semantic Versioning
+alwaysApply: false
+---
+
+# Version Management Guidelines
+
+Comprehensive guide for managing version numbers in Right Rudder using **Semantic Versioning** with automatic build number increments.
 
 ## Overview
-This guide explains how to manage version numbers for the Right Rudder app using **Semantic Versioning** with automatic build number increments.
 
-## Understanding Version Numbers
+Right Rudder uses two version identifiers:
 
-Your app has two version identifiers:
-
-### 1. **Version Number** (CFBundleShortVersionString)
-- Format: `MAJOR.MINOR.PATCH` (e.g., 2.1.3)
+### 1. Version Number (CFBundleShortVersionString)
+- Format: `MAJOR.MINOR.PATCH` (e.g., `2.1.3`)
 - **User-facing** - shown in App Store and Settings
 - **Manually controlled** - you decide when to increment based on changes
 - Examples: `1.0.0`, `1.5.2`, `2.0.0`
 
-### 2. **Build Number** (CFBundleVersion)
+### 2. Build Number (CFBundleVersion)
 - Format: Integer (e.g., 42, 150, 1234)
 - **Internal tracking** - shown in Settings and TestFlight
 - **Automatically incremented** - increases with every build
@@ -22,6 +26,7 @@ Your app has two version identifiers:
 ## Semantic Versioning System
 
 ### MAJOR Version (X.0.0)
+
 **Increment when:** Adding breaking changes or major overhauls
 - Complete UI redesigns
 - Major architectural changes
@@ -37,6 +42,7 @@ Your app has two version identifiers:
 ---
 
 ### MINOR Version (1.X.0)
+
 **Increment when:** Adding significant new features
 - New major functionality (e.g., CloudKit sharing, template sharing)
 - New screens or major UI sections
@@ -53,6 +59,7 @@ Your app has two version identifiers:
 ---
 
 ### PATCH Version (1.1.X)
+
 **Increment when:** Making bug fixes or minor improvements
 - Bug fixes
 - Performance improvements
@@ -68,40 +75,16 @@ Your app has two version identifiers:
 
 **When to use:** For maintenance releases and small improvements
 
----
-
 ## Automatic Build Number Increment
 
-### Setup in Xcode
+### Setup
 
-1. **Open your Xcode project**
-2. Select the **Right Rudder** target
-3. Go to **Build Phases** tab
-4. Click **+ (plus)** button → **New Run Script Phase**
-5. **Drag the script phase** to be BEFORE "Compile Sources"
-6. Paste this script:
+The auto-increment script should be configured in Xcode Build Phases:
 
-```bash
-# Auto-increment build number
-if [ "$CONFIGURATION" = "Release" ] || [ "$CONFIGURATION" = "Debug" ]; then
-    PLIST="${PROJECT_DIR}/Right Rudder/Info.plist"
-    
-    if [ -f "$PLIST" ]; then
-        CURRENT_BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$PLIST" 2>/dev/null)
-        
-        if [ -z "$CURRENT_BUILD" ]; then
-            CURRENT_BUILD=0
-        fi
-        
-        NEW_BUILD=$((CURRENT_BUILD + 1))
-        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$PLIST"
-        
-        echo "✅ Build number: $CURRENT_BUILD → $NEW_BUILD"
-    fi
-fi
-```
-
-7. Name the phase: **"Auto-Increment Build Number"**
+1. **Right Rudder target** → **Build Phases** tab
+2. **Run Script Phase** named "Auto-Increment Build Number"
+3. **Position**: BEFORE "Compile Sources"
+4. **Script**: See `.cursor/commands/setup-versioning.md` for script content
 
 ### How It Works
 
@@ -110,70 +93,9 @@ fi
 - **No manual intervention**: Set it and forget it
 - **Git-friendly**: Only Info.plist changes, easy to track
 
----
-
-## Practical Version Management Workflow
-
-### Current State Assessment
-Based on your recent additions, I recommend:
-
-**Current Version:** `2.0.0` (Build: auto-increments)
-
-**Reasoning:**
-- You've added major features (CloudKit sharing, template sharing, student companion app)
-- This represents a significant evolution from the original app
-- Starting at 2.0.0 makes sense for a feature-rich release
-
-### Example Version History
-
-```
-Version 1.0.0 (Build 1-50)
-├─ Initial release with student management
-└─ Basic checklist functionality
-
-Version 1.1.0 (Build 51-75)
-├─ Added CloudKit backup/restore
-└─ Improved student detail view
-
-Version 1.2.0 (Build 76-100)
-├─ Added template sharing
-└─ Added companion app integration
-
-Version 1.2.1 (Build 101-110)
-├─ Fixed military time display
-├─ Fixed checklist sorting
-└─ Minor UI improvements
-
-Version 2.0.0 (Build 111+)
-├─ Major CloudKit sharing overhaul
-├─ Student companion app
-├─ Document management
-└─ Push notifications
-```
-
----
-
-## How to Change Version Numbers
-
-### Method 1: Xcode UI
-1. Select your project in Project Navigator
-2. Select the **Right Rudder** target
-3. Go to **General** tab
-4. Under **Identity**, find:
-   - **Version**: Change this manually (e.g., `2.0.0` → `2.1.0`)
-   - **Build**: Auto-increments (leave it)
-
-### Method 2: Info.plist
-1. Open `Right Rudder/Info.plist`
-2. Find or add:
-   - `CFBundleShortVersionString`: Your version (e.g., `2.0.0`)
-   - `CFBundleVersion`: Build number (auto-increments)
-
----
-
 ## Decision Guide: "What Version Should This Be?"
 
-### Use this flowchart:
+### Flowchart
 
 ```
 Does this change break compatibility or completely overhaul the app?
@@ -189,7 +111,7 @@ Is this a bug fix or small improvement?
 └─ NO → No version change needed
 ```
 
-### Real Examples from Your App:
+### Real Examples
 
 | Change | Version Change | Reasoning |
 |--------|---------------|-----------|
@@ -200,7 +122,23 @@ Is this a bug fix or small improvement?
 | Fixed typo in button text | No change | Too minor, just build increment |
 | Complete UI redesign | 2.0.0 → 3.0.0 | Breaking change (MAJOR) |
 
----
+## How to Change Version Numbers
+
+### Method 1: Xcode UI (Recommended)
+
+1. Select your project in Project Navigator
+2. Select the **Right Rudder** target
+3. Go to **General** tab
+4. Under **Identity**, find:
+   - **Version**: Change this manually (e.g., `2.0.0` → `2.1.0`)
+   - **Build**: Auto-increments (leave it)
+
+### Method 2: Info.plist
+
+1. Open `Right Rudder/Info.plist`
+2. Find or add:
+   - `CFBundleShortVersionString`: Your version (e.g., `2.0.0`)
+   - `CFBundleVersion`: Build number (auto-increments)
 
 ## Best Practices
 
@@ -210,14 +148,14 @@ Is this a bug fix or small improvement?
 - Document version changes in release notes
 - Use consistent versioning across all targets
 - Commit version changes to git with descriptive messages
+- Use semantic versioning consistently
 
 ### ❌ DON'T:
 - Manually edit build numbers (let the script handle it)
 - Skip version increments (1.0.0 → 1.2.0)
 - Use version 0.x.x in production
 - Reset build numbers (they should always increase)
-
----
+- Change version for every commit (only for releases)
 
 ## Quick Reference
 
@@ -229,27 +167,34 @@ Is this a bug fix or small improvement?
 | Building for testing | Do nothing | Build auto-increments |
 | Submitting to App Store | Check version is correct | Ensure version reflects changes |
 
----
+## Current Version
 
-## Setting Your Current Version
+**Right Rudder Instructor App:**
+- **Version**: Check Xcode project settings
+- **Build**: Auto-increments
 
-Based on everything you've added, I recommend:
+**To check current version:**
+1. Open Xcode → Right Rudder target → General tab
+2. Or check `Right Rudder/Info.plist`:
+   - `CFBundleShortVersionString` = Version
+   - `CFBundleVersion` = Build
 
-### Right Rudder Instructor App
-```
-Version: 2.0.0
-Build: (auto-increments)
-```
+## Troubleshooting
 
-### To set this:
-1. Open Xcode
-2. Select Right Rudder target → General tab
-3. Set Version to: `2.0.0`
-4. Leave Build as-is (script will handle it)
-5. Add the auto-increment script to Build Phases
-6. Build the project → Build number will auto-increment
+### Build number not incrementing
+- Check the script is in Build Phases
+- Ensure script runs BEFORE "Compile Sources"
+- Check Info.plist path is correct in script
+- Clean build folder (Cmd+Shift+K) and rebuild
 
----
+### Version not showing correctly
+- Check Info.plist has `CFBundleShortVersionString`
+- Verify value is in X.Y.Z format
+- Clean and rebuild project
+
+### Version conflicts in git
+- Version changes are normal - commit them
+- Use meaningful commit messages: `"Bump version to 2.0.0 for major release"`
 
 ## Future Versioning Examples
 
@@ -265,35 +210,18 @@ Build: (auto-increments)
 - Version: `2.1.0` → `3.0.0`
 - Changes: "Complete iPad optimization, new data architecture"
 
----
+## Related Documentation
 
-## Troubleshooting
-
-### Build number not incrementing
-- Check the script is in Build Phases
-- Ensure script runs BEFORE "Compile Sources"
-- Check Info.plist path is correct
-- Clean build folder (Cmd+Shift+K) and rebuild
-
-### Version not showing correctly
-- Check Info.plist has `CFBundleShortVersionString`
-- Verify value is in X.Y.Z format
-- Clean and rebuild project
-
-### Version conflicts in git
-- Version changes are normal - commit them
-- Use meaningful commit messages: "Bump version to 2.0.0 for major release"
+- **Quick Setup**: `.cursor/commands/setup-versioning.md` - 5-minute setup guide
+- **Development Playbook**: `AGENTS.md` - General development guidelines
+- **Project Review**: `docs/review/PROJECT_REVIEW_BACKLOG.md` - Version alignment task (HIGH-014)
 
 ---
 
-## Summary
-
+**Remember:**
 - **Version (2.0.0)**: Manual, semantic, user-facing
 - **Build (123)**: Automatic, internal tracking
 - **MAJOR**: Breaking changes, complete overhauls
 - **MINOR**: Significant new features
 - **PATCH**: Bug fixes and small improvements
 - **Script handles builds**: Set it up once, forget it
-
-Your app is now set for professional version management! 🚀
-
