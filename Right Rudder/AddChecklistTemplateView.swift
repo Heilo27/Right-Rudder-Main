@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - AddChecklistTemplateView
+
 struct AddChecklistTemplateView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
 
@@ -16,6 +20,10 @@ struct AddChecklistTemplateView: View {
   @State private var selectedPhase = "Phase 1"
   @State private var relevantData = ""
   let category: String
+
+  @AppStorage("instructorName") private var instructorName: String = ""
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -63,7 +71,7 @@ struct AddChecklistTemplateView: View {
     }
   }
 
-  @AppStorage("instructorName") private var instructorName: String = ""
+  // MARK: - Methods
 
   private func saveTemplate() {
     let trimmedName = templateName.trimmingCharacters(in: .whitespaces)

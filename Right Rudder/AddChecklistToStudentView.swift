@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - AddChecklistToStudentView
+
 struct AddChecklistToStudentView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
   @State private var selectedCategory: String? = nil
@@ -17,6 +21,8 @@ struct AddChecklistToStudentView: View {
 
   let student: Student
   let templates: [ChecklistTemplate]
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -87,6 +93,8 @@ struct AddChecklistToStudentView: View {
       }
     }
   }
+
+  // MARK: - Subviews
 
   private var categorySelectionView: some View {
     List {
@@ -233,6 +241,8 @@ struct AddChecklistToStudentView: View {
       }
     }
   }
+
+  // MARK: - Computed Properties
 
   // Use shared utility for lesson number extraction
   private func extractLessonNumber(from templateName: String) -> Int? {
@@ -504,6 +514,8 @@ struct AddChecklistToStudentView: View {
   private func extractLessonInfo(from name: String) -> (phase: String, lesson: String) {
     return TemplateSortingUtilities.extractLessonInfo(from: name)
   }
+
+  // MARK: - Methods
 
   private func deleteAllTemplatesInPhase(_ templates: [ChecklistTemplate]) {
     #if DEBUG

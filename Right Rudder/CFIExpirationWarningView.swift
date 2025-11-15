@@ -7,7 +7,11 @@
 
 import SwiftUI
 
+// MARK: - CFIExpirationWarningView
+
 struct CFIExpirationWarningView: View {
+  // MARK: - Properties
+
   @Environment(\.dismiss) private var dismiss
   @AppStorage("instructorCFIExpirationDateString") private var instructorCFIExpirationDateString:
     String = ""
@@ -17,6 +21,8 @@ struct CFIExpirationWarningView: View {
 
   let onDismiss: () -> Void
 
+  // MARK: - Computed Properties
+
   private var instructorCFIExpirationDate: Date {
     if instructorCFIExpirationDateString.isEmpty {
       return Date()
@@ -25,6 +31,8 @@ struct CFIExpirationWarningView: View {
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.date(from: instructorCFIExpirationDateString) ?? Date()
   }
+
+  // MARK: - Body
 
   var body: some View {
     ZStack {
@@ -158,6 +166,8 @@ struct CFIExpirationWarningView: View {
     }
   }
 
+  // MARK: - Methods
+
   private func getWarningMessage() -> String {
     if instructorCFIHasExpiration {
       return "Your CFI certificate will expire soon!"
@@ -221,6 +231,8 @@ struct CFIExpirationWarningView: View {
   }
 }
 
+// MARK: - CFIExpirationWarningService
+
 struct CFIExpirationWarningService {
   @AppStorage("instructorCFIExpirationDateString") private var instructorCFIExpirationDateString:
     String = ""
@@ -229,9 +241,13 @@ struct CFIExpirationWarningService {
   @AppStorage("instructorCFINumber") private var instructorCFINumber: String = ""
   @AppStorage("lastCFIWarningDate") private var lastCFIWarningDate: String = ""
 
+  // MARK: - Singleton
+
   static let shared = CFIExpirationWarningService()
 
   private init() {}
+
+  // MARK: - Computed Properties
 
   private var instructorCFIExpirationDate: Date {
     if instructorCFIExpirationDateString.isEmpty {
@@ -241,6 +257,8 @@ struct CFIExpirationWarningService {
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.date(from: instructorCFIExpirationDateString) ?? Date()
   }
+
+  // MARK: - Methods
 
   func shouldShowWarning() -> Bool {
     // Check if instructor info is configured
@@ -271,6 +289,8 @@ struct CFIExpirationWarningService {
   func markWarningShown() {
     lastCFIWarningDate = getCurrentDateString()
   }
+
+  // MARK: - Private Helpers
 
   private func getCurrentDateString() -> String {
     let formatter = DateFormatter()

@@ -8,7 +8,11 @@
 import Foundation
 import SwiftData
 
+// MARK: - DefaultDataService
+
 class DefaultDataService {
+  // MARK: - Initialization
+
   static func initializeDefaultData(modelContext: ModelContext) {
     print("Starting default data initialization...")
 
@@ -20,6 +24,8 @@ class DefaultDataService {
 
     print("Default data initialization completed successfully")
   }
+
+  // MARK: - Force Update
 
   /// Force update all templates (useful for debugging)
   static func forceUpdateTemplates(modelContext: ModelContext) {
