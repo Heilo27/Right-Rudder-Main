@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - EndorsementsView
+
 struct EndorsementsView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Bindable var student: Student
   @Bindable var progress: ChecklistAssignment
@@ -16,6 +20,8 @@ struct EndorsementsView: View {
   @State private var showingCamera = false
   @State private var showingPhotoLibrary = false
   @State private var showingPhotoOptions = false
+
+  // MARK: - Body
 
   var body: some View {
     List {

@@ -4,19 +4,29 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+// MARK: - CloudKitSyncService
+
 @MainActor
 class CloudKitSyncService: ObservableObject {
+  // MARK: - Published Properties
+
   @Published var isSyncing = false
   @Published var lastSyncDate: Date?
   @Published var syncStatus: String = "Ready to sync"
+
+  // MARK: - Properties
 
   private var modelContext: ModelContext?
   private let container: CKContainer
   private let offlineSyncManager = OfflineSyncManager()
 
+  // MARK: - Initialization
+
   init() {
     self.container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
   }
+
+  // MARK: - Configuration
 
   func setModelContext(_ context: ModelContext) {
     self.modelContext = context
@@ -101,6 +111,8 @@ class CloudKitSyncService: ObservableObject {
     }
   }
 
+  // MARK: - Force Sync
+
   /// Force a complete re-sync of all assignments for a specific student to the shared zone
   /// This is useful when assignments aren't appearing in the student app
   func forceSyncStudentAssignments(_ student: Student) async {
@@ -119,6 +131,8 @@ class CloudKitSyncService: ObservableObject {
 
     print("✅ FORCE SYNC: Completed for: \(student.displayName)")
   }
+
+  // MARK: - Main Sync Operations
 
   func syncToCloudKit() async {
     guard !isSyncing, modelContext != nil else { return }
@@ -176,6 +190,8 @@ class CloudKitSyncService: ObservableObject {
 
     isSyncing = false
   }
+
+  // MARK: - Helper Methods
 
   /// Processes pending offline operations
   private func processPendingOperations() async {
@@ -250,6 +266,8 @@ class CloudKitSyncService: ObservableObject {
       return false
     }
   }
+
+  // MARK: - Student Sync
 
   private func syncStudents() async {
     guard let modelContext = modelContext else { return }
@@ -520,6 +538,8 @@ class CloudKitSyncService: ObservableObject {
     }
   }
 
+  // MARK: - Template Sync
+
   private func syncChecklistTemplates() async {
     guard let modelContext = modelContext else { return }
 
@@ -626,6 +646,8 @@ class CloudKitSyncService: ObservableObject {
 
     isSyncing = false
   }
+
+  // MARK: - Restore Operations
 
   private func restoreStudents() async {
     do {

@@ -10,7 +10,11 @@ import ContactsUI
 import SwiftData
 import SwiftUI
 
+// MARK: - EditStudentView
+
 struct EditStudentView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
 
@@ -41,6 +45,8 @@ struct EditStudentView: View {
 
   private let categories = ["PPL", "IFR", "CPL", "CFI", "Review"]
 
+  // MARK: - Initialization
+
   init(student: Student) {
     self._student = State(initialValue: student)
     self._firstName = State(initialValue: student.firstName)
@@ -61,6 +67,8 @@ struct EditStudentView: View {
     self.originalCategory = student.assignedCategory ?? "PPL"
     self.originalInactive = student.isInactive
   }
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {

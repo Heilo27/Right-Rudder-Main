@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - EditChecklistTemplateView
+
 struct EditChecklistTemplateView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
   // Use CloudKitShareService for all sync operations (shared database only)
@@ -21,12 +25,16 @@ struct EditChecklistTemplateView: View {
   @State private var newItemTitle = ""
   @State private var newItemNotes = ""
 
+  // MARK: - Initialization
+
   init(template: ChecklistTemplate) {
     self._template = State(initialValue: template)
     self._templateName = State(initialValue: template.name)
     self._relevantData = State(initialValue: template.relevantData ?? "")
     self._items = State(initialValue: template.items ?? [])
   }
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {

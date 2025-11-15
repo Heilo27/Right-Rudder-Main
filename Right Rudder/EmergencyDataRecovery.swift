@@ -10,23 +10,37 @@ import Combine
 import Foundation
 import SwiftData
 
+// MARK: - EmergencyDataRecovery
+
 @MainActor
 class EmergencyDataRecovery: ObservableObject {
+  // MARK: - Singleton
+
   static let shared = EmergencyDataRecovery()
+
+  // MARK: - Published Properties
 
   @Published var isRecovering = false
   @Published var recoveryProgress: String = ""
   @Published var studentsFound: Int = 0
   @Published var studentsRestored: Int = 0
 
+  // MARK: - Properties
+
   private let container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
   private var modelContext: ModelContext?
 
+  // MARK: - Initialization
+
   private init() {}
+
+  // MARK: - Configuration
 
   func setModelContext(_ context: ModelContext) {
     self.modelContext = context
   }
+
+  // MARK: - Recovery Operations
 
   /// Emergency recovery - searches ALL possible record types and restores everything
   func emergencyRecovery() async {
