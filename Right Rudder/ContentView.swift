@@ -5,59 +5,63 @@
 //  Created by Ryan on 10/2/25.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var selectedTab = 0
+  @Environment(\.modelContext) private var modelContext
+  @State private var selectedTab = 0
 
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            StudentsView()
-                .tabItem {
-                    Image(systemName: "person.3")
-                    Text("Students")
-                }
-                .tag(0)
-            
-            ChecklistTemplatesView()
-                .tabItem {
-                    Image(systemName: "list.bullet.clipboard")
-                    Text("Lessons")
-                }
-                .tag(1)
-            
-            EndorsementGeneratorView()
-                .tabItem {
-                    Image(systemName: "signature")
-                    Text("Endorsement")
-                }
-                .tag(2)
-            
-            SettingsView()
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
-                }
-                .tag(3)
-            
+  var body: some View {
+    TabView(selection: $selectedTab) {
+      StudentsView()
+        .tabItem {
+          Image(systemName: "person.3")
+          Text("Students")
         }
-        .onAppear {
-            // Start performance monitoring in debug builds
-            #if DEBUG
-            PerformanceMonitor.shared.startMonitoring()
-            #endif
+        .tag(0)
+
+      ChecklistTemplatesView()
+        .tabItem {
+          Image(systemName: "list.bullet.clipboard")
+          Text("Lessons")
         }
-        .onDisappear {
-            #if DEBUG
-            PerformanceMonitor.shared.stopMonitoring()
-            #endif
+        .tag(1)
+
+      EndorsementGeneratorView()
+        .tabItem {
+          Image(systemName: "signature")
+          Text("Endorsement")
         }
+        .tag(2)
+
+      SettingsView()
+        .tabItem {
+          Image(systemName: "gear")
+          Text("Settings")
+        }
+        .tag(3)
+
     }
+    .onAppear {
+      // Start performance monitoring in debug builds
+      #if DEBUG
+        PerformanceMonitor.shared.startMonitoring()
+      #endif
+    }
+    .onDisappear {
+      #if DEBUG
+        PerformanceMonitor.shared.stopMonitoring()
+      #endif
+    }
+  }
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: [Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self, CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self], inMemory: true)
+  ContentView()
+    .modelContainer(
+      for: [
+        Student.self, ChecklistAssignment.self, ItemProgress.self, CustomChecklistDefinition.self,
+        CustomChecklistItem.self, EndorsementImage.self, ChecklistTemplate.self, ChecklistItem.self,
+      ], inMemory: true)
 }
