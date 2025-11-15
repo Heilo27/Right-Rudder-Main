@@ -518,7 +518,7 @@ Codebase version (1.6.2) ahead of published version (1.6.1). Process not followe
 **Dependencies:** None
 
 **Description:**
-VERSION_MANAGEMENT_GUIDE.md describes auto-increment script but may not be configured.
+Version management guide (`.cursor/rules/version-management.mdc`) describes auto-increment script but may not be configured.
 
 **Tasks:**
 1. Check Build Phases for script
@@ -535,7 +535,7 @@ VERSION_MANAGEMENT_GUIDE.md describes auto-increment script but may not be confi
 
 **Files:**
 - Xcode project Build Phases
-- `VERSION_MANAGEMENT_GUIDE.md`
+- `.cursor/rules/version-management.mdc`
 
 ---
 

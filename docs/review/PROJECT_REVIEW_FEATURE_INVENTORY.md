@@ -482,8 +482,8 @@ Right Rudder is a comprehensive flight instructor application for iOS/iPadOS tha
 
 ### Existing Documentation
 - ✅ `AGENTS.md` - Development playbook (has outdated path references)
-- ✅ `VERSION_MANAGEMENT_GUIDE.md` - Version management
-- ✅ `QUICK_VERSION_SETUP.md` - Quick setup guide
+- ✅ `.cursor/rules/version-management.mdc` - Version management guidelines
+- ✅ `.cursor/commands/setup-versioning.md` - Quick setup command
 - ✅ `CloudKitSharingGuide.md` - CloudKit sharing guide
 - ✅ `SETUP_CHECKLIST.md` - Setup checklist
 - ✅ `IMPLEMENTATION_SUMMARY.md` - Implementation summary

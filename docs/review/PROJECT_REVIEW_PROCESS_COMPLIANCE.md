@@ -143,7 +143,7 @@
 
 ## Version Management
 
-### VERSION_MANAGEMENT_GUIDE.md Compliance
+### Version Management Guide Compliance
 
 **Requirements:**
 - Semantic versioning (MAJOR.MINOR.PATCH)
