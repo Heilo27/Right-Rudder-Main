@@ -17,7 +17,7 @@ struct StudentsView: View {
     @State private var selectedCategory: String? = nil
     @State private var showingInactiveStudents = false
     @State private var cachedFilteredStudents: [Student] = []
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    private let cloudKitShareService = CloudKitShareService.shared
     
     // Settings for progress bars and photos
     @AppStorage("showProgressBars") private var showProgressBars = true
@@ -34,17 +34,20 @@ struct StudentsView: View {
     }
     
     var body: some View {
-        NavigationView {
-            studentsList
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    studentsList
+                }
+            } else {
+                NavigationView {
+                    studentsList
+                }
+            }
         }
         .onAppear {
             print("👁️ StudentsView APPEARED")
             cloudKitShareService.setModelContext(modelContext)
-            
-            // Repair template relationships for all students to ensure progress calculations work
-            Task {
-                await repairAllStudentTemplateRelationships()
-            }
             
             loadStudents()
             updateFilteredStudents()
@@ -61,9 +64,6 @@ struct StudentsView: View {
                         loadStudents()
                         updateFilteredStudents()
                     }
-                    
-                    // Repair template relationships after migration
-                    await repairAllStudentTemplateRelationships()
                     
                     // If still empty, try CloudKit diagnostics
                     if allStudents.isEmpty {
@@ -330,6 +330,8 @@ struct StudentsView: View {
         .navigationBarItems(trailing: addButton)
         .sheet(isPresented: $showingAddStudent) {
             AddStudentView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .onChange(of: showingAddStudent) { oldValue, newValue in
             // When sheet closes (dismisses), reload students
@@ -501,27 +503,6 @@ struct StudentsView: View {
         updateFilteredStudents()
     }
     
-    /// Repair template relationships for all students to ensure progress calculations work correctly
-    private func repairAllStudentTemplateRelationships() async {
-        await MainActor.run {
-            do {
-                let request = FetchDescriptor<Student>()
-                let students = try modelContext.fetch(request)
-                
-                var repairedCount = 0
-                for student in students {
-                    ChecklistAssignmentService.repairTemplateRelationships(for: student, modelContext: modelContext)
-                    repairedCount += 1
-                }
-                
-                if repairedCount > 0 {
-                    print("✅ Repaired template relationships for \(repairedCount) students")
-                }
-            } catch {
-                print("❌ Failed to repair template relationships: \(error)")
-            }
-        }
-    }
 }
 
 #Preview {

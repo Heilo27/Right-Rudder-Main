@@ -96,6 +96,67 @@ let container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
 - Check that iCloud Drive is enabled
 - Try creating a new share if the current one has expired
 
+### 8. **Manual URL Acceptance Fails ("Failed to accept share. Please try again")**
+
+**Problem**: When a student manually pastes a share URL into a text field, the acceptance fails.
+
+**Root Cause**: The student app is likely trying to accept the share directly from the URL string without first fetching the `CKShare.Metadata` from the URL.
+
+**Solutions**:
+1. **CRITICAL**: The student app must use `container.shareMetadata(for: url)` before accepting the share
+2. Always trim whitespace from the URL string before processing
+3. Validate the URL format (must contain "icloud.com/share")
+4. Check iCloud account status before attempting to accept
+5. Provide clear error messages for common failure cases
+
+**Correct Implementation**:
+```swift
+// ❌ WRONG - This will fail:
+let shareRecord = try await container.accept(url) // URL cannot be directly accepted
+
+// ✅ CORRECT - Fetch metadata first:
+let metadata = try await container.shareMetadata(for: url)
+let shareRecord = try await container.accept(metadata)
+```
+
+**Common Errors**:
+- "Failed to accept share. Please try again" - Usually means the app tried to accept the URL directly
+- "Invalid URL format" - URL string is malformed or has extra whitespace
+- "iCloud account not available" - Student needs to sign in to iCloud
+- "This share link is no longer valid" - Share expired or was removed
+
+**See `CloudKitSharingGuide.md` Section 1, Option B** for complete implementation example.
+
+### 9. **Family Sharing vs Non-Family Members**
+
+**Question**: Does CloudKit sharing work differently for Family Sharing members vs non-family members?
+
+**Answer**: CloudKit sharing is designed to work across **any** Apple IDs, regardless of Family Sharing status. However, there are some considerations:
+
+**What Should Work**:
+- ✅ CloudKit shares work between any Apple IDs (family or not)
+- ✅ The share uses `publicPermission = .readWrite` which allows anyone with the URL to accept
+- ✅ Family Sharing status should NOT affect CloudKit share acceptance
+
+**Potential Issues**:
+1. **Privacy Settings**: Some iCloud privacy settings might be more restrictive for non-family members
+2. **Testing Bias**: If you've only tested with family members, you might have missed the manual URL acceptance bug
+3. **Account Verification**: Non-family members might need additional account verification steps
+
+**If Shares Work for Family but Not Non-Family**:
+1. **Most Likely**: The issue is the manual URL acceptance bug (see Section 8 above) - family members might have been testing via deep links which work automatically
+2. **Check**: Verify both apps use the same CloudKit container identifier
+3. **Verify**: Ensure the student's iCloud account is fully verified and signed in
+4. **Test**: Try creating a fresh share URL specifically for the non-family member
+
+**Debugging Steps**:
+1. Check console logs for specific CloudKit error codes when non-family member tries to accept
+2. Verify the share URL is accessible (open in Safari first)
+3. Ensure both instructor and student are using the same app version
+4. Test with a completely fresh share URL (not a reused one)
+
+**Note**: The `acceptShareFromURL` method added to `CloudKitShareService` handles all these cases and provides detailed error messages to help identify the specific issue.
+
 ## Debugging Steps
 
 ### 1. Check Console Logs

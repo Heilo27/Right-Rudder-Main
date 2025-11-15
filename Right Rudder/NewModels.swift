@@ -28,9 +28,6 @@ class ChecklistAssignment {
     // Progress tracking
     @Relationship(deleteRule: .cascade, inverse: \ItemProgress.assignment) var itemProgress: [ItemProgress]?
     
-    // CloudKit sync
-    var cloudKitRecordID: String?
-    
     // Relationships
     var student: Student?
     
@@ -104,9 +101,6 @@ class ItemProgress {
     var notes: String?  // INSTRUCTOR → STUDENT (read-only for student - instructor comments)
     var completedAt: Date?
     var lastModified: Date = Date()
-    
-    // CloudKit sync
-    var cloudKitRecordID: String?
     
     // Relationship
     var assignment: ChecklistAssignment?

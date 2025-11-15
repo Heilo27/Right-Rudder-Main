@@ -7,7 +7,7 @@ struct StudentShareView: View {
     @Environment(\.modelContext) private var modelContext
     
     let student: Student
-    @StateObject private var shareService = CloudKitShareService()
+    private let shareService = CloudKitShareService.shared
     
     @State private var shareURL: URL?
     @State private var isGeneratingShare = false
@@ -180,6 +180,10 @@ struct StudentShareView: View {
     
     private func checkShareStatus() async {
         hasActiveShare = await shareService.hasActiveShare(for: student)
+        
+        // Check for share acceptance and send notification if needed
+        await shareService.checkAndNotifyShareAcceptance(for: student)
+        
         if hasActiveShare {
             let newParticipants = await shareService.fetchParticipants(for: student)
             
@@ -344,7 +348,7 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
         
         Step 1. Download the Right Rudder - Student app: \(appStoreLink)
         
-        Step 2. Click on link below to connect: \(shareURL?.absoluteString ?? "")
+        Step 2. Copy URL, and Paste in app: \(shareURL?.absoluteString ?? "")
         
         Step 3. Fill out your information, and upload any required documents.
         """

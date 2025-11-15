@@ -11,7 +11,7 @@ import SwiftData
 struct InstructorNotesView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    private let cloudKitShareService = CloudKitShareService.shared
     
     let progress: ChecklistAssignment
     let student: Student

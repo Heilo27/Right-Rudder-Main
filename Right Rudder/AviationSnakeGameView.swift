@@ -230,7 +230,7 @@ class SnakeGame: ObservableObject {
     
     func executeMove() {
         guard !isGameOver, !isCountingDown, isPlaying, let currentHead = head else { 
-            print("🎮 executeMove blocked: isGameOver=\(isGameOver), isCountingDown=\(isCountingDown), isPlaying=\(isPlaying), head=\(head != nil)")
+            // Silently return if game is over or not playing - no need to spam debug
             return 
         }
         
@@ -250,17 +250,19 @@ class SnakeGame: ObservableObject {
         }
         
         // Check wall collision (airplane hits edge of playable area)
-        // Use same boundary as clouds - one position higher from bottom
-        let maxY = rows - 2 // One position higher from bottom
+        // Use same boundary as clouds - three positions higher from bottom
+        let maxY = rows - 3 // Three positions higher from bottom
         if newHead.x < 0 || newHead.x >= columns || newHead.y < 0 || newHead.y >= maxY {
             print("🎮 Game Over: Airplane hit wall at (\(newHead.x), \(newHead.y))")
             isGameOver = true
+            stopGame() // Stop the timer when game ends
             return
         }
         
         // Check self collision
         if banner.contains(newHead) {
             isGameOver = true
+            stopGame() // Stop the timer when game ends
             return
         }
         
@@ -340,7 +342,7 @@ class SnakeGame: ObservableObject {
         let minX = max(0, margin)
         let maxX = max(minX, columns - margin - 1)
         let minY = max(0, margin)
-        let maxY = max(minY, rows - margin - 2) // One position higher from bottom
+        let maxY = max(minY, rows - margin - 3) // Three positions higher from bottom
         
         print("🎮 Cloud bounds: X(\(minX)-\(maxX)), Y(\(minY)-\(maxY))")
         

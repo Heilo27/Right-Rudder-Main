@@ -4,6 +4,15 @@ import CloudKit
 import SwiftUI
 import Combine
 
+// Backup snapshot model for restore selection
+struct BackupSnapshot: Identifiable, Codable {
+    let id: String  // Date string "yyyy-MM-dd"
+    let date: Date
+    let studentCount: Int
+    let templateCount: Int
+    let size: Int64?  // Optional size in bytes
+}
+
 @MainActor
 class CloudKitBackupService: ObservableObject {
     @Published var isBackingUp = false
@@ -11,15 +20,20 @@ class CloudKitBackupService: ObservableObject {
     @Published var lastBackupDate: Date?
     @Published var backupStatus: String = "Ready"
     @Published var restoreStatus: String = "Ready"
+    @Published var availableBackups: [BackupSnapshot] = []
     
     private var modelContext: ModelContext?
     private let container: CKContainer
     private var backupTimer: Timer?
     
-    // Versioned backup configuration
-    private let maxBackupVersions = 3
-    private let backupVersionKey = "backupVersion"
-    private let backupTimestampKey = "backupTimestamp"
+    // Date-based backup configuration (2 weeks = 14 days)
+    private let maxBackupDays = 14
+    private let backupDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
     
     init() {
         // Use the specific container from entitlements
@@ -35,6 +49,14 @@ class CloudKitBackupService: ObservableObject {
     func performBackup() async {
         guard !isBackingUp, let modelContext = modelContext else { return }
         
+        // Check if backup already exists for today (one snapshot per day max)
+        let todaySnapshot = backupDateFormatter.string(from: Date())
+        if await backupExists(for: todaySnapshot) {
+            backupStatus = "Backup already exists for today (\(todaySnapshot))"
+            isBackingUp = false
+            return
+        }
+        
         isBackingUp = true
         backupStatus = "Starting backup..."
         
@@ -49,28 +71,29 @@ class CloudKitBackupService: ObservableObject {
             
             backupStatus = "Rotating old backups..."
             
-            // Rotate old backups (keep only last maxBackupVersions)
+            // Rotate old backups (keep only last 14 days)
             await rotateOldBackups()
             
-            backupStatus = "Creating new backup version..."
+            backupStatus = "Creating snapshot for \(todaySnapshot)..."
             
-            // Get current backup version
-            let currentVersion = await getCurrentBackupVersion()
-            let newVersion = currentVersion + 1
+            let timestamp = Date()
             
             backupStatus = "Backing up data..."
             
-            // Backup all data with version number
-            await backupStudents(modelContext, version: newVersion)
-            await backupTemplates(modelContext, version: newVersion)
+            // Backup all data with date-based snapshot
+            let studentCount = await backupStudents(modelContext, snapshotDate: todaySnapshot, timestamp: timestamp)
+            let templateCount = await backupTemplates(modelContext, snapshotDate: todaySnapshot, timestamp: timestamp)
             
             // Save backup metadata
-            await saveBackupMetadata(version: newVersion)
+            await saveBackupMetadata(snapshotDate: todaySnapshot, timestamp: timestamp, studentCount: studentCount, templateCount: templateCount)
+            
+            // Refresh available backups list
+            await loadAvailableBackups()
             
             lastBackupDate = Date()
             saveLastBackupDate()
-            backupStatus = "Backup completed (version \(newVersion))"
-            print("CloudKit backup completed successfully - version \(newVersion)")
+            backupStatus = "Backup completed for \(todaySnapshot)"
+            print("CloudKit backup completed successfully - snapshot: \(todaySnapshot)")
             
         } catch {
             backupStatus = "Backup failed: \(error.localizedDescription)"
@@ -78,6 +101,21 @@ class CloudKitBackupService: ObservableObject {
         }
         
         isBackingUp = false
+    }
+    
+    /// Checks if a backup already exists for the given snapshot date
+    private func backupExists(for snapshotDate: String) async -> Bool {
+        do {
+            let database = container.privateCloudDatabase
+            let predicate = NSPredicate(format: "snapshotDate == %@", snapshotDate)
+            let query = CKQuery(recordType: "BackupMetadata", predicate: predicate)
+            
+            let results = try await database.records(matching: query)
+            return !results.matchResults.isEmpty
+        } catch {
+            print("⚠️ Error checking backup existence: \(error)")
+            return false
+        }
     }
     
     func deleteBackup() async {
@@ -119,23 +157,21 @@ class CloudKitBackupService: ObservableObject {
         }
     }
     
-    private func backupStudents(_ modelContext: ModelContext, version: Int) async {
+    private func backupStudents(_ modelContext: ModelContext, snapshotDate: String, timestamp: Date) async -> Int {
         do {
             let descriptor = FetchDescriptor<Student>()
             let students = try modelContext.fetch(descriptor)
             let database = container.privateCloudDatabase
             
-            let timestamp = Date()
-            
             // Batch save records for better performance
             let records = students.map { student in
-                // Create versioned record ID: studentID_version
-                let recordID = CKRecord.ID(recordName: "\(student.id.uuidString)_v\(version)")
+                // Create date-based record ID: studentID_2024-01-15
+                let recordID = CKRecord.ID(recordName: "\(student.id.uuidString)_\(snapshotDate)")
                 let record = CKRecord(recordType: "StudentBackup", recordID: recordID)
                 
-                // Store original ID for merging
+                // Store original ID and snapshot date
                 record["originalID"] = student.id.uuidString
-                record["backupVersion"] = version
+                record["snapshotDate"] = snapshotDate
                 record["backupTimestamp"] = timestamp
                 
                 record["firstName"] = student.firstName
@@ -169,30 +205,30 @@ class CloudKitBackupService: ObservableObject {
                 }
             }
             
-            print("✅ Backed up \(records.count) students as version \(version)")
+            print("✅ Backed up \(records.count) students as snapshot \(snapshotDate)")
+            return records.count
             
         } catch {
             print("Failed to backup students: \(error)")
+            return 0
         }
     }
     
-    private func backupTemplates(_ modelContext: ModelContext, version: Int) async {
+    private func backupTemplates(_ modelContext: ModelContext, snapshotDate: String, timestamp: Date) async -> Int {
         do {
             let descriptor = FetchDescriptor<ChecklistTemplate>()
             let templates = try modelContext.fetch(descriptor)
             let database = container.privateCloudDatabase
             
-            let timestamp = Date()
-            
             // Batch save records for better performance
             let records = templates.map { template in
-                // Create versioned record ID: templateID_version
-                let recordID = CKRecord.ID(recordName: "\(template.id.uuidString)_v\(version)")
+                // Create date-based record ID: templateID_2024-01-15
+                let recordID = CKRecord.ID(recordName: "\(template.id.uuidString)_\(snapshotDate)")
                 let record = CKRecord(recordType: "TemplateBackup", recordID: recordID)
                 
-                // Store original ID for merging
+                // Store original ID and snapshot date
                 record["originalID"] = template.id.uuidString
-                record["backupVersion"] = version
+                record["snapshotDate"] = snapshotDate
                 record["backupTimestamp"] = timestamp
                 
                 record["name"] = template.name
@@ -222,135 +258,231 @@ class CloudKitBackupService: ObservableObject {
                 }
             }
             
-            print("✅ Backed up \(records.count) templates as version \(version)")
-            
+            print("✅ Backed up \(records.count) templates as snapshot \(snapshotDate)")
+            return records.count
         } catch {
             print("Failed to backup templates: \(error)")
+            return 0
         }
     }
     
-    // MARK: - Version Management
-    
-    /// Gets the current backup version number
-    private func getCurrentBackupVersion() async -> Int {
-        let key = "currentBackupVersion"
-        let version = UserDefaults.standard.integer(forKey: key)
-        return version > 0 ? version : 0
-    }
+    // MARK: - Snapshot Management
     
     /// Saves backup metadata to CloudKit
-    private func saveBackupMetadata(version: Int) async {
+    private func saveBackupMetadata(snapshotDate: String, timestamp: Date, studentCount: Int, templateCount: Int) async {
         do {
             let database = container.privateCloudDatabase
-            let recordID = CKRecord.ID(recordName: "backupMetadata")
+            let recordID = CKRecord.ID(recordName: "backupMetadata_\(snapshotDate)")
             let record = CKRecord(recordType: "BackupMetadata", recordID: recordID)
             
-            record["currentVersion"] = version
-            record["lastBackupDate"] = Date()
+            record["snapshotDate"] = snapshotDate
+            record["backupTimestamp"] = timestamp
+            record["studentCount"] = studentCount
+            record["templateCount"] = templateCount
             
             _ = try await database.save(record)
             
-            // Also save locally
-            UserDefaults.standard.set(version, forKey: "currentBackupVersion")
-            
-            print("✅ Saved backup metadata - version \(version)")
+            print("✅ Saved backup metadata - snapshot: \(snapshotDate)")
         } catch {
             print("⚠️ Failed to save backup metadata: \(error)")
         }
     }
     
-    /// Rotates old backups, keeping only the last maxBackupVersions
+    /// Rotates old backups, keeping only the last 14 days
     private func rotateOldBackups() async {
-        let currentVersion = await getCurrentBackupVersion()
-        let oldestVersionToKeep = max(1, currentVersion - maxBackupVersions + 1)
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -maxBackupDays, to: Date())!
+        let cutoffSnapshot = backupDateFormatter.string(from: cutoffDate)
         
-        if currentVersion < maxBackupVersions {
-            print("ℹ️ Only \(currentVersion) backups exist, no rotation needed")
-            return
-        }
+        print("🗑️ Rotating backups older than \(cutoffSnapshot)...")
         
         let database = container.privateCloudDatabase
         
+        // Query all backup metadata records
+        let query = CKQuery(recordType: "BackupMetadata", predicate: NSPredicate(value: true))
+        let operation = CKQueryOperation(query: query)
+        
+        var oldMetadataRecords: [CKRecord.ID] = []
+        var oldStudentRecords: [CKRecord.ID] = []
+        var oldTemplateRecords: [CKRecord.ID] = []
+        
+        operation.recordMatchedBlock = { _, result in
+            if case .success(let record) = result {
+                if let snapshotDate = record["snapshotDate"] as? String,
+                   snapshotDate < cutoffSnapshot {
+                    oldMetadataRecords.append(record.recordID)
+                }
+            }
+        }
+        
+        await withCheckedContinuation { continuation in
+            operation.queryResultBlock = { _ in
+                continuation.resume()
+            }
+            database.add(operation)
+        }
+        
+        // Delete old metadata records
+        if !oldMetadataRecords.isEmpty {
+            let batchSize = 100
+            for i in stride(from: 0, to: oldMetadataRecords.count, by: batchSize) {
+                let endIndex = min(i + batchSize, oldMetadataRecords.count)
+                let batch = Array(oldMetadataRecords[i..<endIndex])
+                do {
+                    _ = try await database.modifyRecords(saving: [], deleting: batch)
+                } catch {
+                    print("⚠️ Failed to delete metadata batch: \(error)")
+                }
+            }
+            print("🗑️ Deleted \(oldMetadataRecords.count) old metadata records")
+        }
+        
         // Delete old student backups
-        for version in 1..<oldestVersionToKeep {
-            let query = CKQuery(recordType: "StudentBackup", predicate: NSPredicate(format: "backupVersion == %d", version))
-            let operation = CKQueryOperation(query: query)
-            
-            var recordIDsToDelete: [CKRecord.ID] = []
-            operation.recordMatchedBlock = { _, result in
-                if case .success(let record) = result {
-                    recordIDsToDelete.append(record.recordID)
-                }
-            }
-            
-            await withCheckedContinuation { continuation in
-                operation.queryResultBlock = { _ in
-                    continuation.resume()
-                }
-                database.add(operation)
-            }
-            
-            // Delete records in batches
-            if !recordIDsToDelete.isEmpty {
-                let batchSize = 100
-                for i in stride(from: 0, to: recordIDsToDelete.count, by: batchSize) {
-                    let endIndex = min(i + batchSize, recordIDsToDelete.count)
-                    let batch = Array(recordIDsToDelete[i..<endIndex])
-                    do {
-                        _ = try await database.modifyRecords(saving: [], deleting: batch)
-                    } catch {
-                        print("⚠️ Failed to delete student backup batch: \(error)")
+        for metadataRecord in oldMetadataRecords {
+            if let snapshotDate = (try? await database.record(for: metadataRecord))?["snapshotDate"] as? String {
+                let studentQuery = CKQuery(recordType: "StudentBackup", predicate: NSPredicate(format: "snapshotDate == %@", snapshotDate))
+                let studentOperation = CKQueryOperation(query: studentQuery)
+                
+                studentOperation.recordMatchedBlock = { _, result in
+                    if case .success(let record) = result {
+                        oldStudentRecords.append(record.recordID)
                     }
                 }
-                print("🗑️ Deleted \(recordIDsToDelete.count) student backup records from version \(version)")
+                
+                await withCheckedContinuation { continuation in
+                    studentOperation.queryResultBlock = { _ in
+                        continuation.resume()
+                    }
+                    database.add(studentOperation)
+                }
             }
+        }
+        
+        if !oldStudentRecords.isEmpty {
+            let batchSize = 100
+            for i in stride(from: 0, to: oldStudentRecords.count, by: batchSize) {
+                let endIndex = min(i + batchSize, oldStudentRecords.count)
+                let batch = Array(oldStudentRecords[i..<endIndex])
+                do {
+                    _ = try await database.modifyRecords(saving: [], deleting: batch)
+                } catch {
+                    print("⚠️ Failed to delete student backup batch: \(error)")
+                }
+            }
+            print("🗑️ Deleted \(oldStudentRecords.count) old student backup records")
         }
         
         // Delete old template backups
-        for version in 1..<oldestVersionToKeep {
-            let query = CKQuery(recordType: "TemplateBackup", predicate: NSPredicate(format: "backupVersion == %d", version))
-            let operation = CKQueryOperation(query: query)
-            
-            var recordIDsToDelete: [CKRecord.ID] = []
-            operation.recordMatchedBlock = { _, result in
-                if case .success(let record) = result {
-                    recordIDsToDelete.append(record.recordID)
-                }
-            }
-            
-            await withCheckedContinuation { continuation in
-                operation.queryResultBlock = { _ in
-                    continuation.resume()
-                }
-                database.add(operation)
-            }
-            
-            // Delete records in batches
-            if !recordIDsToDelete.isEmpty {
-                let batchSize = 100
-                for i in stride(from: 0, to: recordIDsToDelete.count, by: batchSize) {
-                    let endIndex = min(i + batchSize, recordIDsToDelete.count)
-                    let batch = Array(recordIDsToDelete[i..<endIndex])
-                    do {
-                        _ = try await database.modifyRecords(saving: [], deleting: batch)
-                    } catch {
-                        print("⚠️ Failed to delete template backup batch: \(error)")
+        for metadataRecord in oldMetadataRecords {
+            if let snapshotDate = (try? await database.record(for: metadataRecord))?["snapshotDate"] as? String {
+                let templateQuery = CKQuery(recordType: "TemplateBackup", predicate: NSPredicate(format: "snapshotDate == %@", snapshotDate))
+                let templateOperation = CKQueryOperation(query: templateQuery)
+                
+                templateOperation.recordMatchedBlock = { _, result in
+                    if case .success(let record) = result {
+                        oldTemplateRecords.append(record.recordID)
                     }
                 }
-                print("🗑️ Deleted \(recordIDsToDelete.count) template backup records from version \(version)")
+                
+                await withCheckedContinuation { continuation in
+                    templateOperation.queryResultBlock = { _ in
+                        continuation.resume()
+                    }
+                    database.add(templateOperation)
+                }
             }
         }
         
-        print("✅ Backup rotation complete - keeping versions \(oldestVersionToKeep) to \(currentVersion)")
+        if !oldTemplateRecords.isEmpty {
+            let batchSize = 100
+            for i in stride(from: 0, to: oldTemplateRecords.count, by: batchSize) {
+                let endIndex = min(i + batchSize, oldTemplateRecords.count)
+                let batch = Array(oldTemplateRecords[i..<endIndex])
+                do {
+                    _ = try await database.modifyRecords(saving: [], deleting: batch)
+                } catch {
+                    print("⚠️ Failed to delete template backup batch: \(error)")
+                }
+            }
+            print("🗑️ Deleted \(oldTemplateRecords.count) old template backup records")
+        }
+        
+        print("✅ Backup rotation complete - keeping last \(maxBackupDays) days")
+    }
+    
+    /// Loads available backups for restore selection
+    func loadAvailableBackups() async {
+        var snapshots: [BackupSnapshot] = []
+        let database = container.privateCloudDatabase
+        
+        let query = CKQuery(recordType: "BackupMetadata", predicate: NSPredicate(value: true))
+        let operation = CKQueryOperation(query: query)
+        operation.resultsLimit = CKQueryOperation.maximumResults
+        
+        var metadataRecords: [CKRecord] = []
+        var queryError: Error?
+        
+        operation.recordMatchedBlock = { _, result in
+            if case .success(let record) = result {
+                metadataRecords.append(record)
+            }
+        }
+        
+        await withCheckedContinuation { continuation in
+            operation.queryResultBlock = { result in
+                if case .failure(let error) = result {
+                    queryError = error
+                }
+                continuation.resume()
+            }
+            database.add(operation)
+        }
+        
+        if let error = queryError {
+            print("⚠️ Failed to load available backups: \(error)")
+            await MainActor.run {
+                self.availableBackups = []
+            }
+            return
+        }
+        
+        // Convert metadata records to BackupSnapshot
+        for record in metadataRecords {
+            if let snapshotDate = record["snapshotDate"] as? String,
+               let timestamp = record["backupTimestamp"] as? Date,
+               let studentCount = record["studentCount"] as? Int,
+               let templateCount = record["templateCount"] as? Int {
+                
+                let snapshot = BackupSnapshot(
+                    id: snapshotDate,
+                    date: timestamp,
+                    studentCount: studentCount,
+                    templateCount: templateCount,
+                    size: nil
+                )
+                snapshots.append(snapshot)
+            }
+        }
+        
+        // Sort by date descending (newest first)
+        snapshots.sort { $0.date > $1.date }
+        
+        // Only keep last 14 days
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -maxBackupDays, to: Date())!
+        snapshots = snapshots.filter { $0.date >= cutoffDate }
+        
+        await MainActor.run {
+            self.availableBackups = snapshots
+        }
     }
     
     // MARK: - Restore Functionality
     
-    func restoreFromBackup() async {
+    /// Restores from a specific backup snapshot
+    func restoreFromBackup(snapshotDate: String) async {
         guard !isRestoring, let modelContext = modelContext else { return }
         
         isRestoring = true
-        restoreStatus = "Searching for backups..."
+        restoreStatus = "Restoring from snapshot \(snapshotDate)..."
         
         do {
             // Check CloudKit availability
@@ -361,14 +493,7 @@ class CloudKitBackupService: ObservableObject {
                 return
             }
             
-            restoreStatus = "Fetching all backup versions..."
-            
-            // Fetch all backup versions
-            let currentVersion = await getCurrentBackupVersion()
-            let versionsToCheck = max(1, min(maxBackupVersions, currentVersion))
-            let startVersion = max(1, currentVersion - maxBackupVersions + 1)
-            
-            print("🔍 Searching backup versions \(startVersion) to \(currentVersion)")
+            restoreStatus = "Fetching backup data..."
             
             // Get existing data to avoid duplicates
             let existingStudentDescriptor = FetchDescriptor<Student>()
@@ -379,112 +504,84 @@ class CloudKitBackupService: ObservableObject {
             let existingTemplates = try modelContext.fetch(existingTemplateDescriptor)
             let existingTemplateUUIDs = Set(existingTemplates.map { $0.id })
             
-            restoreStatus = "Loading student backups from all versions..."
+            restoreStatus = "Loading student backups..."
             
-            // Fetch student records from all backup versions
-            var allStudentRecords: [String: [CKRecord]] = [:] // Grouped by originalID
+            // Fetch student records from specific snapshot
+            let studentRecords = await fetchStudentBackups(snapshotDate: snapshotDate)
+            print("📦 Found \(studentRecords.count) student records in snapshot \(snapshotDate)")
             
-            for version in startVersion...currentVersion {
-                let studentRecords = await fetchStudentBackups(version: version)
-                for record in studentRecords {
-                    if let originalID = record["originalID"] as? String {
-                        if allStudentRecords[originalID] == nil {
-                            allStudentRecords[originalID] = []
-                        }
-                        allStudentRecords[originalID]?.append(record)
-                    }
-                }
-                print("📦 Found \(studentRecords.count) student records in backup version \(version)")
-            }
+            restoreStatus = "Restoring students..."
             
-            restoreStatus = "Merging student data from all backups..."
-            
-            // Merge and restore students
+            // Restore students
             var studentsRestored = 0
-            for (originalID, records) in allStudentRecords {
-                guard let uuid = UUID(uuidString: originalID) else { continue }
+            for record in studentRecords {
+                guard let originalID = record["originalID"] as? String,
+                      let uuid = UUID(uuidString: originalID) else { continue }
                 
                 // Skip if already exists
                 if existingStudentUUIDs.contains(uuid) {
                     continue
                 }
                 
-                // Merge data from all versions (take most recent non-null value)
-                let mergedRecord = mergeStudentRecords(records)
-                
-                // Create student from merged data
+                // Create student from backup data
                 let student = Student(
-                    firstName: mergedRecord["firstName"] as? String ?? "",
-                    lastName: mergedRecord["lastName"] as? String ?? "",
-                    email: mergedRecord["email"] as? String ?? "",
-                    telephone: mergedRecord["telephone"] as? String ?? "",
-                    homeAddress: mergedRecord["homeAddress"] as? String ?? "",
-                    ftnNumber: mergedRecord["ftnNumber"] as? String ?? ""
+                    firstName: record["firstName"] as? String ?? "",
+                    lastName: record["lastName"] as? String ?? "",
+                    email: record["email"] as? String ?? "",
+                    telephone: record["telephone"] as? String ?? "",
+                    homeAddress: record["homeAddress"] as? String ?? "",
+                    ftnNumber: record["ftnNumber"] as? String ?? ""
                 )
                 student.id = uuid
-                student.biography = mergedRecord["biography"] as? String
-                student.backgroundNotes = mergedRecord["backgroundNotes"] as? String
-                student.createdAt = mergedRecord["createdAt"] as? Date ?? Date()
-                student.lastModified = mergedRecord["lastModified"] as? Date ?? Date()
+                student.biography = record["biography"] as? String
+                student.backgroundNotes = record["backgroundNotes"] as? String
+                student.createdAt = record["createdAt"] as? Date ?? Date()
+                student.lastModified = record["lastModified"] as? Date ?? Date()
                 
                 modelContext.insert(student)
                 studentsRestored += 1
-                print("✅ Restored merged student: \(student.displayName)")
+                print("✅ Restored student: \(student.displayName)")
             }
             
-            restoreStatus = "Loading template backups from all versions..."
+            restoreStatus = "Loading template backups..."
             
-            // Fetch template records from all backup versions
-            var allTemplateRecords: [String: [CKRecord]] = [:] // Grouped by originalID
+            // Fetch template records from specific snapshot
+            let templateRecords = await fetchTemplateBackups(snapshotDate: snapshotDate)
+            print("📦 Found \(templateRecords.count) template records in snapshot \(snapshotDate)")
             
-            for version in startVersion...currentVersion {
-                let templateRecords = await fetchTemplateBackups(version: version)
-                for record in templateRecords {
-                    if let originalID = record["originalID"] as? String {
-                        if allTemplateRecords[originalID] == nil {
-                            allTemplateRecords[originalID] = []
-                        }
-                        allTemplateRecords[originalID]?.append(record)
-                    }
-                }
-                print("📦 Found \(templateRecords.count) template records in backup version \(version)")
-            }
+            restoreStatus = "Restoring templates..."
             
-            restoreStatus = "Merging template data from all backups..."
-            
-            // Merge and restore templates
+            // Restore templates
             var templatesRestored = 0
-            for (originalID, records) in allTemplateRecords {
-                guard let uuid = UUID(uuidString: originalID) else { continue }
+            for record in templateRecords {
+                guard let originalID = record["originalID"] as? String,
+                      let uuid = UUID(uuidString: originalID) else { continue }
                 
                 // Skip if already exists
                 if existingTemplateUUIDs.contains(uuid) {
                     continue
                 }
                 
-                // Merge data from all versions
-                let mergedRecord = mergeTemplateRecords(records)
-                
-                // Create template from merged data
+                // Create template from backup data
                 let template = ChecklistTemplate(
-                    name: mergedRecord["name"] as? String ?? "",
-                    category: mergedRecord["category"] as? String ?? "",
-                    phase: mergedRecord["phase"] as? String,
-                    relevantData: mergedRecord["relevantData"] as? String
+                    name: record["name"] as? String ?? "",
+                    category: record["category"] as? String ?? "",
+                    phase: record["phase"] as? String,
+                    relevantData: record["relevantData"] as? String
                 )
                 template.id = uuid
-                template.createdAt = mergedRecord["createdAt"] as? Date ?? Date()
-                template.lastModified = mergedRecord["lastModified"] as? Date ?? Date()
+                template.createdAt = record["createdAt"] as? Date ?? Date()
+                template.lastModified = record["lastModified"] as? Date ?? Date()
                 
                 modelContext.insert(template)
                 templatesRestored += 1
-                print("✅ Restored merged template: \(template.name)")
+                print("✅ Restored template: \(template.name)")
             }
             
             try modelContext.save()
             
-            restoreStatus = "Restored \(studentsRestored) students, \(templatesRestored) templates (merged from \(versionsToCheck) backups)"
-            print("✅ Restore complete: \(studentsRestored) students, \(templatesRestored) templates from \(versionsToCheck) backup versions")
+            restoreStatus = "Restored \(studentsRestored) students, \(templatesRestored) templates from snapshot \(snapshotDate)"
+            print("✅ Restore complete: \(studentsRestored) students, \(templatesRestored) templates from snapshot \(snapshotDate)")
             
         } catch {
             restoreStatus = "Restore failed: \(error.localizedDescription)"
@@ -494,12 +591,12 @@ class CloudKitBackupService: ObservableObject {
         isRestoring = false
     }
     
-    /// Fetches student backup records for a specific version
-    private func fetchStudentBackups(version: Int) async -> [CKRecord] {
+    /// Fetches student backup records for a specific snapshot date
+    private func fetchStudentBackups(snapshotDate: String) async -> [CKRecord] {
         var records: [CKRecord] = []
         let database = container.privateCloudDatabase
         
-        let query = CKQuery(recordType: "StudentBackup", predicate: NSPredicate(format: "backupVersion == %d", version))
+        let query = CKQuery(recordType: "StudentBackup", predicate: NSPredicate(format: "snapshotDate == %@", snapshotDate))
         let operation = CKQueryOperation(query: query)
         operation.resultsLimit = CKQueryOperation.maximumResults
         
@@ -519,12 +616,12 @@ class CloudKitBackupService: ObservableObject {
         return records
     }
     
-    /// Fetches template backup records for a specific version
-    private func fetchTemplateBackups(version: Int) async -> [CKRecord] {
+    /// Fetches template backup records for a specific snapshot date
+    private func fetchTemplateBackups(snapshotDate: String) async -> [CKRecord] {
         var records: [CKRecord] = []
         let database = container.privateCloudDatabase
         
-        let query = CKQuery(recordType: "TemplateBackup", predicate: NSPredicate(format: "backupVersion == %d", version))
+        let query = CKQuery(recordType: "TemplateBackup", predicate: NSPredicate(format: "snapshotDate == %@", snapshotDate))
         let operation = CKQueryOperation(query: query)
         operation.resultsLimit = CKQueryOperation.maximumResults
         
@@ -542,57 +639,6 @@ class CloudKitBackupService: ObservableObject {
         }
         
         return records
-    }
-    
-    /// Merges multiple student records, taking the most recent non-null value for each field
-    private func mergeStudentRecords(_ records: [CKRecord]) -> [String: Any] {
-        // Sort by version (newest first)
-        let sortedRecords = records.sorted { record1, record2 in
-            let version1 = record1["backupVersion"] as? Int ?? 0
-            let version2 = record2["backupVersion"] as? Int ?? 0
-            return version1 > version2
-        }
-        
-        var merged: [String: Any] = [:]
-        
-        // Merge fields: take most recent non-null value
-        for record in sortedRecords {
-            let fields = ["firstName", "lastName", "email", "telephone", "homeAddress", "ftnNumber", 
-                         "biography", "backgroundNotes", "createdAt", "lastModified"]
-            
-            for field in fields {
-                if merged[field] == nil, let value = record[field] {
-                    merged[field] = value
-                }
-            }
-        }
-        
-        return merged
-    }
-    
-    /// Merges multiple template records, taking the most recent non-null value for each field
-    private func mergeTemplateRecords(_ records: [CKRecord]) -> [String: Any] {
-        // Sort by version (newest first)
-        let sortedRecords = records.sorted { record1, record2 in
-            let version1 = record1["backupVersion"] as? Int ?? 0
-            let version2 = record2["backupVersion"] as? Int ?? 0
-            return version1 > version2
-        }
-        
-        var merged: [String: Any] = [:]
-        
-        // Merge fields: take most recent non-null value
-        for record in sortedRecords {
-            let fields = ["name", "category", "phase", "relevantData", "createdAt", "lastModified"]
-            
-            for field in fields {
-                if merged[field] == nil, let value = record[field] {
-                    merged[field] = value
-                }
-            }
-        }
-        
-        return merged
     }
     
     // MARK: - Automatic Backup
@@ -601,7 +647,7 @@ class CloudKitBackupService: ObservableObject {
         // Check if we need to backup (every 24 hours)
         checkAndPerformAutomaticBackup()
         
-        // Set up timer to check every 6 hours instead of every hour
+        // Set up timer to check every 6 hours
         backupTimer = Timer.scheduledTimer(withTimeInterval: 21600, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.checkAndPerformAutomaticBackup()
@@ -619,6 +665,7 @@ class CloudKitBackupService: ObservableObject {
             return
         }
         
+        // Check if we need a backup (at least 24 hours since last backup)
         let hoursSinceLastBackup = Date().timeIntervalSince(lastBackup) / 3600
         if hoursSinceLastBackup >= 24 {
             Task {

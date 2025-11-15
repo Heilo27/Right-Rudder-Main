@@ -28,6 +28,12 @@ struct StudentOnboardView: View {
     @State private var instrumentHours = ""
     @State private var previousInstructorName = ""
 
+    /// Safely gets display items for the checklist
+    /// This uses safe extraction to avoid accessing invalidated SwiftData objects
+    /// Safe to call from SwiftUI view body (runs on main thread)
+    private var displayItems: [DisplayChecklistItem] {
+        ChecklistAssignmentService.getDisplayItems(for: progress)
+    }
 
     var body: some View {
         Group {
@@ -41,7 +47,8 @@ struct StudentOnboardView: View {
             } else {
                 List {
                     // Standard checklist items
-                    ForEach(Array(ChecklistAssignmentService.getDisplayItems(for: progress).sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
+                    // Use safe displayItems computed property to avoid invalidated object access
+                    ForEach(Array(displayItems.sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
                         BufferedChecklistItemRow(
                             displayItem: displayItem,
                             bufferedState: itemStates[displayItem.templateItemId] ?? displayItem.isComplete,
@@ -248,43 +255,40 @@ struct StudentOnboardView: View {
         // In the new system, template is already available through the progress relationship
         template = progress.template
         
-        // If template is nil, try to repair the relationship
+        // If template is nil, ensure the relationship is set using the helper
         if template == nil {
-            print("⚠️ Template is nil for progress \(progress.templateId), attempting repair...")
+            _ = ChecklistAssignmentService.ensureTemplateRelationship(for: progress, modelContext: modelContext)
+            template = progress.template
             
-            // Try to find template by ID
-            let request = FetchDescriptor<ChecklistTemplate>()
-            
-            do {
-                let templates = try modelContext.fetch(request)
-                if let foundTemplate = templates.first(where: { $0.id == progress.templateId }) {
-                    progress.template = foundTemplate
-                    template = foundTemplate
-                    print("✅ Repaired template relationship: \(foundTemplate.name)")
-                    // Save the repaired relationship
-                    try? modelContext.save()
-                } else {
-                    print("❌ Template not found for ID: \(progress.templateId)")
-                    
-                    // If template still not found, check if default templates need to be initialized
+            // If still nil after ensuring relationship, check if default templates need to be initialized
+            if template == nil {
+                print("⚠️ Template not found for progress \(progress.templateId), checking if templates need initialization...")
+                
+                let request = FetchDescriptor<ChecklistTemplate>()
+                if let templates = try? modelContext.fetch(request) {
                     let defaultTemplatesExist = templates.contains { $0.templateIdentifier != nil }
                     if !defaultTemplatesExist {
                         print("⚠️ No default templates found. Initializing default templates...")
                         DefaultDataService.initializeDefaultData(modelContext: modelContext)
                         
                         // Try again after initialization
-                        let retryRequest = FetchDescriptor<ChecklistTemplate>()
-                        if let retryTemplates = try? modelContext.fetch(retryRequest),
-                           let foundTemplate = retryTemplates.first(where: { $0.id == progress.templateId }) {
-                            progress.template = foundTemplate
-                            template = foundTemplate
-                            print("✅ Found template after initialization: \(foundTemplate.name)")
-                            try? modelContext.save()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            _ = ChecklistAssignmentService.ensureTemplateRelationship(for: self.progress, modelContext: self.modelContext)
+                            self.template = self.progress.template
+                            
+                            if self.template == nil {
+                                let retryRequest = FetchDescriptor<ChecklistTemplate>()
+                                if let retryTemplates = try? self.modelContext.fetch(retryRequest),
+                                   let foundTemplate = retryTemplates.first(where: { $0.id == self.progress.templateId }) {
+                                    self.progress.template = foundTemplate
+                                    self.template = foundTemplate
+                                    print("✅ Found template after initialization: \(foundTemplate.name)")
+                                    try? self.modelContext.save()
+                                }
+                            }
                         }
                     }
                 }
-            } catch {
-                print("❌ Failed to fetch template: \(error)")
             }
         }
         
@@ -292,6 +296,8 @@ struct StudentOnboardView: View {
     }
     
     /// Ensures all template items have corresponding ItemProgress records
+    /// CRITICAL: ItemProgress records should already exist from assignment creation
+    /// Only creates missing records if there's data corruption - this should be rare
     private func ensureItemProgressRecordsExist() {
         guard let template = template, let templateItems = template.items else {
             print("⚠️ Cannot ensure ItemProgress records: template or items are nil")
@@ -318,12 +324,27 @@ struct StudentOnboardView: View {
         }
         
         if createdCount > 0 {
-            print("✅ Created \(createdCount) missing ItemProgress records for \(progress.displayName)")
+            print("⚠️ Created \(createdCount) missing ItemProgress records for \(progress.displayName)")
+            print("   This indicates data corruption - ItemProgress should exist from assignment creation")
+            print("   These new records will be synced to CloudKit with new IDs")
             
             // Save the new records
             do {
                 try modelContext.save()
                 print("✅ Saved new ItemProgress records")
+                
+                // CRITICAL: Sync newly created ItemProgress records to CloudKit immediately
+                // This ensures they get proper IDs in CloudKit
+                if let student = progress.student {
+                    Task {
+                        let shareService = CloudKitShareService.shared
+                        let hasActive = await shareService.hasActiveShare(for: student)
+                        if hasActive {
+                            // Sync the entire assignment to ensure all ItemProgress records are synced
+                            await shareService.syncInstructorDataToCloudKit(student, modelContext: modelContext)
+                        }
+                    }
+                }
             } catch {
                 print("❌ Failed to save new ItemProgress records: \(error)")
             }

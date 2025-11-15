@@ -17,6 +17,7 @@ struct RightRudderApp: App {
     @StateObject private var databaseRecoveryService = DatabaseRecoveryService.shared
     @State private var shouldShowWhatsNew = false
     @State private var shouldShowCFIWarning = false
+    @State private var showInvalidationAlert = false
     
     init() {
         // Initialize memory monitoring
@@ -180,13 +181,21 @@ struct RightRudderApp: App {
                 TemplateExportService.cleanupOldSyncFiles()
                 
                 // Initialize CloudKit schema (ensures CustomChecklistDefinition record type is deployed)
-                let syncService = CloudKitSyncService()
-                await syncService.initializeCloudKitSchema()
+                // Use CloudKitShareService for all CloudKit operations (shared database only)
+                await CloudKitShareService.shared.initializeCloudKitSchemas()
+                
+                // Validate Production schemas (helps identify missing schemas before users encounter errors)
+                await CloudKitShareService.shared.validateProductionSchemas()
                 
                 await pushNotificationService.checkNotificationPermission()
                 if pushNotificationService.notificationPermissionGranted {
                     await pushNotificationService.subscribeToInstructorComments()
+                    await pushNotificationService.subscribeToShareAcceptance()
                 }
+                
+                // Monitor share acceptance for all students
+                let context = modelContainer.mainContext
+                await CloudKitShareService.shared.monitorShareAcceptanceForAllStudents(modelContext: context)
                 
                 // Check if we should show CFI warning
                 shouldShowCFIWarning = CFIExpirationWarningService.shared.shouldShowWarning()
@@ -195,6 +204,17 @@ struct RightRudderApp: App {
                 if !shouldShowCFIWarning {
                     shouldShowWhatsNew = WhatsNewService.shouldShowWhatsNew()
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Check for share acceptance when app comes to foreground
+                Task {
+                    let context = modelContainer.mainContext
+                    await CloudKitShareService.shared.monitorShareAcceptanceForAllStudents(modelContext: context)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DatabaseInvalidationError"))) { _ in
+                // Handle model invalidation errors
+                showInvalidationAlert = true
             }
             .onOpenURL { url in
                 handleIncomingURL(url)
@@ -217,6 +237,17 @@ struct RightRudderApp: App {
                 }
             } message: {
                 Text(databaseRecoveryService.recoveryError ?? "")
+            }
+            .alert("Database Error", isPresented: $showInvalidationAlert) {
+                Button("Restart App") {
+                    // Force app restart by exiting
+                    exit(0)
+                }
+                Button("Continue", role: .cancel) {
+                    showInvalidationAlert = false
+                }
+            } message: {
+                Text("The database encountered an error and some data may have been lost. For best results, please restart the app. Your data will be restored from CloudKit on next sync.")
             }
         }
         .modelContainer(modelContainer)
@@ -259,11 +290,8 @@ struct RightRudderApp: App {
     
     /// Checks if an error indicates CoreData corruption
     private static func isCoreDataCorruptionError(_ error: Error) -> Bool {
-        let errorString = error.localizedDescription.lowercased()
-        return errorString.contains("disk i/o error") ||
-               errorString.contains("sqlite error code:266") ||
-               errorString.contains("sqlite error code:10") ||
-               errorString.contains("couldn't be opened")
+        // Use the centralized error handler
+        return DatabaseErrorHandler.isCorruptionError(error) || DatabaseErrorHandler.isDiskIOError(error)
     }
     
     /// Attempts to recover from CoreData corruption by deleting corrupted files

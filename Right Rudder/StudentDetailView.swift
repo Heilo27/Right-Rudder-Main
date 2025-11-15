@@ -39,11 +39,14 @@ struct StudentDetailView: View {
     @State private var lastSyncDate = Date()
     @State private var isCheckingForUpdates = false
     @State private var refreshTrigger = 0
-    @StateObject private var syncService = CloudKitSyncService()
+    @State private var showStudentLeftNotification = false
+    @State private var studentLeftName: String?
+    // Use CloudKitShareService for all sync operations (shared database only)
+    private let shareService = CloudKitShareService.shared
     
 
     var body: some View {
-        mainContentView
+        let content = mainContentView
             .navigationTitle("Student Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -56,33 +59,52 @@ struct StudentDetailView: View {
                     .buttonStyle(.noHaptic)
                 }
             }
-        .onChange(of: showingAddChecklist) { _, newValue in
-            // When sheet dismisses, refresh the lists
-            if !newValue {
-                print("🔄 Add checklist sheet dismissed, refreshing lists")
-                updateSortedLists()
+        
+        return content
+            .onChange(of: showingAddChecklist) { _, newValue in
+                // When sheet dismisses, refresh the lists
+                if !newValue {
+                    print("🔄 Add checklist sheet dismissed, refreshing lists")
+                    updateSortedLists()
+                }
             }
-        }
-        .onAppear {
+            .onAppear {
             print("👁️ StudentDetailView APPEARED for student: \(student.displayName)")
             
-            // Set model context for sync service
-            syncService.setModelContext(modelContext)
-            
-            // Repair any broken template relationships
-            ChecklistAssignmentService.repairTemplateRelationships(for: student, modelContext: modelContext)
+            // Set model context for share service
+            shareService.setModelContext(modelContext)
             
             updateSortedLists()
+            
+            // CRITICAL: Check for student-initiated unlink first
+            Task {
+                let studentUnlinked = await shareService.checkForStudentInitiatedUnlink(for: student, modelContext: modelContext)
+                if studentUnlinked {
+                    await MainActor.run {
+                        studentLeftName = student.displayName
+                        showStudentLeftNotification = true
+                        // Auto-dismiss after 5 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                            showStudentLeftNotification = false
+                        }
+                    }
+                }
+            }
             
             // CRITICAL: Auto-sync to CloudKit if student has active share
             // This ensures all assignments are synced to shared zone when viewing student
             // Only sync if student has actually accepted the share (not just URL generated)
             Task {
-                let shareService = CloudKitShareService()
+                // Check for share acceptance and send notification if needed
+                await shareService.checkAndNotifyShareAcceptance(for: student)
+                
                 let hasActive = await shareService.hasActiveShare(for: student)
                 if hasActive {
                     print("🔄 Student has active share (accepted) - triggering automatic sync for: \(student.displayName)")
-                    await syncService.forceSyncStudentAssignments(student)
+                    await shareService.syncInstructorDataToCloudKit(student, modelContext: modelContext)
+                    
+                    // Also pull student-owned data (training goals) from CloudKit
+                    await shareService.pullStudentDataFromCloudKit(student, modelContext: modelContext)
                 } else {
                     print("⚠️ Student \(student.displayName) has share URL but hasn't accepted yet - skipping sync")
                 }
@@ -142,7 +164,18 @@ struct StudentDetailView: View {
                 unlinkStudent()
             }
         } message: {
-            Text("This will remove the student's access to their companion app. They will no longer be able to view their profile or upload documents. You can re-link them later if needed.")
+            Text("This will remove the student's access to their companion app. All shared data will be deleted from CloudKit. They will no longer be able to view their profile or upload documents. You can re-link them later if needed.")
+        }
+        .alert("Student Left Link", isPresented: $showStudentLeftNotification) {
+            Button("OK") {
+                showStudentLeftNotification = false
+            }
+        } message: {
+            if let name = studentLeftName {
+                Text("\(name) has left the link. All assigned lessons have been removed from their app. You can send a new invite if needed.")
+            } else {
+                Text("The student has left the link. All assigned lessons have been removed from their app.")
+            }
         }
     }
     
@@ -151,6 +184,7 @@ struct StudentDetailView: View {
     private var mainContentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // iPad-optimized content width
                 studentInfoHeader
                 
                 // Only show sharing section if not linked
@@ -177,7 +211,9 @@ struct StudentDetailView: View {
                 }
             }
             .padding()
+            .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? 800 : .infinity)
         }
+        .frame(maxWidth: .infinity) // Center content on iPad
         .modifier(StudentDetailSheets(
             showingEditStudent: $showingEditStudent,
             showingAddChecklist: $showingAddChecklist,
@@ -237,14 +273,17 @@ struct StudentDetailView: View {
     
     private func unlinkStudent() {
         Task {
-            let shareService = CloudKitShareService()
+            let shareService = CloudKitShareService.shared
             let success = await shareService.removeShareForStudent(student, modelContext: modelContext)
             
             await MainActor.run {
                 if success {
-                    print("Student unlinked successfully")
+                    print("✅ Student unlinked successfully - all shared data deleted")
+                    // Refresh the view to update UI state
+                    updateSortedLists()
+                    refreshTrigger += 1
                 } else {
-                    print("Failed to unlink student")
+                    print("❌ Failed to unlink student")
                 }
             }
         }
@@ -401,17 +440,24 @@ struct StudentDetailView: View {
                     .foregroundColor(.secondary)
                 }
                 
-                // ID Photo
-                if let photoData = student.profilePhotoData, let uiImage = UIImage(data: photoData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 72, height: 72)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.appPrimary, lineWidth: 2)
-                        )
+                // ID Photo - Optimized to reduce memory usage
+                if let photoData = student.profilePhotoData {
+                    if let uiImage = UIImage(data: photoData),
+                       let optimizedImage = ImageOptimizationService.shared.optimizeImage(uiImage, maxSize: CGSize(width: 144, height: 144)) {
+                        Image(uiImage: optimizedImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 72, height: 72)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.appPrimary, lineWidth: 2)
+                            )
+                    } else {
+                        Image(systemName: "person.circle")
+                            .font(.system(size: 72))
+                            .foregroundColor(.gray)
+                    }
                 } else {
                     Image(systemName: "person.circle")
                         .font(.system(size: 72))
@@ -603,7 +649,7 @@ struct StudentDetailView: View {
                     }
                 }
             }
-            .listStyle(PlainListStyle())
+            .modifier(iPadListStyleModifier())
             // Calculate proper height: each checklist row needs ~80 pixels
             // Add section header height (40px) if there are completed checklists
             // Ensure minimum height for completed section to make it easily visible
@@ -812,6 +858,15 @@ struct StudentDetailView: View {
     }
     
     private func deleteChecklist(_ progress: ChecklistAssignment) {
+        // CRITICAL: Delete from CloudKit first (if student has active share)
+        // This ensures the student app will detect the deletion on next sync
+        if student.shareRecordID != nil {
+            Task {
+                let shareService = CloudKitShareService.shared
+                await shareService.deleteAssignmentFromCloudKit(assignment: progress, student: student)
+            }
+        }
+        
         // Remove the checklist assignment from the student's assignments
         if let index = student.checklistAssignments?.firstIndex(where: { $0.id == progress.id }) {
             student.checklistAssignments?.remove(at: index)
@@ -1091,36 +1146,45 @@ struct EndorsementView: View {
         .onAppear {
             loadImage()
         }
+        .onDisappear {
+            // Release image when view disappears to free memory
+            uiImage = nil
+        }
     }
     
     private func loadImage() {
         guard let imageData = endorsement.imageData else { 
-            print("⚠️ No image data found for endorsement: \(endorsement.filename)")
             return 
         }
         
         // Check if this is PDF data or image data
         if endorsement.filename.hasSuffix(".pdf") {
-            // For PDF files, create a PDF thumbnail
+            // For PDF files, create a PDF thumbnail - optimize for memory
             DispatchQueue.global(qos: .userInitiated).async {
-                if let pdfDocument = PDFDocument(data: imageData) {
-                    let page = pdfDocument.page(at: 0)
-                    let thumbnailSize = CGSize(width: 200, height: 200)
-                    let thumbnail = page?.thumbnail(of: thumbnailSize, for: .mediaBox)
-                    
-                    DispatchQueue.main.async {
-                        self.uiImage = thumbnail
+                autoreleasepool {
+                    guard let pdfDocument = PDFDocument(data: imageData),
+                          let page = pdfDocument.page(at: 0) else {
+                        return
                     }
-                } else {
-                    print("⚠️ Failed to create PDF document from data")
+                    let thumbnailSize = CGSize(width: 200, height: 200)
+                    let thumbnail = page.thumbnail(of: thumbnailSize, for: .mediaBox)
+                    // Optimize thumbnail to reduce memory
+                    let optimizedThumbnail = ImageOptimizationService.shared.optimizeImage(thumbnail, maxSize: thumbnailSize)
+                    DispatchQueue.main.async {
+                        self.uiImage = optimizedThumbnail ?? thumbnail
+                    }
                 }
             }
         } else {
-            // For regular image files
+            // For regular image files - optimize to reduce memory
             DispatchQueue.global(qos: .userInitiated).async {
-                let image = UIImage(data: imageData)
-                DispatchQueue.main.async {
-                    self.uiImage = image
+                autoreleasepool {
+                    guard let originalImage = UIImage(data: imageData) else { return }
+                    // Optimize image to reduce memory footprint
+                    let optimizedImage = ImageOptimizationService.shared.optimizeImage(originalImage, maxSize: CGSize(width: 800, height: 800))
+                    DispatchQueue.main.async {
+                        self.uiImage = optimizedImage
+                    }
                 }
             }
         }
@@ -1211,8 +1275,11 @@ struct EndorsementDetailView: View {
             }
         }
         .onAppear {
-            print("🚀 EndorsementDetailView onAppear called for: \(endorsement.filename)")
             loadImage()
+        }
+        .onDisappear {
+            // Release image when view disappears to free memory
+            uiImage = nil
         }
         .alert("Delete Endorsement", isPresented: $showingDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
@@ -1225,74 +1292,66 @@ struct EndorsementDetailView: View {
     }
     
     private func loadImage() {
-        print("🚀 EndorsementDetailView loadImage() called for: \(endorsement.filename)")
-        
         guard let imageData = endorsement.imageData else { 
-            print("⚠️ No image data found for endorsement: \(endorsement.filename)")
             return 
         }
         
-        print("🔍 Loading image for endorsement: \(endorsement.filename), data size: \(imageData.count) bytes")
-        
         // Check if this is PDF data or image data
         if endorsement.filename.hasSuffix(".pdf") {
-            // For PDF files, try multiple approaches to render the page
+            // For PDF files - optimize rendering to reduce memory
             DispatchQueue.global(qos: .userInitiated).async {
-                print("🔍 Attempting to create PDF document from data...")
-                
-                guard let pdfDocument = PDFDocument(data: imageData) else {
-                    print("❌ FAILED: Could not create PDFDocument from data")
-                    print("❌ Data size: \(imageData.count) bytes")
-                    print("❌ Data preview: \(imageData.prefix(20).map { String(format: "%02x", $0) }.joined(separator: " "))")
-                    return
-                }
-                
-                print("✅ PDF document created successfully, page count: \(pdfDocument.pageCount)")
-                
-                guard let page = pdfDocument.page(at: 0) else {
-                    print("❌ FAILED: Could not get page 0 from PDF document")
-                    return
-                }
-                
-                let pageBounds = page.bounds(for: .mediaBox)
-                print("🔍 Page bounds: \(pageBounds)")
-                
-                // Try direct rendering first (more reliable)
-                print("🔍 Attempting direct PDF rendering...")
-                let scale: CGFloat = 2.0
-                let size = CGSize(width: pageBounds.width * scale, height: pageBounds.height * scale)
-                print("🔍 Target render size: \(size)")
-                
-                let renderer = UIGraphicsImageRenderer(size: size)
-                let image = renderer.image { context in
-                    // Set white background
-                    context.cgContext.setFillColor(UIColor.white.cgColor)
-                    context.cgContext.fill(CGRect(origin: .zero, size: size))
+                autoreleasepool {
+                    guard let pdfDocument = PDFDocument(data: imageData) else {
+                        return
+                    }
                     
-                    // Scale and draw the page
-                    context.cgContext.scaleBy(x: scale, y: scale)
-                    page.draw(with: .mediaBox, to: context.cgContext)
-                }
-                
-                print("🔍 Direct rendering completed, image size: \(image.size)")
-                print("🔍 Image has content: \(image.size.width > 0 && image.size.height > 0)")
-                
-                DispatchQueue.main.async {
-                    self.uiImage = image
-                    print("🔍 Set rendered image in detail view: \(self.uiImage != nil ? "SUCCESS" : "FAILED")")
-                    if self.uiImage == nil {
-                        print("❌ CRITICAL: uiImage is still nil after setting!")
+                    guard let page = pdfDocument.page(at: 0) else {
+                        return
+                    }
+                    
+                    let pageBounds = page.bounds(for: .mediaBox)
+                    
+                    // Use lower scale for memory efficiency (1.5 instead of 2.0)
+                    let scale: CGFloat = 1.5
+                    // Limit maximum size to prevent excessive memory usage
+                    let maxDimension: CGFloat = 2000
+                    let rawWidth = pageBounds.width * scale
+                    let rawHeight = pageBounds.height * scale
+                    
+                    let finalWidth = min(rawWidth, maxDimension)
+                    let finalHeight = min(rawHeight, maxDimension)
+                    let size = CGSize(width: finalWidth, height: finalHeight)
+                    
+                    let renderer = UIGraphicsImageRenderer(size: size)
+                    let image = renderer.image { context in
+                        // Set white background
+                        context.cgContext.setFillColor(UIColor.white.cgColor)
+                        context.cgContext.fill(CGRect(origin: .zero, size: size))
+                        
+                        // Scale and draw the page
+                        let actualScale = min(finalWidth / pageBounds.width, finalHeight / pageBounds.height)
+                        context.cgContext.scaleBy(x: actualScale, y: actualScale)
+                        page.draw(with: .mediaBox, to: context.cgContext)
+                    }
+                    
+                    // Optimize the rendered image to reduce memory
+                    let optimizedImage = ImageOptimizationService.shared.optimizeImage(image, maxSize: size)
+                    
+                    DispatchQueue.main.async {
+                        self.uiImage = optimizedImage ?? image
                     }
                 }
             }
         } else {
-            // For regular image files
-            print("🔍 Loading regular image file...")
+            // For regular image files - optimize to reduce memory
             DispatchQueue.global(qos: .userInitiated).async {
-                let image = UIImage(data: imageData)
-                print("🔍 Regular image loaded: \(image != nil ? "SUCCESS" : "FAILED")")
-                DispatchQueue.main.async {
-                    self.uiImage = image
+                autoreleasepool {
+                    guard let originalImage = UIImage(data: imageData) else { return }
+                    // Optimize image to reduce memory footprint (larger size for detail view)
+                    let optimizedImage = ImageOptimizationService.shared.optimizeImage(originalImage, maxSize: CGSize(width: 1200, height: 1200))
+                    DispatchQueue.main.async {
+                        self.uiImage = optimizedImage
+                    }
                 }
             }
         }
@@ -1339,33 +1398,49 @@ struct StudentDetailSheets: ViewModifier {
         content
             .sheet(isPresented: $showingEditStudent) {
                 EditStudentView(student: student)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingAddChecklist) {
                 AddChecklistToStudentView(student: student, templates: getTemplates())
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingCamera) {
                 CameraView { image in
                     addEndorsementImage(image)
                 }
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingPhotoLibrary) {
                 PhotoLibraryView { image in
                     addEndorsementImage(image)
                 }
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingStudentRecord) {
                 PDFExportService.showStudentRecord(student)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingShareSheet) {
                 StudentShareView(student: student)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingDocuments) {
                 NavigationView {
                     StudentDocumentsView(student: student)
                 }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingConflictResolution) {
                 ConflictResolutionView(student: student, conflicts: detectedConflicts)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingEndorsementDetail) {
                 if let endorsement = selectedEndorsement {
@@ -1373,6 +1448,8 @@ struct StudentDetailSheets: ViewModifier {
                         deleteEndorsement(endorsement)
                         showingEndorsementDetail = false
                     }
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
                     .onAppear {
                         print("🎯 Sheet is being presented, selectedEndorsement: \(endorsement.filename)")
                     }
@@ -1381,6 +1458,21 @@ struct StudentDetailSheets: ViewModifier {
                         .foregroundColor(.red)
                 }
             }
+    }
+}
+
+// Helper modifier for iPad list styling
+struct iPadListStyleModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return AnyView(content.listStyle(.insetGrouped))
+        } else {
+            return AnyView(content.listStyle(.plain))
+        }
+        #else
+        return AnyView(content.listStyle(.plain))
+        #endif
     }
 }
 

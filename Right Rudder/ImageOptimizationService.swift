@@ -13,12 +13,12 @@ class ImageOptimizationService {
     static let shared = ImageOptimizationService()
     
     private let imageCache = NSCache<NSString, UIImage>()
-    private let maxCacheSize = 10 // Further reduced maximum number of images to cache
-    private let maxCacheSizeMB = 10 // Further reduced cache size to 10MB
+    private let maxCacheSize = 5 // Reduced to 5 images to save memory
+    private let maxCacheSizeMB = 5 // Reduced to 5MB to save memory
     
     private init() {
         imageCache.countLimit = maxCacheSize
-        imageCache.totalCostLimit = maxCacheSizeMB * 1024 * 1024 // 10MB limit
+        imageCache.totalCostLimit = maxCacheSizeMB * 1024 * 1024 // 5MB limit
         
         // Add memory pressure handling
         NotificationCenter.default.addObserver(

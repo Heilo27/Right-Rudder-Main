@@ -270,14 +270,7 @@ class Student {
                     #endif
                     return false 
                 }
-                let isComplete = assignment.isComplete
-                #if DEBUG
-                if !isComplete {
-                    let completed = assignment.completedItemsCount
-                    print("⚠️ Assignment '\(assignment.displayName)' not complete: \(completed)/\(total) items")
-                }
-                #endif
-                return isComplete
+                return assignment.isComplete
             }
             
             // Check if category is Review (documents not required)
@@ -288,34 +281,12 @@ class Student {
             if isReviewCategory {
                 // Review category: only need checklists complete and personal info
                 if allAssignmentsComplete && personalInfo >= 100.0 {
-                    print("✅ All assigned items complete for \(displayName) (Review category - no documents required) - returning 100% progress")
-                    print("   - Personal info: \(personalInfo)%")
-                    print("   - All checklists complete: \(allAssignmentsComplete)")
-                    print("   - Total assignments checked: \(assignments.count)")
                     return 1.0
-                } else {
-                    #if DEBUG
-                    print("⚠️ 100% condition not met for \(displayName) (Review category):")
-                    print("   - All checklists complete: \(allAssignmentsComplete)")
-                    print("   - Personal info >= 100%: \(personalInfo >= 100.0) (actual: \(personalInfo)%)")
-                    #endif
                 }
             } else {
                 // Other categories: need checklists, personal info, AND documents
                 if allAssignmentsComplete && personalInfo >= 100.0 && docProgress >= 100.0 {
-                    print("✅ All assigned items complete for \(displayName) - returning 100% progress")
-                    print("   - Personal info: \(personalInfo)%")
-                    print("   - Documents: \(docProgress)%")
-                    print("   - All checklists complete: \(allAssignmentsComplete)")
-                    print("   - Total assignments checked: \(assignments.count)")
                     return 1.0
-                } else {
-                    #if DEBUG
-                    print("⚠️ 100% condition not met for \(displayName):")
-                    print("   - All checklists complete: \(allAssignmentsComplete)")
-                    print("   - Personal info >= 100%: \(personalInfo >= 100.0) (actual: \(personalInfo)%)")
-                    print("   - Documents >= 100%: \(docProgress >= 100.0) (actual: \(docProgress)%)")
-                    #endif
                 }
             }
         } else {
@@ -326,66 +297,34 @@ class Student {
             if isReviewCategory {
                 // Review category: only need personal info
                 if personalInfo >= 100.0 {
-                    print("✅ Personal info complete (no checklists assigned, Review category) for \(displayName) - returning 100% progress")
                     return 1.0
                 }
             } else {
                 // Other categories: need personal info and documents
                 if personalInfo >= 100.0 && docProgress >= 100.0 {
-                    print("✅ Personal info and documents complete (no checklists assigned) for \(displayName) - returning 100% progress")
                     return 1.0
                 }
             }
         }
         
-        // Debug logging
+        // Debug logging (reduced verbosity - only log summary)
         #if DEBUG
-        if let assignments = checklistAssignments {
+        if let assignments = checklistAssignments, !assignments.isEmpty {
             let normalizedTarget = normalizedCategory(category) ?? category
-            print("📊 Progress calculation for \(displayName):")
-            print("   - Category: \(category) (normalized: \(normalizedTarget))")
-            print("   - Total assignments: \(assignments.count)")
-            if !assignments.isEmpty {
-                let categoryAssignments = assignments.filter { assignment in
-                    if let templateCategory = assignment.template?.category {
-                        return categoriesMatch(templateCategory, normalizedTarget)
-                    }
-                    return false
+            let _ = assignments.filter { assignment in
+                if let templateCategory = assignment.template?.category {
+                    return categoriesMatch(templateCategory, normalizedTarget)
                 }
-                print("   - Category assignments (matched): \(categoryAssignments.count)")
+                return false
             }
-            for assignment in assignments {
-                let completed = assignment.completedItemsCount
-                let total = assignment.totalItemsCount
-                let isComplete = assignment.isComplete
-                let templateCategory = assignment.template?.category ?? "nil"
-                let normalizedTemplateCategory = normalizedCategory(templateCategory) ?? "nil"
-                print("   - Assignment: \(assignment.displayName)")
-                print("     Template Category: '\(templateCategory)' (normalized: '\(normalizedTemplateCategory)')")
-                print("     Completed: \(completed)/\(total), isComplete: \(isComplete), progress: \(assignment.progressPercentage * 100)%")
-            }
-            print("   - Personal info: \(personalInfo)%")
-            print("   - Documents: \(docProgress)%")
-            print("   - Goal progress: \(goalProgress)%")
+            // Only log if there are issues or significant information
+            // Reduced logging frequency - only log on significant changes
+            // This prevents excessive logging during normal app usage
             
-            // Check why 100% condition wasn't met
-            let allAssignmentsComplete = assignments.allSatisfy { assignment in
-                let total = assignment.totalItemsCount
-                guard total > 0 else { return false }
-                return assignment.isComplete
-            }
-            print("   - All assignments complete: \(allAssignmentsComplete)")
-            print("   - Personal info >= 100%: \(personalInfo >= 100.0)")
-            print("   - Documents >= 100%: \(docProgress >= 100.0)")
         }
         #endif
         
         let calculatedProgress = totalWeightedProgress / 100.0 // Return as 0.0-1.0 for progress bars
-        
-        #if DEBUG
-        print("   - Calculated progress: \(calculatedProgress * 100)%")
-        #endif
-        
         return calculatedProgress
     }
     
@@ -486,26 +425,6 @@ class Student {
         let checklistProgress = checklistProgressForCategory(category)
         progress += checklistProgress
         
-        #if DEBUG
-        if progress == 0.0 {
-            let normalizedTarget = normalizedCategory(category) ?? category
-            print("⚠️ Category goal progress: Student \(displayName) category '\(category)' (normalized: '\(normalizedTarget)') has 0 progress")
-            if let assignments = checklistAssignments {
-                print("   - Total assignments: \(assignments.count)")
-                let categoryAssignments = assignments.filter { assignment in
-                    if let templateCategory = assignment.template?.category {
-                        return categoriesMatch(templateCategory, normalizedTarget)
-                    }
-                    return false
-                }
-                print("   - Assignments matching category: \(categoryAssignments.count)")
-                for assignment in assignments {
-                    let templateCategory = assignment.template?.category ?? "nil"
-                    print("     - Assignment '\(assignment.displayName)': template category = '\(templateCategory)'")
-                }
-            }
-        }
-        #endif
         
         // Add milestone bonuses
         // Normalize category for switch statement
@@ -572,16 +491,6 @@ class Student {
         }
         
         guard !categoryAssignments.isEmpty else {
-            #if DEBUG
-            print("⚠️ checklistProgressForCategory: No assignments found for category '\(category)' (normalized: '\(normalizedTarget)')")
-            if let assignments = checklistAssignments {
-                print("   - Total assignments: \(assignments.count)")
-                for assignment in assignments {
-                    let templateCategory = assignment.template?.category ?? "nil"
-                    print("   - Assignment '\(assignment.displayName)': template category = '\(templateCategory)'")
-                }
-            }
-            #endif
             return 0.0
         }
         

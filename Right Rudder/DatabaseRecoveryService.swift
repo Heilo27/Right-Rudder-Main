@@ -208,6 +208,24 @@ class DatabaseRecoveryService: ObservableObject {
             }
         }
     }
+    
+    /// Handles disk I/O errors detected during runtime
+    func handleDiskIOError() async {
+        print("⚠️ Disk I/O error detected during runtime - checking database state...")
+        
+        // Check if database is accessible
+        if detectCorruption() {
+            print("⚠️ Database corruption confirmed - triggering recovery...")
+            await MainActor.run {
+                showRecoveryAlert = true
+            }
+        } else {
+            // Database might just be temporarily locked or have a transient I/O issue
+            // Try to clear any locks by waiting a moment
+            print("⚠️ Database appears accessible - may be transient I/O issue")
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        }
+    }
 }
 
 /// Extension to add recovery functionality to ModelContainer

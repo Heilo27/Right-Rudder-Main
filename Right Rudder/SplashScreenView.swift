@@ -64,9 +64,20 @@ struct SplashScreenView: View {
                     print("Starting template initialization...")
                     // Initialize default data with version checking
                     DefaultDataService.initializeDefaultData(modelContext: modelContext)
-                    print("Template initialization completed successfully")
+                    
+                    // Process pending changes to ensure templates are saved
+                    modelContext.processPendingChanges()
+                    
+                    // Verify templates were loaded
+                    let request = FetchDescriptor<ChecklistTemplate>()
+                    if let templates = try? modelContext.fetch(request) {
+                        print("✅ Template initialization completed: \(templates.count) templates loaded")
+                    } else {
+                        print("⚠️ Could not verify template count after initialization")
+                    }
                 }
                 
+                // Wait longer to ensure templates are fully initialized before showing main app
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
                     print("Transitioning to main app...")
                     withAnimation(.easeInOut(duration: 0.5)) {

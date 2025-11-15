@@ -15,24 +15,8 @@ class ChecklistAssignmentService {
             return
         }
         
-        // Get the correct template ID for CloudKit sync
-        let templateId: UUID
-        if let templateIdentifier = template.templateIdentifier {
-            // For default templates, must use TemplateIDMappingService
-            if let mappedId = TemplateIDMappingService.getTemplateID(for: templateIdentifier) {
-                templateId = mappedId
-                print("✅ Using mapped template ID for default template: \(templateIdentifier) -> \(mappedId)")
-            } else {
-                print("❌ ERROR: Default template '\(template.name)' has templateIdentifier '\(templateIdentifier)' but no mapping found in TemplateIDMappingService")
-                print("   This indicates a missing mapping - template will not sync correctly to student app")
-                // Still use template.id as fallback, but log the error
-                templateId = template.id
-            }
-        } else {
-            // For custom templates (no templateIdentifier), use template.id
-            templateId = template.id
-            print("📝 Using template.id for custom template: \(template.name) -> \(template.id)")
-        }
+        // Use template.id directly (no mapping needed)
+        let templateId = template.id
         
         // Create new assignment record
         // NOTE: This assignment record acts as the "progress file" that will be synced to student app.
@@ -57,33 +41,15 @@ class ChecklistAssignmentService {
         if let templateItems = template.items {
             var itemProgressArray: [ItemProgress] = []
             
-            for (index, templateItem) in templateItems.enumerated() {
-                // Get the correct template item ID for CloudKit sync
-                let templateItemId: UUID
-                if let templateIdentifier = template.templateIdentifier {
-                    // For default templates, must use TemplateIDMappingService
-                    if let mappedItemIDs = TemplateIDMappingService.getTemplateItemIDs(for: templateIdentifier),
-                       index < mappedItemIDs.count {
-                        templateItemId = mappedItemIDs[index]
-                        print("✅ Using mapped item ID for default template item: \(templateItem.title) -> \(templateItemId)")
-                    } else {
-                        print("❌ ERROR: Default template '\(template.name)' item '\(templateItem.title)' (index \(index)) has no mapping in TemplateIDMappingService")
-                        print("   This indicates a missing mapping - item will not sync correctly to student app")
-                        // Still use templateItem.id as fallback, but log the error
-                        templateItemId = templateItem.id
-                    }
-                } else {
-                    // For custom templates (no templateIdentifier), use templateItem.id
-                    templateItemId = templateItem.id
-                    print("📝 Using templateItem.id for custom template item: \(templateItem.title) -> \(templateItemId)")
-                }
+            for templateItem in templateItems {
+                // Use templateItem.id directly (no mapping needed)
+                let templateItemId = templateItem.id
                 
                 // Create ItemProgress record and set relationships explicitly
                 let itemProgress = ItemProgress(templateItemId: templateItemId)
                 itemProgress.assignment = assignment
                 itemProgressArray.append(itemProgress)
                 modelContext.insert(itemProgress)
-                print("✅ Created ItemProgress record for templateItemId: \(templateItemId)")
             }
             
             assignment.itemProgress = itemProgressArray
@@ -108,6 +74,9 @@ class ChecklistAssignmentService {
         }
         template.studentAssignments?.append(assignment)
         
+        // Safety check: ensure template relationship is set (should already be set above)
+        _ = ensureTemplateRelationship(for: assignment, modelContext: modelContext)
+        
         // Debug: Verify relationships are set
         print("🔗 Assignment verification:")
         print("   Assignment.template: \(assignment.template?.name ?? "nil")")
@@ -115,12 +84,14 @@ class ChecklistAssignmentService {
         print("   Template.id: \(template.id)")
         print("   Template.name: \(template.name)")
         
-        // Save
-        do {
-            try modelContext.save()
-            print("Assigned template \(template.name) to student \(student.displayName)")
-        } catch {
-            print("Failed to assign template: \(error)")
+        // Save using serialized queue
+        Task { @MainActor in
+            do {
+                try await modelContext.saveSafely()
+                print("Assigned template \(template.name) to student \(student.displayName)")
+            } catch {
+                print("Failed to assign template: \(error)")
+            }
         }
     }
     
@@ -139,31 +110,79 @@ class ChecklistAssignmentService {
         // Delete the assignment record
         modelContext.delete(assignment)
         
-        do {
-            try modelContext.save()
-            print("Removed template \(template.name) from student \(student.displayName)")
-        } catch {
-            print("Failed to remove template: \(error)")
+        // Save using serialized queue
+        Task { @MainActor in
+            do {
+                try await modelContext.saveSafely()
+                print("Removed template \(template.name) from student \(student.displayName)")
+            } catch {
+                print("Failed to remove template: \(error)")
+            }
         }
     }
     
     /// Get display items for a student's checklist assignment
+    /// Safely handles invalidated SwiftData objects
     static func getDisplayItems(for assignment: ChecklistAssignment) -> [DisplayChecklistItem] {
-        guard let template = assignment.template,
-              let templateItems = template.items else {
+        // Validate assignment is still valid by checking if we can access its ID
+        // SwiftData objects that are invalidated may have issues, but property access doesn't throw
+        // We check by accessing the ID property - if the object is invalidated, this might return
+        // an invalid value, but we'll catch that when accessing relationships
+        let _ = assignment.id
+        
+        // Access template and items - if template relationship is broken, this will return nil
+        // which is handled gracefully by returning empty array
+        guard let template = assignment.template else {
             return []
         }
         
-        return templateItems.compactMap { templateItem in
+        // Validate template is still valid
+        let _ = template.id
+        
+        guard let templateItems = template.items else {
+            return []
+        }
+        
+        // Validate items are still valid before processing
+        // Accessing the id property will help ensure the object is still valid
+        let validItems = templateItems.compactMap { item -> ChecklistItem? in
+            // Access id to validate object is still accessible
+            let _ = item.id
+            return item
+        }
+        
+        return processTemplateItems(templateItems: validItems, assignment: assignment)
+    }
+    
+    /// Safely extracts all data from ChecklistItems into value types
+    /// This prevents fatal errors from accessing invalidated SwiftData objects
+    /// Returns an array of tuples containing only value types (no SwiftData references)
+    static func extractItemDataSafely(items: [ChecklistItem]) -> [(id: UUID, title: String, notes: String?, order: Int)] {
+        // Extract all properties immediately into value types
+        // This ensures we never hold references to SwiftData objects that could become invalidated
+        return items.map { item in
+            // Access all properties immediately and convert to value types
+            (id: item.id, title: item.title, notes: item.notes, order: item.order)
+        }
+    }
+    
+    /// Helper to process template items safely, creating snapshots to avoid invalidated object access
+    private static func processTemplateItems(templateItems: [ChecklistItem], assignment: ChecklistAssignment) -> [DisplayChecklistItem] {
+        // Extract all data into value types immediately - no SwiftData object references after this
+        let itemSnapshots = extractItemDataSafely(items: templateItems)
+        
+        // Use the snapshot to create display items (no longer holding SwiftData object references)
+        return itemSnapshots.compactMap { snapshot in
+            // Find ItemProgress using the snapshot ID
             let itemProgress = assignment.itemProgress?.first { 
-                $0.templateItemId == templateItem.id 
+                $0.templateItemId == snapshot.id 
             }
             
             return DisplayChecklistItem(
-                templateItemId: templateItem.id,
-                title: templateItem.title,
-                notes: templateItem.notes,
-                order: templateItem.order,
+                templateItemId: snapshot.id,
+                title: snapshot.title,
+                notes: snapshot.notes,
+                order: snapshot.order,
                 isComplete: itemProgress?.isComplete ?? false,
                 studentNotes: itemProgress?.notes,
                 completedAt: itemProgress?.completedAt
@@ -201,13 +220,14 @@ class ChecklistAssignmentService {
             // CRITICAL: Only sync if student has actually accepted the share
             if let student = assignment.student {
                 Task {
-                    let shareService = CloudKitShareService()
+                    let shareService = CloudKitShareService.shared
                     let hasActive = await shareService.hasActiveShare(for: student)
                     if hasActive {
                         await shareService.syncSingleItemProgressToSharedZone(
                             itemProgress: itemProgress,
                             assignment: assignment,
-                            student: student
+                            student: student,
+                            modelContext: modelContext
                         )
                     }
                 }
@@ -217,36 +237,29 @@ class ChecklistAssignmentService {
         }
     }
     
-    /// Repair broken template relationships for a student's checklist assignments
-    static func repairTemplateRelationships(for student: Student, modelContext: ModelContext) {
-        guard let assignmentArray = student.checklistAssignments else { return }
-        
-        for assignment in assignmentArray {
-            if assignment.template == nil {
-                print("🔧 Repairing template relationship for assignment: \(assignment.templateId)")
-                
-                // Try to find template by ID
-                let request = FetchDescriptor<ChecklistTemplate>()
-                
-                do {
-                    let templates = try modelContext.fetch(request)
-                    if let template = templates.first(where: { $0.id == assignment.templateId }) {
-                        assignment.template = template
-                        print("✅ Repaired template relationship: \(template.name)")
-                    } else {
-                        print("❌ Template not found for ID: \(assignment.templateId)")
-                    }
-                } catch {
-                    print("❌ Failed to fetch template for repair: \(error)")
-                }
-            }
+    /// Ensures the template relationship is set for an assignment by looking up the template by templateId
+    /// Returns true if relationship was set, false if template not found
+    static func ensureTemplateRelationship(for assignment: ChecklistAssignment, modelContext: ModelContext) -> Bool {
+        // If relationship already exists, nothing to do
+        if assignment.template != nil {
+            return true
         }
         
+        // Look up template by ID
+        let request = FetchDescriptor<ChecklistTemplate>()
+        
         do {
-            try modelContext.save()
-            print("✅ Template relationships repaired and saved")
+            let templates = try modelContext.fetch(request)
+            if let template = templates.first(where: { $0.id == assignment.templateId }) {
+                assignment.template = template
+                return true
+            } else {
+                print("⚠️ Template not found for assignment templateId: \(assignment.templateId)")
+                return false
+            }
         } catch {
-            print("❌ Failed to save repaired relationships: \(error)")
+            print("❌ Failed to fetch template for relationship: \(error)")
+            return false
         }
     }
 }

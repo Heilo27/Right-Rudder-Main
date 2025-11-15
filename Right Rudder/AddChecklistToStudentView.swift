@@ -12,7 +12,8 @@ struct AddChecklistToStudentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: String? = nil
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    @State private var refreshTrigger = UUID() // Force view refresh after assignments
+    private let cloudKitShareService = CloudKitShareService.shared
     
     let student: Student
     let templates: [ChecklistTemplate]
@@ -130,34 +131,63 @@ struct AddChecklistToStudentView: View {
     
     private var templatesList: some View {
         List {
-            ForEach(phaseGroups) { phaseGroup in
-                Section(header: sectionHeader(phaseGroup)) {
+            ForEach(Array(phaseGroups.enumerated()), id: \.element.id) { phaseIndex, phaseGroup in
+                Section(header: sectionHeader(phaseIndex: phaseIndex, phaseGroup: phaseGroup)) {
                     ForEach(phaseGroup.templates) { template in
                         templateRow(template)
                     }
                 }
+                
+                // Add spacing between phases (except after the last one)
+                if phaseIndex < phaseGroups.count - 1 {
+                    spacingSection
+                }
             }
+        }
+        .id(refreshTrigger) // Force refresh when assignments change
+    }
+    
+    private var spacingSection: some View {
+        Section {
+            EmptyView()
+        } header: {
+            Spacer()
+                .frame(height: 4)
         }
     }
     
-    private func sectionHeader(_ phaseGroup: PhaseGroup) -> some View {
-        HStack {
-            Text(phaseGroup.phase)
-                .font(.headline)
-            Spacer()
-            HStack(spacing: 12) {
-                Button("Delete All") {
-                    deleteAllTemplatesInPhase(phaseGroup.templates)
-                }
-                .buttonStyle(.rounded)
-                .foregroundColor(.red)
-                
-                Button("Add All") {
-                    addAllTemplatesInPhase(phaseGroup.templates)
-                }
-                .buttonStyle(.rounded)
+    @ViewBuilder
+    private func sectionHeader(phaseIndex: Int, phaseGroup: PhaseGroup) -> some View {
+        VStack(spacing: 8) {
+            if phaseIndex > 0 {
+                // Add spacing above phase name (except for first phase)
+                Spacer()
+                    .frame(height: 3)
             }
+            
+            HStack {
+                Text(phaseGroup.phase)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Spacer()
+                HStack(spacing: 12) {
+                    Button("Delete All") {
+                        deleteAllTemplatesInPhase(phaseGroup.templates)
+                    }
+                    .buttonStyle(.rounded)
+                    .foregroundColor(.red)
+                    
+                    Button("Add All") {
+                        addAllTemplatesInPhase(phaseGroup.templates)
+                    }
+                    .buttonStyle(.rounded)
+                }
+            }
+            .padding(.horizontal, 4)
         }
+        .padding(.vertical, 4)
+        .background(Color(.systemGray6))
     }
     
     private func templateRow(_ template: ChecklistTemplate) -> some View {
@@ -208,8 +238,24 @@ struct AddChecklistToStudentView: View {
     }
     
     private var availableCategories: [String] {
-        let categories = Set(templates.map { $0.category })
-        return Array(categories).sorted()
+        let allCategories = Set(templates.map { $0.category })
+        
+        // Define the desired order: PPL, Instrument, Commercial, Multi-Engine, CFI, Reviews
+        let categoryOrder = ["PPL", "Instrument", "Commercial", "Multi-Engine", "CFI", "Reviews"]
+        
+        // Filter to only include categories that exist in templates, in the specified order
+        var orderedCategories: [String] = []
+        for category in categoryOrder {
+            if allCategories.contains(category) {
+                orderedCategories.append(category)
+            }
+        }
+        
+        // Add any remaining categories that aren't in the predefined order (sorted alphabetically)
+        let remainingCategories = allCategories.subtracting(Set(categoryOrder)).sorted()
+        orderedCategories.append(contentsOf: remainingCategories)
+        
+        return orderedCategories
     }
     
     private func templatesInCategory(_ category: String) -> [ChecklistTemplate] {
@@ -232,6 +278,10 @@ struct AddChecklistToStudentView: View {
             return ("cloud.fog", .gray)
         case "Commercial":
             return ("briefcase", .green)
+        case "Multi-Engine":
+            return ("airplane.2", .purple)
+        case "CFI":
+            return ("person.badge.shield.checkmark", .indigo)
         case "Reviews":
             return ("checkmark.circle", .orange)
         default:
@@ -243,6 +293,14 @@ struct AddChecklistToStudentView: View {
         guard let selectedCategory = selectedCategory else { return [] }
         
         let filteredTemplates = templates.filter { $0.category == selectedCategory }
+        
+        // Use special phase grouping for Instrument category (by I1, I2, I3, I4, I5)
+        if selectedCategory == "Instrument" {
+            let instrumentGroups = createInstrumentPhaseGroups(filteredTemplates)
+            return reorderPhasesByAssignmentStatus(instrumentGroups)
+        }
+        
+        // For other categories, use standard phase grouping
         let grouped = Dictionary(grouping: filteredTemplates) { template in
             template.phase ?? "Phase 1"
         }
@@ -258,7 +316,73 @@ struct AddChecklistToStudentView: View {
             phaseGroups.append(phaseGroup)
         }
         
-        return sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
+        // Sort by phase order first
+        let sortedByPhase = sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
+        
+        // Then reorder: phases with all items assigned go to bottom
+        return reorderPhasesByAssignmentStatus(sortedByPhase)
+    }
+    
+    /// Creates phase groups for Instrument category based on I1-L, I2-L, I3-L, I4-L, I5-L patterns
+    private func createInstrumentPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {
+        // Single pass filtering for better performance
+        var phaseGroups: [PhaseGroup] = []
+        var phase1Templates: [ChecklistTemplate] = []
+        var phase2Templates: [ChecklistTemplate] = []
+        var phase3Templates: [ChecklistTemplate] = []
+        var phase4Templates: [ChecklistTemplate] = []
+        var phase5Templates: [ChecklistTemplate] = []
+        
+        for template in templates {
+            if template.name.contains("I1-L") {
+                phase1Templates.append(template)
+            } else if template.name.contains("I2-L") {
+                phase2Templates.append(template)
+            } else if template.name.contains("I3-L") {
+                phase3Templates.append(template)
+            } else if template.name.contains("I4-L") {
+                phase4Templates.append(template)
+            } else if template.name.contains("I5-L") {
+                phase5Templates.append(template)
+            }
+        }
+        
+        if !phase1Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 1: Basic instrument control and skills", templates: sortPhase1Templates(phase1Templates)))
+        }
+        if !phase2Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 2: Navigation systems and procedures", templates: sortPhase1Templates(phase2Templates)))
+        }
+        if !phase3Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 3: Instrument approaches and advanced procedures", templates: sortPhase1Templates(phase3Templates)))
+        }
+        if !phase4Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 4: Instrument Cross Countries", templates: sortPhase1Templates(phase4Templates)))
+        }
+        if !phase5Templates.isEmpty {
+            phaseGroups.append(PhaseGroup(phase: "Phase 5: Becoming Instrument Rated", templates: sortPhase1Templates(phase5Templates)))
+        }
+        
+        return phaseGroups
+    }
+    
+    /// Reorders phases so that fully assigned phases appear at the bottom
+    /// This creates the elegant behavior where completed phases move down
+    private func reorderPhasesByAssignmentStatus(_ phaseGroups: [PhaseGroup]) -> [PhaseGroup] {
+        var unassignedPhases: [PhaseGroup] = []
+        var assignedPhases: [PhaseGroup] = []
+        
+        for phaseGroup in phaseGroups {
+            let allAssigned = phaseGroup.templates.allSatisfy { isChecklistAlreadyAssigned($0) }
+            if allAssigned {
+                assignedPhases.append(phaseGroup)
+            } else {
+                unassignedPhases.append(phaseGroup)
+            }
+        }
+        
+        // Unassigned phases first, then assigned phases
+        return unassignedPhases + assignedPhases
     }
     
     private func sortTemplatesForPhase(_ templates: [ChecklistTemplate], phase: String) -> [ChecklistTemplate] {
@@ -309,6 +433,9 @@ struct AddChecklistToStudentView: View {
         do {
             try modelContext.save()
             print("✅ Checklist assigned and saved: \(template.name)")
+            
+            // Trigger view refresh to show reordered phases if phase becomes fully assigned
+            refreshTrigger = UUID()
         } catch {
             print("❌ Failed to save after assigning checklist: \(error)")
         }
@@ -334,6 +461,10 @@ struct AddChecklistToStudentView: View {
         do {
             try modelContext.save()
             print("✅ All templates assigned and saved: \(unassignedTemplates.count) templates")
+            
+            // Trigger view refresh to show reordered phases (completed phase moves to bottom)
+            // This creates the elegant behavior where the phase that was just completed moves down
+            refreshTrigger = UUID()
         } catch {
             print("❌ Failed to save after assigning templates: \(error)")
         }

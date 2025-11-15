@@ -10,7 +10,7 @@ import SwiftData
 
 class SmartTemplateUpdateService {
     
-    static let templateVersion = "1.4.7.13" // Increment this when templates change (bumped to force reinitialize with UUID mappings)
+    static let templateVersion = "1.4.7.14" // Increment this when templates change (bumped to fix Solo Endorsements items)
     private static var isUpdating = false // Prevent concurrent updates
     
     /// Force update all templates (useful for debugging or major changes)
@@ -58,40 +58,44 @@ class SmartTemplateUpdateService {
                 print("⚠️ No default templates found in database, initializing all templates...")
             }
             
-            // Delete ALL templates with templateIdentifier (default templates)
-            // This ensures a clean slate for default templates
-            let defaultTemplatesToDelete = existingTemplates.filter { $0.templateIdentifier != nil }
+            // Get all new default templates from library
+            let newTemplates = getAllDefaultTemplates()
+            
+            // Create a set of new template IDs for quick lookup
+            let newTemplateIds = Set(newTemplates.map { $0.id })
+            
+            // Delete default templates that are no longer in the library
+            let defaultTemplatesToDelete = existingTemplates.filter { template in
+                guard template.templateIdentifier != nil else { return false }
+                return !newTemplateIds.contains(template.id)
+            }
             
             for template in defaultTemplatesToDelete {
                 modelContext.delete(template)
             }
             
-            // Get all new default templates
-            let newTemplates = getAllDefaultTemplates()
+            // Process deletions before updating/inserting
+            if !defaultTemplatesToDelete.isEmpty {
+                modelContext.processPendingChanges()
+            }
+            
+            // Fetch templates again after deletions to get fresh state
+            let currentTemplates = try modelContext.fetch(FetchDescriptor<ChecklistTemplate>())
+            let currentTemplateIds = Set(currentTemplates.map { $0.id })
+            let currentTemplateIdentifiers = Set(currentTemplates.compactMap { $0.templateIdentifier })
             
             var addedCount = 0
+            var updatedCount = 0
             
             for newTemplate in newTemplates {
                 guard let templateIdentifier = newTemplate.templateIdentifier else {
                     continue
                 }
                 
-                // Assign the correct UUID from the mapping service for central library compatibility
-                if let mappedID = TemplateIDMappingService.getTemplateID(for: templateIdentifier) {
-                    newTemplate.id = mappedID
-                    print("✅ Using mapped UUID for template: \(templateIdentifier) -> \(mappedID)")
-                } else {
-                    print("⚠️ No UUID mapping found for template: \(templateIdentifier), using generated UUID")
-                }
-                
-                // Assign correct UUIDs to items for central library compatibility
-                // AND ensure items are properly set up before checking for existing templates
-                if let itemIDs = TemplateIDMappingService.getTemplateItemIDs(for: templateIdentifier),
-                   let items = newTemplate.items {
-                    for (index, item) in items.enumerated() {
-                        if index < itemIDs.count {
-                            item.id = itemIDs[index]
-                        }
+                // Use template/item IDs directly (no mapping needed)
+                // Ensure items are properly set up before checking for existing templates
+                if let items = newTemplate.items {
+                    for item in items {
                         // Ensure item's template relationship is set
                         item.template = newTemplate
                     }
@@ -101,26 +105,26 @@ class SmartTemplateUpdateService {
                 }
                 
                 // Check if template with this ID already exists
-                let existingTemplateByID = existingTemplates.first { $0.id == newTemplate.id }
-                
-                if existingTemplateByID != nil {
-                    // Update existing template instead of creating new one
-                    if let existing = existingTemplateByID {
+                if currentTemplateIds.contains(newTemplate.id) {
+                    // Find the existing template
+                    if let existing = currentTemplates.first(where: { $0.id == newTemplate.id }) {
+                        // Update existing template
                         updateTemplate(existing, with: newTemplate, modelContext: modelContext)
                         print("✅ Updated existing template: \(templateIdentifier)")
-                        addedCount += 1
+                        updatedCount += 1
                         continue
                     }
                 }
                 
                 // Check if there's already a user-customized template with this identifier
-                let existingUserTemplate = existingTemplates.first { template in
-                    return template.templateIdentifier == templateIdentifier && 
-                           (template.isUserCreated || template.isUserModified)
-                }
-                
-                if existingUserTemplate != nil {
-                    continue
+                if currentTemplateIdentifiers.contains(templateIdentifier) {
+                    if let userTemplate = currentTemplates.first(where: { 
+                        $0.templateIdentifier == templateIdentifier && 
+                        ($0.isUserCreated || $0.isUserModified)
+                    }) {
+                        print("⚠️ Skipping template \(templateIdentifier) - user-customized version exists: \(userTemplate.name)")
+                        continue
+                    }
                 }
                 
                 // Insert template AND all its items into the model context
@@ -143,13 +147,10 @@ class SmartTemplateUpdateService {
             // Update all student checklist progress to match new template versions
             StudentChecklistUpdateService.updateStudentChecklistProgress(modelContext: modelContext)
             
-            // Repair any broken template relationships in ChecklistAssignments
-            repairAllChecklistAssignmentRelationships(modelContext: modelContext)
-            
             // Mark this version as completed
             userDefaults.set(templateVersion, forKey: "lastTemplateUpdateVersion")
             
-            print("Template update: \(addedCount) templates updated")
+            print("Template update: \(addedCount) templates inserted, \(updatedCount) templates updated")
             
         } catch {
             print("Error during smart template update: \(error)")
@@ -159,48 +160,49 @@ class SmartTemplateUpdateService {
     /// Updates an existing template with new content while preserving user customizations
     private static func updateTemplate(_ existingTemplate: ChecklistTemplate, with newTemplate: ChecklistTemplate, modelContext: ModelContext) {
         // Update basic properties
+        existingTemplate.name = newTemplate.name
         existingTemplate.category = newTemplate.category
         existingTemplate.phase = newTemplate.phase
         existingTemplate.relevantData = newTemplate.relevantData
         existingTemplate.lastModified = Date()
         
-        // Ensure template has correct ID from mapping service
-        if let templateIdentifier = newTemplate.templateIdentifier,
-           let mappedID = TemplateIDMappingService.getTemplateID(for: templateIdentifier) {
-            existingTemplate.id = mappedID
-        }
-        
         // Delete existing items first to prevent accumulation
+        // CRITICAL: Extract item data before deletion to avoid accessing invalidated objects
         if let existingItems = existingTemplate.items {
+            // Extract IDs before deletion to avoid invalidated object access
+            let _ = existingItems.map { $0.id }
+            
+            // Delete items
             for item in existingItems {
                 modelContext.delete(item)
             }
             existingTemplate.items?.removeAll()
+            
+            // Process pending changes to ensure deletions are committed atomically
+            // This prevents other code from accessing invalidated items during the update
+            modelContext.processPendingChanges()
         }
         
         // Add new items in the exact order they appear in the template
         if let newItems = newTemplate.items {
-            // Get item IDs from mapping service if available
-            let itemIDs: [UUID]? = {
-                if let templateIdentifier = newTemplate.templateIdentifier {
-                    return TemplateIDMappingService.getTemplateItemIDs(for: templateIdentifier)
-                }
-                return nil
-            }()
+            // Ensure items array is initialized
+            if existingTemplate.items == nil {
+                existingTemplate.items = []
+            }
             
-            for (index, newItem) in newItems.enumerated() {
+            for newItem in newItems {
                 let item = ChecklistItem(title: newItem.title, notes: newItem.notes, order: newItem.order)
                 
-                // Assign correct UUID from mapping service if available
-                if let itemIDs = itemIDs, index < itemIDs.count {
-                    item.id = itemIDs[index]
-                }
-                
+                // Preserve the item ID from the library
+                item.id = newItem.id
                 item.template = existingTemplate
                 existingTemplate.items?.append(item)
                 // Insert item into model context
                 modelContext.insert(item)
             }
+            
+            // Process pending changes after insertion to ensure new items are available
+            modelContext.processPendingChanges()
         }
     }
     
@@ -234,39 +236,96 @@ class SmartTemplateUpdateService {
     }
     
     /// Returns all default templates that should be available
+    /// Loads from DefaultChecklistLibrary.json to ensure UUIDs match student app
     private static func getAllDefaultTemplates() -> [ChecklistTemplate] {
+        // First try to load from the central library JSON
+        if let libraryTemplates = loadTemplatesFromLibrary() {
+            print("✅ Loaded \(libraryTemplates.count) templates from DefaultChecklistLibrary.json")
+            return libraryTemplates
+        }
+        
+        // Fallback to DefaultTemplates if JSON not found
+        print("⚠️ Could not load from library JSON, falling back to DefaultTemplates.swift")
         return DefaultTemplates.allTemplates
     }
     
-    /// Repairs broken template relationships in all ChecklistAssignments
-    private static func repairAllChecklistAssignmentRelationships(modelContext: ModelContext) {
+    /// Loads templates from DefaultChecklistLibrary.json with proper UUIDs
+    private static func loadTemplatesFromLibrary() -> [ChecklistTemplate]? {
+        guard let url = Bundle.main.url(forResource: "DefaultChecklistLibrary", withExtension: "json", subdirectory: "ChecklistLibrary") ??
+                       Bundle.main.url(forResource: "DefaultChecklistLibrary", withExtension: "json") else {
+            print("⚠️ Could not find DefaultChecklistLibrary.json")
+            return nil
+        }
+        
         do {
-            let descriptor = FetchDescriptor<ChecklistAssignment>()
-            let assignments = try modelContext.fetch(descriptor)
-            var repairedCount = 0
+            let data = try Data(contentsOf: url)
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let checklistsArray = json?["checklists"] as? [[String: Any]] else {
+                print("❌ Invalid library JSON structure")
+                return nil
+            }
             
-            for assignment in assignments {
-                if assignment.template == nil {
-                    // Try to find template by ID
-                    let templateDescriptor = FetchDescriptor<ChecklistTemplate>()
-                    let templates = try modelContext.fetch(templateDescriptor)
-                    
-                    if let template = templates.first(where: { $0.id == assignment.templateId }) {
-                        assignment.template = template
-                        repairedCount += 1
-                        print("✅ Repaired template relationship for assignment: \(assignment.displayName)")
-                    } else {
-                        print("⚠️ Could not find template with ID: \(assignment.templateId) for assignment: \(assignment.displayName)")
-                    }
+            var templates: [ChecklistTemplate] = []
+            
+            for checklistDict in checklistsArray {
+                guard let idString = checklistDict["id"] as? String,
+                      let id = UUID(uuidString: idString),
+                      let name = checklistDict["name"] as? String,
+                      let category = checklistDict["category"] as? String,
+                      let itemsArray = checklistDict["items"] as? [[String: Any]] else {
+                    print("⚠️ Skipping invalid checklist entry")
+                    continue
                 }
+                
+                let templateIdentifier = checklistDict["templateIdentifier"] as? String
+                let phase = checklistDict["phase"] as? String
+                
+                // Create template with library UUID
+                let template = ChecklistTemplate(
+                    name: name,
+                    category: category,
+                    phase: phase,
+                    relevantData: nil,
+                    templateIdentifier: templateIdentifier,
+                    items: nil
+                )
+                
+                // Set the template ID to match the library UUID
+                template.id = id
+                
+                // Create items with library UUIDs
+                var items: [ChecklistItem] = []
+                for itemDict in itemsArray {
+                    guard let itemIdString = itemDict["id"] as? String,
+                          let itemId = UUID(uuidString: itemIdString),
+                          let title = itemDict["title"] as? String,
+                          let order = itemDict["order"] as? Int else {
+                        continue
+                    }
+                    
+                    let notes = itemDict["notes"] as? String
+                    let item = ChecklistItem(
+                        title: title,
+                        notes: notes,
+                        order: order
+                    )
+                    // Set the item ID to match the library UUID
+                    item.id = itemId
+                    item.template = template
+                    items.append(item)
+                }
+                
+                // Sort items by order
+                items.sort { $0.order < $1.order }
+                template.items = items
+                templates.append(template)
             }
             
-            if repairedCount > 0 {
-                try modelContext.save()
-                print("✅ Repaired \(repairedCount) checklist assignment relationships")
-            }
+            return templates
+            
         } catch {
-            print("❌ Error repairing checklist assignment relationships: \(error)")
+            print("❌ Failed to load library JSON: \(error)")
+            return nil
         }
     }
     
@@ -280,32 +339,14 @@ class SmartTemplateUpdateService {
             
             var defaultTemplateCount = 0
             var missingIdentifierCount = 0
-            var missingMappingCount = 0
-            var missingItemMappingCount = 0
             
             for template in templates {
-                if let templateIdentifier = template.templateIdentifier {
+                if template.templateIdentifier != nil {
                     // This is a default template
                     defaultTemplateCount += 1
                     
-                    // Check if template ID mapping exists
-                    if TemplateIDMappingService.getTemplateID(for: templateIdentifier) == nil {
-                        print("❌ ERROR: Default template '\(template.name)' has templateIdentifier '\(templateIdentifier)' but no mapping found in TemplateIDMappingService")
-                        missingMappingCount += 1
-                    }
-                    
-                    // Check if item ID mappings exist
-                    if let items = template.items, !items.isEmpty {
-                        if let itemIDs = TemplateIDMappingService.getTemplateItemIDs(for: templateIdentifier) {
-                            if itemIDs.count != items.count {
-                                print("❌ ERROR: Template '\(template.name)' has \(items.count) items but only \(itemIDs.count) item ID mappings")
-                                missingItemMappingCount += 1
-                            }
-                        } else {
-                            print("❌ ERROR: Template '\(template.name)' has items but no item ID mappings found")
-                            missingItemMappingCount += 1
-                        }
-                    }
+                    // Template validation - no mapping service needed
+                    // Templates use their own IDs directly
                 } else {
                     // This is a custom template - should not have templateIdentifier
                     if !template.isUserCreated && !template.isUserModified {
@@ -318,11 +359,9 @@ class SmartTemplateUpdateService {
             print("📊 Template validation results:")
             print("   Default templates: \(defaultTemplateCount)")
             print("   Missing identifiers: \(missingIdentifierCount)")
-            print("   Missing ID mappings: \(missingMappingCount)")
-            print("   Missing item mappings: \(missingItemMappingCount)")
             
-            if missingMappingCount == 0 && missingItemMappingCount == 0 && missingIdentifierCount == 0 {
-                print("✅ All templates have proper identifiers and mappings")
+            if missingIdentifierCount == 0 {
+                print("✅ All templates have proper identifiers")
             } else {
                 print("❌ Template integrity issues found - some templates may not sync correctly")
             }

@@ -14,32 +14,84 @@ struct ChecklistTemplatesView: View {
     @State private var showingAddTemplate = false
     @State private var selectedCategory = "PPL"
     @State private var isEditing = false
+    @State private var cachedPhaseGroups: [PhaseGroup] = []
+    @State private var isComputingGroups = false
+    @State private var currentCategoryForCache = ""
 
     var body: some View {
-        NavigationView {
-            VStack {
-                categoryPicker
-                templatesList
-            }
-            .navigationTitle("Lessons")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("Add new Lesson") {
-                            showingAddTemplate = true
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                VStack {
+                    categoryPicker
+                    templatesList
+                }
+                .navigationTitle("Lessons")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Menu {
+                            Button("Add new Lesson") {
+                                showingAddTemplate = true
+                            }
+                            
+                            Button(isEditing ? "Done Editing" : "Edit List Order") {
+                                isEditing.toggle()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
-                        
-                        Button(isEditing ? "Done Editing" : "Edit List Order") {
-                            isEditing.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
+                        .buttonStyle(.noHaptic)
                     }
-                    .buttonStyle(.noHaptic)
+                }
+                .sheet(isPresented: $showingAddTemplate) {
+                    AddChecklistTemplateView(category: selectedCategory)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
+                .onAppear {
+                    // Pre-compute phase groups for initial category
+                    computePhaseGroups(for: selectedCategory)
+                }
+                .onChange(of: selectedCategory) { oldValue, newValue in
+                    // Immediately update UI, then recompute in background
+                    computePhaseGroups(for: newValue)
                 }
             }
-            .sheet(isPresented: $showingAddTemplate) {
-                AddChecklistTemplateView(category: selectedCategory)
+        } else {
+            NavigationView {
+                VStack {
+                    categoryPicker
+                    templatesList
+                }
+                .navigationTitle("Lessons")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Menu {
+                            Button("Add new Lesson") {
+                                showingAddTemplate = true
+                            }
+                            
+                            Button(isEditing ? "Done Editing" : "Edit List Order") {
+                                isEditing.toggle()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .buttonStyle(.noHaptic)
+                    }
+                }
+                .sheet(isPresented: $showingAddTemplate) {
+                    AddChecklistTemplateView(category: selectedCategory)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
+                .onAppear {
+                    // Pre-compute phase groups for initial category
+                    computePhaseGroups(for: selectedCategory)
+                }
+                .onChange(of: selectedCategory) { oldValue, newValue in
+                    // Immediately update UI, then recompute in background
+                    computePhaseGroups(for: newValue)
+                }
             }
         }
     }
@@ -47,26 +99,47 @@ struct ChecklistTemplatesView: View {
     private var categoryPicker: some View {
         Picker("Category", selection: $selectedCategory) {
             Text("PPL").tag("PPL")
+                .font(.system(size: 22, weight: .medium))
             Text("Instrument").tag("Instrument")
+                .font(.system(size: 22, weight: .medium))
             Text("Commercial").tag("Commercial")
+                .font(.system(size: 22, weight: .medium))
+            Text("Multi-Engine").tag("Multi-Engine")
+                .font(.system(size: 22, weight: .medium))
+            Text("CFI").tag("CFI")
+                .font(.system(size: 22, weight: .medium))
             Text("Reviews").tag("Reviews")
+                .font(.system(size: 22, weight: .medium))
         }
-        .pickerStyle(.segmented)
-        .padding()
+        .pickerStyle(.menu)
+        .font(.system(size: 22, weight: .medium))
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
     }
     
     private var templatesList: some View {
-        List {
-            ForEach(Array(phaseGroups.enumerated()), id: \.element.id) { phaseIndex, phaseGroup in
-                phaseSection(phaseIndex: phaseIndex, phaseGroup: phaseGroup)
-                
-                  // Add spacing between phases for Instrument and Commercial categories (except after the last one)
-                  if (selectedCategory == "Instrument" || selectedCategory == "Commercial") && phaseIndex < phaseGroups.count - 1 {
-                      spacingSection
-                  }
+        Group {
+            // Use cached groups if available, otherwise fall back to computed property
+            let groupsToDisplay = cachedPhaseGroups.isEmpty ? phaseGroupsComputed : cachedPhaseGroups
+            
+            if isComputingGroups && cachedPhaseGroups.isEmpty && groupsToDisplay.isEmpty {
+                // Show loading state only if we have nothing to display
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(Array(groupsToDisplay.enumerated()), id: \.element.id) { phaseIndex, phaseGroup in
+                        phaseSection(phaseIndex: phaseIndex, phaseGroup: phaseGroup)
+                        
+                          // Add spacing between phases for Instrument and Commercial categories (except after the last one)
+                          if (selectedCategory == "Instrument" || selectedCategory == "Commercial") && phaseIndex < groupsToDisplay.count - 1 {
+                              spacingSection
+                          }
+                    }
+                }
+                .environment(\.editMode, isEditing ? .constant(.active) : .constant(.inactive))
             }
         }
-        .environment(\.editMode, isEditing ? .constant(.active) : .constant(.inactive))
     }
     
     @ViewBuilder
@@ -178,6 +251,8 @@ struct ChecklistTemplatesView: View {
         }
     }
     
+    /// Legacy computed property - filtering and sorting now done in computePhaseGroups
+    /// Kept for backward compatibility if needed elsewhere
     private var filteredTemplates: [ChecklistTemplate] {
         let filtered = templates.filter { $0.category == selectedCategory }
         
@@ -200,7 +275,66 @@ struct ChecklistTemplatesView: View {
         return TemplateSortingUtilities.extractLessonNumber(from: templateName)
     }
     
-    private var phaseGroups: [PhaseGroup] {
+    /// Computes phase groups asynchronously to avoid blocking the main thread
+    private func computePhaseGroups(for category: String) {
+        // Skip if already computing for this category
+        guard currentCategoryForCache != category || cachedPhaseGroups.isEmpty else {
+            return
+        }
+        
+        // Mark as computing
+        isComputingGroups = true
+        currentCategoryForCache = category
+        
+        // Perform heavy computation off main thread
+        Task { @MainActor in
+            // Get filtered templates
+            let filtered = templates.filter { $0.category == category }
+            
+            // Sort templates
+            let sortedFiltered = filtered.sorted { template1, template2 in
+                let lesson1 = extractLessonNumber(from: template1.name)
+                let lesson2 = extractLessonNumber(from: template2.name)
+                
+                if let num1 = lesson1, let num2 = lesson2 {
+                    return num1 < num2
+                }
+                
+                return template1.name < template2.name
+            }
+            
+            // Compute phase groups based on category
+            let computedGroups: [PhaseGroup]
+            if category == "Instrument" {
+                computedGroups = createInstrumentPhaseGroups(sortedFiltered)
+            } else if category == "Commercial" {
+                computedGroups = createCommercialPhaseGroups(sortedFiltered)
+            } else {
+                let grouped = Dictionary(grouping: sortedFiltered) { template in
+                    template.phase ?? "Phase 1"
+                }
+                
+                let phaseOrder = ["First Steps", "Phase 1", "Phase 1.5 Pre-Solo/Solo", "Phase 2", "Phase 3", "Phase 4", "Flight Reviews", "Instrument Rating", "Commercial Rating"]
+                
+                var phaseGroups: [PhaseGroup] = []
+                for (phase, templates) in grouped {
+                    let sortedTemplates = sortTemplatesForPhase(templates, phase: phase)
+                    let phaseGroup = PhaseGroup(phase: phase, templates: sortedTemplates)
+                    phaseGroups.append(phaseGroup)
+                }
+                
+                computedGroups = sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
+            }
+            
+            // Update cache on main thread
+            cachedPhaseGroups = computedGroups
+            isComputingGroups = false
+        }
+    }
+    
+    /// Computed property that performs synchronous computation
+    /// Used as fallback when cache is empty
+    private var phaseGroupsComputed: [PhaseGroup] {
         let filtered = filteredTemplates
         
         if selectedCategory == "Instrument" {
@@ -225,6 +359,12 @@ struct ChecklistTemplatesView: View {
             
             return sortPhaseGroups(phaseGroups, phaseOrder: phaseOrder)
         }
+    }
+    
+    /// Legacy computed property - now uses cached value
+    /// Kept for backward compatibility but should use cachedPhaseGroups directly
+    private var phaseGroups: [PhaseGroup] {
+        cachedPhaseGroups.isEmpty ? phaseGroupsComputed : cachedPhaseGroups
     }
     
     private func createInstrumentPhaseGroups(_ templates: [ChecklistTemplate]) -> [PhaseGroup] {

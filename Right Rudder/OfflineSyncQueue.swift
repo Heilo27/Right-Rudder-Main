@@ -161,7 +161,7 @@ class OfflineSyncManager: ObservableObject {
                   let student = foundChecklist.student else { return false }
             
             // Sync to CloudKit
-            let shareService = CloudKitShareService()
+            let shareService = CloudKitShareService.shared
             await shareService.syncStudentChecklistAssignmentsToSharedZone(student, modelContext: modelContext)
             
             return true
@@ -183,7 +183,7 @@ class OfflineSyncManager: ObservableObject {
             guard let foundStudent = student else { return false }
             
             // Sync to CloudKit
-            let shareService = CloudKitShareService()
+            let shareService = CloudKitShareService.shared
             await shareService.syncStudentChecklistAssignmentsToSharedZone(foundStudent, modelContext: modelContext)
             
             return true

@@ -3,7 +3,8 @@ import SwiftData
 
 struct SyncStatusView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var syncService = CloudKitSyncService()
+    // Use CloudKitShareService for all sync operations (shared database only)
+    private let shareService = CloudKitShareService.shared
     @State private var showingSyncOptions = false
     
     var body: some View {
@@ -27,7 +28,7 @@ struct SyncStatusView: View {
             // Sync Status
             VStack(spacing: 12) {
                 HStack {
-                    if syncService.isSyncing {
+                    if shareService.isSyncing {
                         ProgressView()
                             .scaleEffect(0.8)
                     } else {
@@ -35,14 +36,14 @@ struct SyncStatusView: View {
                             .foregroundColor(.green)
                     }
                     
-                    Text(syncService.syncStatus)
+                    Text(shareService.syncStatus)
                         .font(.subheadline)
-                        .foregroundColor(syncService.isSyncing ? .primary : .secondary)
+                        .foregroundColor(shareService.isSyncing ? .primary : .secondary)
                     
                     Spacer()
                 }
                 
-                if let lastSync = syncService.lastSyncDate {
+                if let lastSync = shareService.lastSyncDate {
                     Text("Last synced: \(lastSync, style: .relative)")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -56,7 +57,7 @@ struct SyncStatusView: View {
             VStack(spacing: 12) {
                 Button(action: {
                     Task {
-                        await syncService.syncToCloudKit()
+                        await shareService.syncToCloudKit(modelContext: modelContext)
                     }
                 }) {
                     HStack {
@@ -69,11 +70,11 @@ struct SyncStatusView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
-                .disabled(syncService.isSyncing)
+                .disabled(shareService.isSyncing)
                 
                 Button(action: {
                     Task {
-                        await syncService.restoreFromCloudKit()
+                        await shareService.restoreFromCloudKit(modelContext: modelContext)
                     }
                 }) {
                     HStack {
@@ -86,7 +87,7 @@ struct SyncStatusView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
-                .disabled(syncService.isSyncing)
+                .disabled(shareService.isSyncing)
             }
             
             // Info Section
@@ -138,7 +139,7 @@ struct SyncStatusView: View {
         .navigationTitle("iCloud Sync")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            syncService.setModelContext(modelContext)
+            shareService.setModelContext(modelContext)
         }
     }
 }

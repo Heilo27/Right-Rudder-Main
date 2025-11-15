@@ -79,7 +79,9 @@ struct AddStudentView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        saveStudent()
+                        Task {
+                            await saveStudent()
+                        }
                     }
                     .disabled(!isFormValid)
                 }
@@ -98,7 +100,7 @@ struct AddStudentView: View {
         !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
-    private func saveStudent() {
+    private func saveStudent() async {
         let student = Student(
             firstName: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
             lastName: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -121,20 +123,31 @@ struct AddStudentView: View {
         // Insert student into context
         modelContext.insert(student)
         
-        // Explicitly save to ensure persistence
+        // Explicitly save to ensure persistence with disk I/O error recovery
         do {
-            try modelContext.save()
-            print("✅ Successfully saved new student: \(student.displayName) (ID: \(student.id))")
+            let saveSuccessful = try await DatabaseErrorHandler.saveWithRecovery(modelContext, maxAttempts: 3)
             
-            // Verify the save worked by fetching
-            let verifyDescriptor = FetchDescriptor<Student>()
-            let allStudents = try modelContext.fetch(verifyDescriptor)
-            let found = allStudents.contains { $0.id == student.id }
-            
-            if !found {
-                print("⚠️ WARNING: Student was saved but fetch returned empty!")
+            if saveSuccessful {
+                print("✅ Successfully saved new student: \(student.displayName) (ID: \(student.id))")
+                
+                // Verify the save worked by fetching
+                do {
+                    let verifyDescriptor = FetchDescriptor<Student>()
+                    let allStudents = try modelContext.fetch(verifyDescriptor)
+                    let found = allStudents.contains { $0.id == student.id }
+                    
+                    if !found {
+                        print("⚠️ WARNING: Student was saved but fetch returned empty!")
+                    } else {
+                        print("✅ Verification: Student found in database after save (total students: \(allStudents.count))")
+                    }
+                } catch {
+                    print("⚠️ Could not verify save (fetch failed): \(error)")
+                }
             } else {
-                print("✅ Verification: Student found in database after save (total students: \(allStudents.count))")
+                print("❌ CRITICAL: Failed to save student after recovery attempts")
+                // Don't dismiss if save failed - user should see the error
+                return
             }
             
         } catch {
@@ -145,6 +158,13 @@ struct AddStudentView: View {
                 print("❌ Error code: \(nsError.code)")
                 print("❌ User info: \(nsError.userInfo)")
             }
+            
+            // Check if this is a model invalidation error
+            if DatabaseErrorHandler.isInvalidationError(error) {
+                print("⚠️ Model invalidation detected - data may have been lost. User should restart the app.")
+                NotificationCenter.default.post(name: Notification.Name("DatabaseInvalidationError"), object: nil)
+            }
+            
             // Don't dismiss if save failed - user should see the error
             return
         }

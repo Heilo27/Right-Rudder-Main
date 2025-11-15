@@ -11,7 +11,8 @@ import SwiftData
 struct EditChecklistTemplateView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var cloudKitSyncService = CloudKitSyncService()
+    // Use CloudKitShareService for all sync operations (shared database only)
+    private let shareService = CloudKitShareService.shared
     
     @State private var template: ChecklistTemplate
     @State private var templateName: String
@@ -95,7 +96,7 @@ struct EditChecklistTemplateView: View {
             }
         }
         .onAppear {
-            cloudKitSyncService.setModelContext(modelContext)
+            shareService.setModelContext(modelContext)
         }
     }
     
@@ -135,9 +136,9 @@ struct EditChecklistTemplateView: View {
             try modelContext.save()
             print("✅ Checklist template saved successfully")
             
-            // Sync template to CloudKit in background
+            // Sync template to CloudKit in background (templates are local only)
             Task {
-                await cloudKitSyncService.syncTemplateToCloudKit(template)
+                await shareService.syncTemplateToCloudKit(template, modelContext: modelContext)
             }
         } catch {
             print("❌ Failed to save checklist template: \(error)")

@@ -16,7 +16,7 @@ struct PreSoloQuizView: View {
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
     @State private var selectedImage: UIImage?
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    private let cloudKitShareService = CloudKitShareService.shared
 
 
     var body: some View {
@@ -202,7 +202,7 @@ struct PreSoloQuizView: View {
         student.lastModified = Date() // Trigger progress bar refresh
         
         do {
-            try modelContext.save()
+            try await modelContext.saveSafely()
             print("✅ PreSoloQuiz progress saved successfully")
             
             // Sync to CloudKit and refresh progress
@@ -231,8 +231,9 @@ struct QuizPhotoView: View {
     var body: some View {
         VStack {
             if let imageData = endorsement.imageData,
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
+               let originalImage = UIImage(data: imageData),
+               let optimizedImage = ImageOptimizationService.shared.optimizeImage(originalImage, maxSize: CGSize(width: 200, height: 200)) {
+                Image(uiImage: optimizedImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 100)

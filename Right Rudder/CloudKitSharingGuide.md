@@ -164,6 +164,10 @@ The student app needs to fetch and display:
 
 #### 1. Accept Share Invitation
 
+**Option A: Accept from Deep Link (Automatic)**
+
+When a student taps a share URL, iOS automatically opens the app with the share metadata:
+
 ```swift
 import CloudKit
 
@@ -174,6 +178,121 @@ func acceptShare(metadata: CKShare.Metadata) async throws {
     await fetchSharedStudent(shareRecord)
 }
 ```
+
+**Option B: Accept from Manual URL Paste (CRITICAL for Student App)**
+
+When a student manually pastes a URL into a text field, you need to fetch the metadata first:
+
+```swift
+import CloudKit
+
+/// Accepts a share from a manually pasted URL string
+/// This is the method to use when students paste URLs into a text field
+func acceptShareFromURLString(_ urlString: String) async throws {
+    let container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
+    
+    // Step 1: Convert string to URL
+    guard let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        throw NSError(domain: "ShareError", code: -1, 
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid URL format"])
+    }
+    
+    // Step 2: Validate URL format
+    guard url.absoluteString.contains("icloud.com/share") else {
+        throw NSError(domain: "ShareError", code: -1, 
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid CloudKit share URL"])
+    }
+    
+    // Step 3: Check iCloud account status
+    let accountStatus = try await container.accountStatus()
+    guard accountStatus == .available else {
+        throw NSError(domain: "ShareError", code: -1, 
+                    userInfo: [NSLocalizedDescriptionKey: "iCloud account not available"])
+    }
+    
+    // Step 4: Fetch share metadata from URL
+    let metadata = try await container.shareMetadata(for: url)
+    
+    // Step 5: Accept the share
+    let shareRecord = try await container.accept(metadata)
+    
+    // Step 6: Fetch the shared student record
+    await fetchSharedStudent(shareRecord)
+}
+
+/// Example UI implementation for manual URL input
+struct ManualShareAcceptView: View {
+    @State private var urlString = ""
+    @State private var isAccepting = false
+    @State private var errorMessage: String?
+    @State private var showSuccess = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Enter Share Link")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            TextField("Paste share URL here", text: $urlString)
+                .textFieldStyle(.roundedBorder)
+                .autocapitalization(.none)
+                .autocorrectionDisabled()
+            
+            if let error = errorMessage {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+            
+            Button(action: {
+                Task {
+                    await acceptShare()
+                }
+            }) {
+                if isAccepting {
+                    ProgressView()
+                } else {
+                    Text("Accept Share")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(urlString.isEmpty || isAccepting)
+        }
+        .padding()
+        .alert("Success", isPresented: $showSuccess) {
+            Button("OK") { }
+        } message: {
+            Text("Share accepted successfully!")
+        }
+    }
+    
+    private func acceptShare() async {
+        isAccepting = true
+        errorMessage = nil
+        
+        do {
+            try await acceptShareFromURLString(urlString)
+            await MainActor.run {
+                showSuccess = true
+                urlString = ""
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+        
+        isAccepting = false
+    }
+}
+```
+
+**Important Notes:**
+- Always trim whitespace from the URL string before processing
+- Validate the URL format before attempting to fetch metadata
+- Check iCloud account status before accepting shares
+- Provide clear error messages to users for common failure cases
+- The `acceptShareFromURLString` method handles all error cases and provides user-friendly messages
 
 #### 2. Fetch Shared Student Data
 
@@ -277,6 +396,12 @@ func handleNotification(userInfo: [AnyHashable: Any]) {
    - Show completion status
    - Display instructor comments prominently
    - Highlight when new comments are added
+   
+   **UI Styling (Must Match Instructor App)**:
+   - ✅ **Checked Items**: Green `checkmark.circle.fill` icon, strikethrough text, secondary color text
+   - ⭕ **Unchecked Items**: Gray `circle` icon, normal text, primary color text
+   - 📅 **Completion Date**: Shown below checked items in caption2 font
+   - See "Student App Checklist Item UI" section below for exact implementation
 
 3. **Document Upload View**
    - Upload interface for required documents
@@ -413,6 +538,101 @@ Potential features for future versions:
 5. **Calendar Integration**: Schedule lessons and send reminders
 6. **Document OCR**: Automatically extract information from uploaded documents
 7. **Multi-instructor**: Support for students training with multiple instructors
+
+## Student App Checklist Item UI
+
+**CRITICAL**: The student app must match the instructor app's UI styling exactly for consistency. Here's the exact implementation:
+
+### Read-Only Checklist Item Row (Student App)
+
+```swift
+import SwiftUI
+
+/// Read-only checklist item row for student app
+/// Matches instructor app styling exactly
+struct StudentChecklistItemRow: View {
+    let item: ChecklistItem
+    let isComplete: Bool
+    let completedAt: Date?
+    let notes: String?
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon: Green checkmark when complete, gray circle when incomplete
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isComplete ? .green : .gray)
+                .font(.title2)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                // Item title: Strikethrough and secondary color when complete
+                Text(item.title)
+                    .strikethrough(isComplete)
+                    .foregroundColor(isComplete ? .secondary : .primary)
+                    .multilineTextAlignment(.leading)
+                    .font(.body)
+                
+                // Notes (if any)
+                if let notes = notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                // Completion date (only shown when complete)
+                if isComplete, let completedAt = completedAt {
+                    Text("Completed: \(completedAt, style: .date)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+```
+
+### Key Styling Details:
+
+1. **Icon**:
+   - ✅ Complete: `checkmark.circle.fill` in `.green` color
+   - ⭕ Incomplete: `circle` in `.gray` color
+   - Font: `.title2`
+
+2. **Text**:
+   - Complete: `.strikethrough()` modifier, `.secondary` color
+   - Incomplete: No strikethrough, `.primary` color
+   - Font: `.body`
+
+3. **Layout**:
+   - HStack spacing: `12` points between icon and text
+   - VStack spacing: `4` points between text elements
+   - Vertical padding: `8` points
+
+4. **Completion Date**:
+   - Only shown when `isComplete == true`
+   - Font: `.caption2`
+   - Color: `.secondary`
+   - Format: "Completed: [date]"
+
+### Example Usage in Checklist View:
+
+```swift
+List {
+    ForEach(checklistItems, id: \.id) { item in
+        StudentChecklistItemRow(
+            item: item,
+            isComplete: item.isComplete,
+            completedAt: item.completedAt,
+            notes: item.notes
+        )
+    }
+}
+```
+
+**Note**: This matches the instructor app's `ChecklistItemRow` styling exactly, ensuring visual consistency between both apps.
 
 ## Support
 

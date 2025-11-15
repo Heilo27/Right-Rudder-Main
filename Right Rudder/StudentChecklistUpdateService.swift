@@ -52,8 +52,10 @@ class StudentChecklistUpdateService {
     private static func syncProgressWithTemplate(assignment: ChecklistAssignment, template: ChecklistTemplate, modelContext: ModelContext) -> Bool {
         var wasUpdated = false
         
-        // Get current template items
-        let templateItems = template.items?.sorted { $0.order < $1.order } ?? []
+        // Get current template items and extract data safely to avoid invalidated object access
+        let templateItems = template.items ?? []
+        let itemData = ChecklistAssignmentService.extractItemDataSafely(items: templateItems)
+        let sortedItemData = itemData.sorted { $0.order < $1.order }
         
         // Get current progress items
         let currentProgressItems = assignment.itemProgress ?? []
@@ -62,19 +64,19 @@ class StudentChecklistUpdateService {
         let existingProgressMap = Dictionary(uniqueKeysWithValues: currentProgressItems.map { ($0.templateItemId, $0) })
         
         // Add missing progress items for new template items
-        for templateItem in templateItems {
-            if existingProgressMap[templateItem.id] == nil {
+        for itemSnapshot in sortedItemData {
+            if existingProgressMap[itemSnapshot.id] == nil {
                 let newProgressItem = ItemProgress(
-                    templateItemId: templateItem.id
+                    templateItemId: itemSnapshot.id
                 )
                 assignment.itemProgress?.append(newProgressItem)
                 wasUpdated = true
-                print("➕ Added progress item for template item: \(templateItem.title)")
+                print("➕ Added progress item for template item: \(itemSnapshot.title)")
             }
         }
         
         // Remove orphaned progress items (template items that no longer exist)
-        let templateItemIds = Set(templateItems.map { $0.id })
+        let templateItemIds = Set(sortedItemData.map { $0.id })
         let progressItemsToRemove = currentProgressItems.filter { !templateItemIds.contains($0.templateItemId) }
         
         for progressItem in progressItemsToRemove {
@@ -86,13 +88,8 @@ class StudentChecklistUpdateService {
             }
         }
         
-        // Update order values to match template
-        for templateItem in templateItems {
-            if existingProgressMap[templateItem.id] != nil {
-                // Note: ItemProgress doesn't have order field, so we skip this update
-                // The order is maintained by the template
-            }
-        }
+        // Update order values to match template (no-op since ItemProgress doesn't have order field)
+        // The order is maintained by the template
         
         // Update last modified
         if wasUpdated {
@@ -106,17 +103,21 @@ class StudentChecklistUpdateService {
     static func addMissingProgressItems(for assignment: ChecklistAssignment, modelContext: ModelContext) {
         guard let template = assignment.template else { return }
         
-        let templateItems = template.items?.sorted { $0.order < $1.order } ?? []
+        // Extract template item data safely to avoid invalidated object access
+        let templateItems = template.items ?? []
+        let itemData = ChecklistAssignmentService.extractItemDataSafely(items: templateItems)
+        let sortedItemData = itemData.sorted { $0.order < $1.order }
+        
         let currentProgressItems = assignment.itemProgress ?? []
         let existingTemplateItemIds = Set(currentProgressItems.map { $0.templateItemId })
         
-        for templateItem in templateItems {
-            if !existingTemplateItemIds.contains(templateItem.id) {
+        for itemSnapshot in sortedItemData {
+            if !existingTemplateItemIds.contains(itemSnapshot.id) {
                 let newProgressItem = ItemProgress(
-                    templateItemId: templateItem.id
+                    templateItemId: itemSnapshot.id
                 )
                 assignment.itemProgress?.append(newProgressItem)
-                print("➕ Added missing progress item for: \(templateItem.title)")
+                print("➕ Added missing progress item for: \(itemSnapshot.title)")
             }
         }
         
@@ -127,8 +128,10 @@ class StudentChecklistUpdateService {
     static func removeOrphanedProgressItems(for assignment: ChecklistAssignment, modelContext: ModelContext) {
         guard let template = assignment.template else { return }
         
+        // Extract template item data safely to avoid accessing invalidated objects
         let templateItems = template.items ?? []
-        let templateItemIds = Set(templateItems.map { $0.id })
+        let itemData = ChecklistAssignmentService.extractItemDataSafely(items: templateItems)
+        let templateItemIds = Set(itemData.map { $0.id })
         let currentProgressItems = assignment.itemProgress ?? []
         
         let orphanedItems = currentProgressItems.filter { !templateItemIds.contains($0.templateItemId) }

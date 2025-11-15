@@ -134,5 +134,65 @@ class PushNotificationService: ObservableObject {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         notificationPermissionGranted = settings.authorizationStatus == .authorized
     }
+    
+    /// Creates a CloudKit subscription to monitor when students accept share invitations
+    /// Note: CKShare records don't support standard query subscriptions, so we use database subscriptions
+    /// and periodic polling as a fallback
+    func subscribeToShareAcceptance() async {
+        do {
+            let database = container.privateCloudDatabase
+            
+            // Use CKDatabaseSubscription to monitor all changes in the private database
+            // This will catch share record updates when participants are added
+            let subscription = CKDatabaseSubscription(subscriptionID: "share-acceptance-subscription")
+            
+            // Configure notification info
+            let notificationInfo = CKSubscription.NotificationInfo()
+            notificationInfo.alertBody = "A student has accepted your share invitation"
+            notificationInfo.soundName = "default"
+            notificationInfo.shouldBadge = true
+            notificationInfo.shouldSendContentAvailable = true
+            
+            subscription.notificationInfo = notificationInfo
+            
+            // Save the subscription
+            _ = try await database.save(subscription)
+            
+            print("✅ Successfully subscribed to share acceptance notifications (database subscription)")
+            
+        } catch {
+            if let ckError = error as? CKError, ckError.code == .serverRejectedRequest {
+                print("ℹ️ Share acceptance subscription already exists")
+            } else {
+                print("⚠️ Failed to subscribe to share acceptance: \(error)")
+                print("   Note: Periodic polling will still check for share acceptance")
+            }
+        }
+    }
+    
+    /// Sends a local notification to the instructor when a student accepts a share
+    func notifyInstructorOfShareAcceptance(studentName: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = "Student Accepted Share"
+        content.body = "\(studentName) has accepted your share invitation and is now connected"
+        content.sound = .default
+        content.badge = 1
+        
+        // Create a trigger for immediate delivery
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: "share-acceptance-\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ Sent local notification for share acceptance: \(studentName)")
+        } catch {
+            print("⚠️ Failed to send share acceptance notification: \(error)")
+        }
+    }
 }
 

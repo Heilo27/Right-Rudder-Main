@@ -156,14 +156,17 @@ class ChecklistIntegrityService {
                 }
                 
                 // Check if assignment records match template items
-                let templateItemIds = Set(template.items?.map { $0.id } ?? [])
+                // Extract data safely to avoid accessing invalidated objects
+                let templateItems = template.items ?? []
+                let itemData = ChecklistAssignmentService.extractItemDataSafely(items: templateItems)
+                let templateItemIds = Set(itemData.map { $0.id })
                 let progressItemIds = Set(assignment.itemProgress?.map { $0.templateItemId } ?? [])
                 
                 // Add missing progress records
-                for templateItem in template.items ?? [] {
-                    if !progressItemIds.contains(templateItem.id) {
+                for itemSnapshot in itemData {
+                    if !progressItemIds.contains(itemSnapshot.id) {
                         let newItemProgress = ItemProgress(
-                            templateItemId: templateItem.id
+                            templateItemId: itemSnapshot.id
                         )
                         assignment.itemProgress?.append(newItemProgress)
                         issuesFixed.append(assignment.id)
@@ -205,14 +208,18 @@ class ChecklistIntegrityService {
                     guard let template = assignment.template else { continue }
                     
                     // Check if all template items have progress records
-                    let templateItemIds = Set(template.items?.map { $0.id } ?? [])
+                    // Extract data safely to avoid accessing invalidated objects
+                    let templateItems = template.items ?? []
+                    let itemData = ChecklistAssignmentService.extractItemDataSafely(items: templateItems)
+                    let templateItemIds = Set(itemData.map { $0.id })
                     let progressItemIds = Set(assignment.itemProgress?.map { $0.templateItemId } ?? [])
                     
                     let missingIds = templateItemIds.subtracting(progressItemIds)
                     
                     if !missingIds.isEmpty {
                         for templateItemId in missingIds {
-                            guard template.items?.first(where: { $0.id == templateItemId }) != nil else {
+                            // Verify the item exists in our safe snapshot
+                            guard itemData.first(where: { $0.id == templateItemId }) != nil else {
                                 continue
                             }
                             

@@ -33,7 +33,7 @@ struct EditStudentView: View {
     @State private var hasExplicitlySaved: Bool = false
     
     // CloudKit sync service
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    private let cloudKitShareService = CloudKitShareService.shared
     
     // Store original values for comparison
     private let originalCategory: String
@@ -183,9 +183,11 @@ struct EditStudentView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        saveStudent()
-                        hasExplicitlySaved = true
-                        dismiss()
+                        Task {
+                            await saveStudent()
+                            hasExplicitlySaved = true
+                            dismiss()
+                        }
                     }
                     .disabled(!isFormValid)
                 }
@@ -223,7 +225,9 @@ struct EditStudentView: View {
             print("🔵 DEBUG: EditStudentView.onDisappear called - Checking for changes")
             if hasChanges && !hasExplicitlySaved {
                 print("🔵 DEBUG: Changes detected but not explicitly saved, triggering auto-save")
-                saveStudent()
+                Task {
+                    await saveStudent()
+                }
             } else if hasExplicitlySaved {
                 print("🔵 DEBUG: Changes were explicitly saved, skipping auto-save")
             } else {
@@ -258,7 +262,7 @@ struct EditStudentView: View {
                     inactiveChanged
     }
     
-    private func saveStudent() {
+    private func saveStudent() async {
         print("🔵 DEBUG: EditStudentView.saveStudent() called - Personal info save triggered")
         print("🔵 DEBUG: Student: \(student.displayName), Changes detected: \(hasChanges)")
         
@@ -275,20 +279,31 @@ struct EditStudentView: View {
         student.lastModified = Date()
         
         do {
-            try modelContext.save()
-            print("✅ Student personal info saved successfully")
-            print("🔍 Saved category: '\(student.assignedCategory ?? "nil")' for student: \(student.displayName)")
+            let saveSuccessful = try await DatabaseErrorHandler.saveWithRecovery(modelContext, maxAttempts: 3)
             
-            // Post notification to update StudentsView
-            NotificationCenter.default.post(name: NSNotification.Name("StudentUpdated"), object: nil)
-            
-            // Sync to CloudKit and refresh progress
-            Task {
-                await cloudKitShareService.syncStudentPersonalInfo(student, modelContext: modelContext)
-                await refreshStudentProgress()
+            if saveSuccessful {
+                print("✅ Student personal info saved successfully")
+                print("🔍 Saved category: '\(student.assignedCategory ?? "nil")' for student: \(student.displayName)")
+                
+                // Post notification to update StudentsView
+                NotificationCenter.default.post(name: NSNotification.Name("StudentUpdated"), object: nil)
+                
+                // Sync to CloudKit and refresh progress
+                Task {
+                    await cloudKitShareService.syncStudentPersonalInfo(student, modelContext: modelContext)
+                    await refreshStudentProgress()
+                }
+            } else {
+                print("❌ Failed to save student after recovery attempts")
             }
         } catch {
             print("❌ Failed to save student: \(error)")
+            
+            // Check if this is a model invalidation error
+            if DatabaseErrorHandler.isInvalidationError(error) {
+                print("⚠️ Model invalidation detected - data may have been lost. User should restart the app.")
+                NotificationCenter.default.post(name: Notification.Name("DatabaseInvalidationError"), object: nil)
+            }
         }
     }
     

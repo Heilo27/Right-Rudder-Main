@@ -13,7 +13,7 @@ struct LessonView: View {
     @State private var student: Student
     @State private var progress: ChecklistAssignment
     @State private var template: ChecklistTemplate?
-    @StateObject private var cloudKitShareService = CloudKitShareService()
+    private let cloudKitShareService = CloudKitShareService.shared
     @State private var hasUnsavedChanges = false
     @State private var itemStates: [UUID: Bool] = [:]
     @State private var showingInstructorNotes = false
@@ -23,6 +23,12 @@ struct LessonView: View {
         self._progress = State(initialValue: progress)
     }
 
+    /// Safely gets display items for the checklist
+    /// This uses safe extraction to avoid accessing invalidated SwiftData objects
+    /// Safe to call from SwiftUI view body (runs on main thread)
+    private var displayItems: [DisplayChecklistItem] {
+        ChecklistAssignmentService.getDisplayItems(for: progress)
+    }
     
     /// Applies buffered changes to SwiftData objects and syncs to CloudKit when user exits the checklist
     private func syncChangesOnExit() async {
@@ -39,6 +45,7 @@ struct LessonView: View {
             }
             
             // Get display items to understand which items should exist
+            // This is safe as getDisplayItems uses safe extraction
             let displayItems = ChecklistAssignmentService.getDisplayItems(for: progress)
             
             // Apply all buffered changes to SwiftData objects
@@ -47,6 +54,8 @@ struct LessonView: View {
                 var progressItem = progress.itemProgress?.first(where: { $0.templateItemId == itemId })
                 
                 // If not found, create a new one
+                // CRITICAL: ItemProgress records should already exist from assignment creation
+                // Only create if truly missing (data corruption case)
                 if progressItem == nil {
                     // Verify the itemId exists in display items (for validation)
                     if displayItems.contains(where: { $0.templateItemId == itemId }) {
@@ -54,7 +63,7 @@ struct LessonView: View {
                         progressItem?.assignment = progress
                         progress.itemProgress?.append(progressItem!)
                         modelContext.insert(progressItem!)
-                        print("✅ Created new ItemProgress record for templateItemId: \(itemId)")
+                        print("⚠️ Created missing ItemProgress record for templateItemId: \(itemId) - this should not happen if assignment was created correctly")
                     } else {
                         print("⚠️ Could not find display item for templateItemId: \(itemId)")
                         continue
@@ -73,7 +82,9 @@ struct LessonView: View {
                 }
             }
             
-            // Ensure all template items have ItemProgress records (create missing ones)
+            // CRITICAL: ItemProgress records should already exist from assignment creation
+            // Only create if truly missing (data corruption case)
+            // Creating new records here can cause ID mismatches with CloudKit
             for displayItem in displayItems {
                 let templateItemId = displayItem.templateItemId
                 if progress.itemProgress?.first(where: { $0.templateItemId == templateItemId }) == nil {
@@ -86,7 +97,7 @@ struct LessonView: View {
                     }
                     progress.itemProgress?.append(newProgressItem)
                     modelContext.insert(newProgressItem)
-                    print("✅ Created missing ItemProgress record for templateItemId: \(templateItemId)")
+                    print("⚠️ Created missing ItemProgress record for templateItemId: \(templateItemId) - this should not happen if assignment was created correctly")
                 }
             }
             
@@ -96,27 +107,28 @@ struct LessonView: View {
             progress.lastModified = Date()
             student.lastModified = Date() // Trigger progress bar refresh
             
-            // Save to SwiftData with multiple attempts to ensure persistence
+            // Save to SwiftData with multiple attempts and disk I/O error recovery
             var saveSuccessful = false
-            for attempt in 1...3 {
-                do {
-                    try modelContext.save()
-                    print("✅ Checklist progress saved successfully (attempt \(attempt))")
-                    saveSuccessful = true
+            do {
+                saveSuccessful = try await DatabaseErrorHandler.saveWithRecovery(modelContext, maxAttempts: 3)
+                
+                if saveSuccessful {
+                    print("✅ Checklist progress saved successfully")
                     
                     // Post notification that checklist items were updated
                     NotificationCenter.default.post(name: Notification.Name("checklistItemCompleted"), object: nil)
                     print("📢 Posted checklistItemCompleted notification from LessonView")
-                    break
-                } catch {
-                    print("❌ Save attempt \(attempt) failed: \(error)")
-                    if attempt < 3 {
-                        do {
-                            try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
-                        } catch {
-                            print("⚠️ Sleep failed: \(error)")
-                        }
-                    }
+                } else {
+                    print("❌ Failed to save checklist progress after recovery attempts")
+                }
+            } catch {
+                print("❌ Failed to save checklist progress: \(error)")
+                
+                // Check if this is a model invalidation error
+                if DatabaseErrorHandler.isInvalidationError(error) {
+                    print("⚠️ Model invalidation detected - data may have been lost. User should restart the app.")
+                    // Post a notification that the view needs to refresh
+                    NotificationCenter.default.post(name: Notification.Name("DatabaseInvalidationError"), object: nil)
                 }
             }
             
@@ -220,16 +232,33 @@ struct LessonView: View {
     var body: some View {
         Group {
             if template == nil {
-                VStack {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 48))
+                        .foregroundColor(.orange)
                     Text("Loading checklist...")
                         .font(.headline)
                     ProgressView()
+                    Text("If this persists, the template may not be available. Please try again or contact support.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear {
+                    // Retry loading template after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        if template == nil {
+                            loadTemplate()
+                        }
+                    }
+                }
             } else {
                 List {
                     // Standard checklist items
-                    ForEach(Array(ChecklistAssignmentService.getDisplayItems(for: progress).sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
+                    // Use safe displayItems computed property to avoid invalidated object access
+                    ForEach(Array(displayItems.sorted { $0.order < $1.order }.enumerated()), id: \.element.templateItemId) { index, displayItem in
                 BufferedChecklistItemRow(
                     displayItem: displayItem,
                     bufferedState: itemStates[displayItem.templateItemId] ?? displayItem.isComplete,
@@ -355,6 +384,8 @@ struct LessonView: View {
         .id(progress.id) // Prevent view recreation when progress data changes
         .sheet(isPresented: $showingInstructorNotes) {
             InstructorNotesView(progress: progress, student: student)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .onAppear {
             print("🎯 LessonView appeared for checklist: \(progress.displayName)")
@@ -388,43 +419,60 @@ struct LessonView: View {
         // In the new system, template is already available through the progress relationship
         template = progress.template
         
-        // If template is nil, try to repair the relationship
+        // If template is nil, ensure the relationship is set using the helper
         if template == nil {
-            print("⚠️ Template is nil for progress \(progress.templateId), attempting repair...")
+            _ = ChecklistAssignmentService.ensureTemplateRelationship(for: progress, modelContext: modelContext)
+            template = progress.template
             
-            // Try to find template by ID
-            let request = FetchDescriptor<ChecklistTemplate>()
-            
-            do {
-                let templates = try modelContext.fetch(request)
-                if let foundTemplate = templates.first(where: { $0.id == progress.templateId }) {
-                    progress.template = foundTemplate
-                    template = foundTemplate
-                    print("✅ Repaired template relationship: \(foundTemplate.name)")
-                    // Save the repaired relationship
-                    try? modelContext.save()
-                } else {
-                    print("❌ Template not found for ID: \(progress.templateId)")
-                    
-                    // If template still not found, check if default templates need to be initialized
+            // If still nil after ensuring relationship, check if default templates need to be initialized
+            if template == nil {
+                print("⚠️ Template not found for progress \(progress.templateId), checking if templates need initialization...")
+                
+                let request = FetchDescriptor<ChecklistTemplate>()
+                if let templates = try? modelContext.fetch(request) {
                     let defaultTemplatesExist = templates.contains { $0.templateIdentifier != nil }
-                    if !defaultTemplatesExist {
-                        print("⚠️ No default templates found. Initializing default templates...")
+                    if !defaultTemplatesExist || templates.isEmpty {
+                        print("⚠️ No default templates found or templates empty. Initializing default templates...")
+                        // Force initialization of templates
                         DefaultDataService.initializeDefaultData(modelContext: modelContext)
                         
-                        // Try again after initialization
-                        let retryRequest = FetchDescriptor<ChecklistTemplate>()
-                        if let retryTemplates = try? modelContext.fetch(retryRequest),
-                           let foundTemplate = retryTemplates.first(where: { $0.id == progress.templateId }) {
+                        // Process pending changes to ensure templates are available
+                        modelContext.processPendingChanges()
+                        
+                        // Try again after initialization with a small delay to ensure save completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            // Try to ensure relationship again after template initialization
+                            _ = ChecklistAssignmentService.ensureTemplateRelationship(for: self.progress, modelContext: self.modelContext)
+                            self.template = self.progress.template
+                            
+                            if self.template == nil {
+                                let retryRequest = FetchDescriptor<ChecklistTemplate>()
+                                if let retryTemplates = try? self.modelContext.fetch(retryRequest) {
+                                    print("❌ Template still not found after initialization. Available templates: \(retryTemplates.map { $0.name })")
+                                    // Last resort: try to find by templateIdentifier if available
+                                    if let identifier = self.progress.templateIdentifier,
+                                       let foundTemplate = retryTemplates.first(where: { $0.templateIdentifier == identifier }) {
+                                        self.progress.template = foundTemplate
+                                        self.template = foundTemplate
+                                        self.progress.templateId = foundTemplate.id
+                                        print("✅ Found template by identifier: \(foundTemplate.name)")
+                                        try? self.modelContext.save()
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Templates exist but this specific one is missing - try to find by identifier
+                        if let identifier = progress.templateIdentifier,
+                           let foundTemplate = templates.first(where: { $0.templateIdentifier == identifier }) {
                             progress.template = foundTemplate
                             template = foundTemplate
-                            print("✅ Found template after initialization: \(foundTemplate.name)")
+                            progress.templateId = foundTemplate.id
+                            print("✅ Found template by identifier: \(foundTemplate.name)")
                             try? modelContext.save()
                         }
                     }
                 }
-            } catch {
-                print("❌ Failed to fetch template: \(error)")
             }
         }
         
@@ -432,6 +480,8 @@ struct LessonView: View {
     }
     
     /// Ensures all template items have corresponding ItemProgress records
+    /// CRITICAL: ItemProgress records should already exist from assignment creation
+    /// Only creates missing records if there's data corruption - this should be rare
     private func ensureItemProgressRecordsExist() {
         guard let template = template, let templateItems = template.items else {
             print("⚠️ Cannot ensure ItemProgress records: template or items are nil")
@@ -458,12 +508,27 @@ struct LessonView: View {
         }
         
         if createdCount > 0 {
-            print("✅ Created \(createdCount) missing ItemProgress records for \(progress.displayName)")
+            print("⚠️ Created \(createdCount) missing ItemProgress records for \(progress.displayName)")
+            print("   This indicates data corruption - ItemProgress should exist from assignment creation")
+            print("   These new records will be synced to CloudKit with new IDs")
             
             // Save the new records
             do {
                 try modelContext.save()
                 print("✅ Saved new ItemProgress records")
+                
+                // CRITICAL: Sync newly created ItemProgress records to CloudKit immediately
+                // This ensures they get proper IDs in CloudKit
+                if let student = progress.student {
+                    Task {
+                        let shareService = CloudKitShareService.shared
+                        let hasActive = await shareService.hasActiveShare(for: student)
+                        if hasActive {
+                            // Sync the entire assignment to ensure all ItemProgress records are synced
+                            await shareService.syncInstructorDataToCloudKit(student, modelContext: modelContext)
+                        }
+                    }
+                }
             } catch {
                 print("❌ Failed to save new ItemProgress records: \(error)")
             }

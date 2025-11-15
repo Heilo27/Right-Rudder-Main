@@ -340,7 +340,7 @@ class DefaultTemplates {
     )
     
     static let p2L3BuildingSkillWithManeuversAndLandings = ChecklistTemplate(
-        name: "P2-L3: Building skill with Manuevers and Landings",
+        name: "P2-L3: Building skill with Maneuvers and Landings",
         category: "PPL",
         phase: "Phase 2",
         templateIdentifier: "default_p2_l3_building_skill_with_maneuvers_and_landings",
@@ -439,7 +439,7 @@ class DefaultTemplates {
         phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_pre_solo_training_checkoff",
         items: [
-            ChecklistItem(title: "1. PProper flight perperation procedures including, Preflight planning, powerplant operations, and aircraft systems", notes: "", order: 0),
+            ChecklistItem(title: "1. Proper flight preparation procedures including, Preflight planning, Powerplant operations, and aircraft systems", notes: "", order: 0),
             ChecklistItem(title: "2. Taxiing or surface operations, including runups", notes: "To be filled in later", order: 1),
             ChecklistItem(title: "3. Takeoffs and landings, including normal and crosswind", notes: "", order: 2),
             ChecklistItem(title: "4. Straight and Level flight, and turns in both directions", notes: "", order: 3),
@@ -450,7 +450,7 @@ class DefaultTemplates {
             ChecklistItem(title: "9. Flight at various airspeeds from cruise to slow flight", notes: "", order: 8),
             ChecklistItem(title: "10. Stall entries from various flight attitudes and power combinations with recovery initiated at the first indication of a stall", notes: "", order: 9),
             ChecklistItem(title: "11. Emergency procedures and equipment malfunctions", notes: "", order: 10),
-            ChecklistItem(title: "12. Ground reference manuevers", notes: "", order: 11),
+            ChecklistItem(title: "12. Ground reference maneuvers", notes: "", order: 11),
             ChecklistItem(title: "13. Approaches to a landing with simulated engine malfunctions", notes: "", order: 12),
             ChecklistItem(title: "14. Slips to a landing", notes: "", order: 13),
             ChecklistItem(title: "15. Go-Arounds", notes: "", order: 14),
@@ -492,10 +492,10 @@ class DefaultTemplates {
         phase: "Phase 1.5 Pre-Solo/Solo",
         templateIdentifier: "default_solo_endorsements",
         items: [
-            ChecklistItem(title: "1. A.3 Aeronautical knowledge 61.87(b) (Pre-solo written to 100%. I have to ensure that their written test deficiencies have been reviewed and corrected to 100% by explaining to them the areas they got wrong.)", notes: "I certify that (first, middle, last) has satisfactorily completed the pre-solo knowledge test of 61.87(b) for the [make and model] aircraft.", order: 0),
-            ChecklistItem(title: "2. A.4 Pre-Solo Training to Proficiency 61.87(c)(1)(2) and 61.87(d). (I must cover all 15 procedures and maneuvers and determine that student is both safe and proficient)", notes: "I certify that (first, middle, last) has received and logged pre-solo flight training for, the maneuvers and procedures that are appropriate to make the [make and model] aircraft. I have determined that (he or she) has demonstrated satisfactory proficiency and safety on the maneuvers and procedures required by 61.87 in this or similar make and model of aircraft to be flown.", order: 1),
-            ChecklistItem(title: "3. A.6 Solo flight (first 90 calendar day period): 61.87(n)", notes: "I certify that (first, middle, last) has received the required training to qualify for solo flying. I have determined that he or she meets the applicable requirements of 61.87(n) and is proficient to make solo flights in the (make and model).", order: 2),
-            ChecklistItem(title: "4. A.7 Solo flight (each additional 90 calendar day period): 61.87(p)", notes: "I certify that (first, middle, last) has received the required training to qualify for solo flying. I have determined that he or she meets the applicable requirements of 61.87(p) and is proficient to make solo flights in the (make and model).", order: 3),
+            ChecklistItem(title: "1. Pre-solo aeronautical knowledge 61.87(b)", notes: "I certify that (first, middle, last) has satisfactorily completed the pre-solo knowledge test of 61.87(b) for the [make and model] aircraft.", order: 0),
+            ChecklistItem(title: "2. Pre-solo flight training 61.87(c)(1)(2) and 61.87(d)", notes: "I certify that (first, middle, last) has received and logged pre-solo flight training for, the maneuvers and procedures that are appropriate to make the [make and model] aircraft. I have determined that (he or she) has demonstrated satisfactory proficiency and safety on the maneuvers and procedures required by 61.87 in this or similar make and model of aircraft to be flown.", order: 1),
+            ChecklistItem(title: "3. Solo flight 61.87(n)", notes: "I certify that (first, middle, last) has received the required training to qualify for solo flying. I have determined that he or she meets the applicable requirements of 61.87(n) and is proficient to make solo flights in the (make and model).", order: 2),
+            ChecklistItem(title: "4. Solo flight at night 61.87(o)", notes: "I certify that (first, middle, last) has received the required training to qualify for solo flight at night. I have determined that he or she meets the applicable requirements of 61.87(o) and is proficient to make solo flights at night in the (make and model).", order: 3),
         ]
     )
     
