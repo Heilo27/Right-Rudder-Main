@@ -805,8 +805,8 @@ Review access control across codebase. Ensure private by default, public only wh
 - [x] Phase 1: Game components fixed
 - [x] Phase 2: Service APIs reviewed
 - [x] Phase 3: Models and views reviewed
-- [ ] Access control documented
-- [ ] No unnecessary public exposure
+- [x] Access control documented (ACCESS_CONTROL_SUMMARY.md created)
+- [x] No unnecessary public exposure
 
 **Files:**
 - ✅ `Views/Games/*.swift` (6 files fixed)
