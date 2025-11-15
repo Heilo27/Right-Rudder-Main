@@ -507,6 +507,11 @@ Core business logic for assigning templates to students has no tests.
 
 **Related Rule:** `.cursor/rules/swift-code-organization.mdc` - File Size Guidelines
 
+**Future Work:**
+- ⚠️ **Consider migrating to JSON**: Templates are data, not code. The infrastructure already exists (`DefaultChecklistLibrary.json` + `ChecklistLibrary` Codable). See `docs/review/TEMPLATE_DATA_MIGRATION.md` for migration plan.
+- Current Swift templates serve as fallback, but JSON is preferred (already loaded first by `SmartTemplateUpdateService`)
+- Migration would: remove ~6,000 lines of Swift, improve maintainability, ensure UUID consistency with student app
+
 ---
 
 ### HIGH-013: Add Accessibility Features
