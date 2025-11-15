@@ -348,11 +348,11 @@ Core business logic for assigning templates to students has no tests.
 6. Delete `NewModels.swift`
 
 **Acceptance Criteria:**
-- [ ] Each model in its own file
-- [ ] File names match type names
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] No functionality lost
+- [x] Each model in its own file
+- [x] File names match type names
+- [x] All imports updated
+- [x] Build succeeds
+- [x] No functionality lost
 
 **Files:**
 - `NewModels.swift` → Split into 4 files

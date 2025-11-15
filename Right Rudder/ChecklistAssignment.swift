@@ -1,15 +1,14 @@
 //
-//  NewModels.swift
+//  ChecklistAssignment.swift
 //  Right Rudder
 //
 //  Created by AI on 10/8/25.
 //
 
-import CloudKit
 import Foundation
 import SwiftData
 
-// MARK: - New Library-Based Architecture Models (Same as Student App)
+// MARK: - ChecklistAssignment Model
 
 @Model
 class ChecklistAssignment {
@@ -89,66 +88,4 @@ class ChecklistAssignment {
 
   // Relationship to template (for instructor app)
   var template: ChecklistTemplate?
-}
-
-@Model
-class ItemProgress {
-  var id: UUID = UUID()
-  var templateItemId: UUID = UUID()  // References library item
-
-  // MARK: - Instructor-Owned Fields (Read-Only for Student)
-  // These fields are written by instructor app, read-only in student app
-  var isComplete: Bool = false  // INSTRUCTOR → STUDENT (read-only for student)
-  var notes: String?  // INSTRUCTOR → STUDENT (read-only for student - instructor comments)
-  var completedAt: Date?
-  var lastModified: Date = Date()
-
-  // Relationship
-  var assignment: ChecklistAssignment?
-
-  init(templateItemId: UUID) {
-    self.templateItemId = templateItemId
-    self.lastModified = Date()
-  }
-
-  // CloudKit compatibility - generate display title
-  var displayTitle: String {
-    // This will be populated from the template item when syncing
-    return "Item \(id.uuidString.prefix(8))"  // Fallback title
-  }
-}
-
-@Model
-class CustomChecklistDefinition {
-  var id: UUID = UUID()  // Same as templateId
-  var customName: String = ""
-  var customCategory: String?
-  var customItems: [CustomChecklistItem]?
-  var cloudKitRecordID: String?
-  var lastModified: Date = Date()
-
-  init(id: UUID, customName: String, customCategory: String?) {
-    self.id = id
-    self.customName = customName
-    self.customCategory = customCategory
-    self.lastModified = Date()
-  }
-}
-
-@Model
-class CustomChecklistItem {
-  var id: UUID = UUID()
-  var title: String = ""
-  var notes: String?
-  var order: Int = 0
-
-  // Relationship
-  var definition: CustomChecklistDefinition?
-
-  init(id: UUID = UUID(), title: String, notes: String? = nil, order: Int) {
-    self.id = id
-    self.title = title
-    self.notes = notes
-    self.order = order
-  }
 }
