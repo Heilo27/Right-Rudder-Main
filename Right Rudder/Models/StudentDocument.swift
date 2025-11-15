@@ -2,28 +2,6 @@ import CloudKit
 import Foundation
 import SwiftData
 
-// MARK: - DocumentType Enum
-
-enum DocumentType: String, Codable, CaseIterable {
-  case studentPilotCertificate = "Student Pilot Certificate"
-  case medicalCertificate = "Medical Certificate"
-  case passportBirthCertificate = "Passport/Birth Certificate"
-  case logBook = "LogBook"
-
-  var icon: String {
-    switch self {
-    case .studentPilotCertificate: return "airplane.circle"
-    case .medicalCertificate: return "heart.text.square"
-    case .passportBirthCertificate: return "person.text.rectangle"
-    case .logBook: return "book.closed"
-    }
-  }
-
-  var isOptional: Bool {
-    return self == .logBook
-  }
-}
-
 // MARK: - StudentDocument Model
 
 @Model
