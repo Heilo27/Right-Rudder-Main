@@ -123,22 +123,3 @@ class MigrationService {
     }
   }
 }
-
-struct MigrationStatus {
-  let totalStudents: Int
-  let studentsWithOldChecklists: Int
-  let studentsWithNewProgress: Int
-  let studentsWithBoth: Int
-  let needsMigration: Bool
-
-  var description: String {
-    return """
-      Migration Status:
-      - Total Students: \(totalStudents)
-      - Students with Old Checklists: \(studentsWithOldChecklists)
-      - Students with New Progress: \(studentsWithNewProgress)
-      - Students with Both: \(studentsWithBoth)
-      - Migration Needed: \(needsMigration ? "Yes" : "No")
-      """
-  }
-}

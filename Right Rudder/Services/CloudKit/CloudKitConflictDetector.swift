@@ -10,22 +10,6 @@ import Combine
 import Foundation
 import SwiftData
 
-struct DataConflict: Identifiable {
-  let id = UUID()
-  let fieldName: String
-  let displayName: String
-  let instructorValue: String
-  let studentValue: String
-  let studentModifiedDate: Date
-  let fieldType: ConflictFieldType
-
-  enum ConflictFieldType {
-    case text
-    case boolean
-    case date
-  }
-}
-
 // MARK: - CloudKitConflictDetector
 
 class CloudKitConflictDetector: ObservableObject {

@@ -4,17 +4,6 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-// MARK: - BackupSnapshot
-
-// Backup snapshot model for restore selection
-struct BackupSnapshot: Identifiable, Codable {
-  let id: String  // Date string "yyyy-MM-dd"
-  let date: Date
-  let studentCount: Int
-  let templateCount: Int
-  let size: Int64?  // Optional size in bytes
-}
-
 // MARK: - CloudKitBackupService
 
 @MainActor
