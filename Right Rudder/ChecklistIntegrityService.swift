@@ -203,10 +203,8 @@ class ChecklistIntegrityService {
     }
   }
 
-  // MARK: - Manual Repair
-
-  /// Manual repair function for Settings
-  static func manualIntegrityCheck(modelContext: ModelContext) -> (found: Int, repaired: Int) {
+  /// Fix missing progress records for assigned templates
+  private static func fixMissingProgressRecords(modelContext: ModelContext) -> [UUID] {
     do {
       let studentDescriptor = FetchDescriptor<Student>()
       let students = try modelContext.fetch(studentDescriptor)
