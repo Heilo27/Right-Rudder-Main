@@ -1,0 +1,310 @@
+---
+description: useful when writing or refining Swift code documentation
+alwaysApply: false
+---
+
+# Swift Documentation Guidelines
+
+Follow Apple's [documentation standards](https://developer.apple.com/documentation/xcode/writing-documentation) for Swift code. Keep documentation concise, clear, and focused on what's not obvious from the code.
+
+## When to Document
+
+**Always document:**
+- Public APIs (types, functions, properties)
+- Complex algorithms or business logic
+- Non-obvious behavior or side effects
+- Parameters that aren't self-explanatory
+- Return values that need clarification
+- Throwing functions (what errors they throw)
+- Important notes or warnings
+
+**Skip documentation for:**
+- Obvious code (e.g., `var name: String`)
+- Simple getters/setters
+- Self-explanatory code
+
+## Documentation Format
+
+### Single-Line Documentation (`///`)
+
+Use for brief descriptions:
+
+```swift
+/// Calculates student progress for a specific category.
+func progressForCategory(_ category: String, for student: Student) -> Double {
+    // Implementation
+}
+
+/// Service for managing CloudKit sharing operations.
+class CloudKitShareService {
+    // Implementation
+}
+```
+
+### Multi-Line Documentation (`/** ... */`)
+
+Use for detailed documentation with parameters, returns, or notes:
+
+```swift
+/**
+ Calculates weighted overall progress for assigned category.
+ 
+ Combines checklist progress, document progress, and personal info progress
+ using category-specific weighting (70% goals, 15% docs, 15% personal info).
+ 
+ - Parameter student: The student whose progress to calculate
+ - Returns: Progress value from 0.0 to 1.0 (0% to 100%)
+ - Note: Review category uses different weighting (85% goals, 15% personal info)
+ */
+static func weightedCategoryProgress(for student: Student) -> Double {
+    // Implementation
+}
+```
+
+## Documentation Elements
+
+### Summary (Required)
+
+First line should be a brief summary sentence. End with a period.
+
+```swift
+/// Saves student data to CloudKit with conflict resolution.
+```
+
+### Parameters (`- Parameter`)
+
+Document each parameter:
+
+```swift
+/**
+ Assigns a checklist template to a student.
+ 
+ - Parameter template: The checklist template to assign
+ - Parameter student: The student receiving the assignment
+ - Parameter modelContext: SwiftData model context for persistence
+ */
+static func assignTemplate(_ template: ChecklistTemplate, to student: Student, modelContext: ModelContext) {
+    // Implementation
+}
+```
+
+### Returns (`- Returns`)
+
+Document return values:
+
+```swift
+/**
+ Fetches all students from the database.
+ 
+ - Returns: Array of Student objects, empty array if none found
+ */
+func fetchAllStudents() -> [Student] {
+    // Implementation
+}
+```
+
+### Throws (`- Throws`)
+
+Document what errors can be thrown:
+
+```swift
+/**
+ Saves student data to CloudKit.
+ 
+ - Parameter student: Student to save
+ - Throws: `CloudKitError.networkUnavailable` if offline
+ - Throws: `CloudKitError.permissionDenied` if sharing not configured
+ */
+func saveToCloudKit(_ student: Student) throws {
+    // Implementation
+}
+```
+
+### Notes (`- Note`, `- Important`, `- Warning`)
+
+Add important information:
+
+```swift
+/**
+ Syncs student data to CloudKit.
+ 
+ - Note: This operation may take several seconds for large datasets
+ - Important: Ensure network connectivity before calling
+ - Warning: This will overwrite existing CloudKit records
+ */
+func syncToCloudKit() async throws {
+    // Implementation
+}
+```
+
+## Formatting Guidelines
+
+### Capitalization
+
+- Start summary with capital letter
+- End summary with period
+- Use sentence case for descriptions
+
+```swift
+// ✅ Good
+/// Calculates student progress.
+
+// ❌ Avoid
+/// calculates student progress
+/// Calculates student progress
+```
+
+### Brevity
+
+Keep it concise. Focus on **why** and **what**, not **how**:
+
+```swift
+// ✅ Good
+/// Calculates weighted progress using category-specific rules.
+
+// ❌ Too verbose
+/// This function calculates weighted progress by taking the student's checklist
+/// assignments, filtering them by category, then applying category-specific
+/// weighting rules that combine checklist progress (70%), document progress
+/// (15%), and personal info progress (15%)...
+```
+
+### Code References
+
+Use backticks for code references:
+
+```swift
+/**
+ Updates the student's `lastModified` timestamp.
+ 
+ - Note: This triggers SwiftUI to recalculate `weightedCategoryProgress`
+ */
+```
+
+## Examples
+
+### Type Documentation
+
+```swift
+/// Service for calculating student training progress.
+/// Handles all progress calculation logic including weighted calculations,
+/// category-specific progress, document progress, and personal info progress.
+struct StudentProgressService {
+    // Implementation
+}
+```
+
+### Function Documentation
+
+```swift
+/**
+ Removes a checklist template assignment from a student.
+ 
+ Deletes the `ChecklistAssignment` record and all associated `ItemProgress`
+ records. Updates bidirectional relationships automatically.
+ 
+ - Parameter template: The template to remove
+ - Parameter student: The student to remove it from
+ - Parameter modelContext: SwiftData model context
+ - Note: This operation is irreversible
+ */
+static func removeTemplate(_ template: ChecklistTemplate, from student: Student, modelContext: ModelContext) {
+    // Implementation
+}
+```
+
+### Property Documentation
+
+```swift
+/// Document upload progress as a percentage (0-100).
+/// Returns 100% for Review category students (documents not required).
+var documentProgress: Double {
+    // Implementation
+}
+```
+
+### Complex Algorithm Documentation
+
+```swift
+/**
+ Calculates goal progress for specific category (0-100).
+ 
+ Combines checklist progress (up to 83%) with milestone bonuses:
+ - Ground school completion: +15%
+ - Written test completion: +2%
+ 
+ - Parameter category: Training category (PPL, IFR, CPL, CFI, Review)
+ - Parameter student: Student whose progress to calculate
+ - Returns: Progress value from 0.0 to 100.0
+ */
+private static func categoryGoalProgress(for category: String, student: Student) -> Double {
+    // Implementation
+}
+```
+
+## Right Rudder Patterns
+
+### Service Methods
+
+```swift
+/// [Brief description of what the method does]
+/// 
+/// [Additional context if needed]
+/// 
+/// - Parameter [name]: [Description]
+/// - Returns: [Description]
+/// - Throws: [Error types if applicable]
+static func methodName(...) {
+    // Implementation
+}
+```
+
+### View Properties
+
+```swift
+/// [Brief description of what the view displays]
+struct ViewName: View {
+    // MARK: - Properties
+    
+    /// [Description of property purpose]
+    @State private var propertyName: Type
+}
+```
+
+### Model Properties
+
+```swift
+/// [Brief description of what the model represents]
+@Model
+class ModelName {
+    /// [Description of property]
+    var propertyName: String
+    
+    /// [Description of computed property]
+    var computedProperty: Double {
+        // Implementation
+    }
+}
+```
+
+## Quick Reference
+
+| Element | Format | Example |
+|---------|--------|---------|
+| Summary | `/// Brief description.` | `/// Calculates student progress.` |
+| Parameter | `- Parameter name: Description` | `- Parameter student: The student` |
+| Returns | `- Returns: Description` | `- Returns: Progress from 0.0 to 1.0` |
+| Throws | `- Throws: ErrorType` | `- Throws: CloudKitError` |
+| Note | `- Note: Information` | `- Note: May take several seconds` |
+| Important | `- Important: Information` | `- Important: Requires network` |
+| Warning | `- Warning: Information` | `- Warning: Overwrites existing data` |
+
+## Resources
+
+- [Apple: Writing Documentation](https://developer.apple.com/documentation/xcode/writing-documentation)
+- [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
+- [Swift Documentation Comments](https://www.swift.org/documentation/api-design-guidelines/#write-documentation)
+
+---
+
+**Remember:** Good documentation explains **why** and **what**, not **how**. Focus on clarity and brevity. When in doubt, document it - it's easier to remove unnecessary docs than to add missing ones.
