@@ -459,7 +459,7 @@ Core business logic for assigning templates to students has no tests.
 
 ---
 
-### HIGH-008: Add Accessibility Features
+### HIGH-012: Add Accessibility Features
 **Category:** Feature / Accessibility  
 **Effort:** 16-24 hours  
 **Dependencies:** None
