@@ -66,6 +66,65 @@ class Student {
 
 ## Directory Organization
 
+### "Is A" Principle
+
+**Core Rule:** Organize files by what they ARE, not by where they're used.
+
+Files should be placed in folders based on their type classification:
+
+1. **Models** (`Models/`) - Data structures and types
+   - Structs representing data/state
+   - Enums representing data types
+   - @Model classes (SwiftData models)
+   - Codable structs for serialization
+   - Example: `Direction.swift` (enum) → `Models/Games/Direction.swift`
+
+2. **Views** (`Views/`) - UI components only
+   - SwiftUI Views (`struct View`)
+   - ViewModifiers (`struct ViewModifier`)
+   - UIViewControllerRepresentable
+   - Example: `StudentDetailView.swift` → `Views/Student/StudentDetailView.swift`
+
+3. **Services** (`Services/`) - Business logic and operations
+   - Classes that perform operations
+   - ObservableObject classes (ViewModels)
+   - Service classes with business logic
+   - Example: `SnakeGame.swift` (ObservableObject) → `Services/Games/SnakeGame.swift`
+
+4. **Utilities** (`Services/Utilities/` or `Utilities/`) - Helpers and extensions
+   - Helper structs/classes
+   - Utility functions
+   - Extensions (`Type+ExtensionName.swift`)
+   - Example: `AsyncLock.swift` → `Services/Utilities/AsyncLock.swift`
+
+5. **App Entry** (`Root/` or root) - Application entry point
+   - @main App struct
+   - Example: `RightRudderApp.swift` (not `Right_RudderApp.swift`)
+
+**Common Violations:**
+- ❌ Models in Views folder (e.g., `Direction.swift` in `Views/Games/`)
+- ❌ Models in Services folder (e.g., `ExportableTemplate.swift` in `Services/`)
+- ❌ Services/ViewModels in Views folder (e.g., `SnakeGame.swift` in `Views/Games/`)
+- ❌ Utilities in domain-specific folders (e.g., `AsyncLock.swift` in `Services/CloudKit/`)
+
+**Decision Tree:**
+```
+Is it a data structure (struct/enum/@Model)?
+  → Models/
+
+Is it a SwiftUI View/ViewModifier/UIViewControllerRepresentable?
+  → Views/
+
+Is it a class that performs operations (Service/ObservableObject)?
+  → Services/
+
+Is it a helper/utility/extension?
+  → Services/Utilities/ or Utilities/
+
+Is it @main App?
+  → Root/ or root
+```
+
 ### Current Right Rudder Structure
 
 **Current (Flat Structure):**

@@ -1187,6 +1187,243 @@ Review access control across codebase. Ensure private by default, public only wh
 
 ---
 
+## File Organization - "Is A" Principle Violations
+
+### MED-025: Move Models from Views/Games/ to Models/Games/
+**Category:** Code Organization / File Location  
+**Effort:** 30 minutes  
+**Dependencies:** None
+
+**Description:**
+Game-related models are incorrectly placed in `Views/Games/` folder. These are data structures, not Views.
+
+**Files to Move:**
+- `Views/Games/Direction.swift` (enum) → `Models/Games/Direction.swift`
+- `Views/Games/Point.swift` (struct) → `Models/Games/Point.swift`
+
+**Tasks:**
+1. Create `Models/Games/` folder if it doesn't exist
+2. Move `Direction.swift` to `Models/Games/`
+3. Move `Point.swift` to `Models/Games/`
+4. Update imports in files that reference these types
+5. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Models moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-026: Move SnakeGame from Views/Games/ to Services/Games/
+**Category:** Code Organization / File Location  
+**Effort:** 30 minutes  
+**Dependencies:** None
+
+**Description:**
+`SnakeGame` is an ObservableObject class (ViewModel/Service), not a View. It should be in Services folder.
+
+**Files to Move:**
+- `Views/Games/SnakeGame.swift` (class ObservableObject) → `Services/Games/SnakeGame.swift`
+
+**Tasks:**
+1. Create `Services/Games/` folder if it doesn't exist
+2. Move `SnakeGame.swift` to `Services/Games/`
+3. Update imports in `AviationSnakeGameView.swift`
+4. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Service moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-027: Move Models from Views/Checklist/ to Models/
+**Category:** Code Organization / File Location  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+`PhaseGroup` is a data structure (struct Identifiable), not a View.
+
+**Files to Move:**
+- `Views/Checklist/PhaseGroup.swift` (struct Identifiable) → `Models/PhaseGroup.swift`
+
+**Tasks:**
+1. Move `PhaseGroup.swift` to `Models/`
+2. Update imports in `ChecklistTemplatesView.swift`
+3. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Model moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-028: Move Export/Import Models from Services/ to Models/
+**Category:** Code Organization / File Location  
+**Effort:** 30 minutes  
+**Dependencies:** None
+
+**Description:**
+Export/import data models are incorrectly placed in Services folder. These are data structures.
+
+**Files to Move:**
+- `Services/ExportableTemplate.swift` (struct Codable) → `Models/ExportableTemplate.swift`
+- `Services/ExportableTemplateItem.swift` (struct Codable) → `Models/ExportableTemplateItem.swift`
+- `Services/TemplateSharePackage.swift` (struct Codable) → `Models/TemplateSharePackage.swift`
+- `Services/DisplayChecklistItem.swift` (struct) → `Models/DisplayChecklistItem.swift` or `Services/Utilities/DisplayChecklistItem.swift`
+
+**Tasks:**
+1. Move export/import models to `Models/`
+2. Decide on `DisplayChecklistItem` location (Model vs Utility)
+3. Update imports in all files that reference these types
+4. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Models moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-029: Move CloudKit Data Models from Services/CloudKit/ to Models/CloudKit/
+**Category:** Code Organization / File Location  
+**Effort:** 1-2 hours  
+**Dependencies:** None
+
+**Description:**
+CloudKit data structures are incorrectly placed in Services folder. These are models, not services.
+
+**Files to Move:**
+- `Services/CloudKit/ChecklistLibrary.swift` (struct Codable) → `Models/CloudKit/ChecklistLibrary.swift`
+- `Services/CloudKit/LibraryChecklist.swift` (struct Codable) → `Models/CloudKit/LibraryChecklist.swift`
+- `Services/CloudKit/LibraryChecklistItem.swift` (struct Codable) → `Models/CloudKit/LibraryChecklistItem.swift`
+- `Services/CloudKit/ItemProgressData.swift` (struct Codable) → `Models/CloudKit/ItemProgressData.swift`
+- `Services/CloudKit/DocumentData.swift` (struct Codable) → `Models/CloudKit/DocumentData.swift`
+- `Services/CloudKit/OfflineOperationData.swift` (struct Codable) → `Models/CloudKit/OfflineOperationData.swift`
+- `Services/CloudKit/BackupSnapshot.swift` (struct Identifiable, Codable) → `Models/CloudKit/BackupSnapshot.swift`
+- `Services/CloudKit/DataConflict.swift` (struct Identifiable) → `Models/CloudKit/DataConflict.swift`
+
+**Optional (CloudKit Record Structures):**
+- `Services/CloudKit/ChecklistAssignmentRecord.swift` → Could stay or move to `Models/CloudKit/`
+- `Services/CloudKit/StudentPersonalInfoRecord.swift` → Could stay or move to `Models/CloudKit/`
+- `Services/CloudKit/TrainingGoalsRecord.swift` → Could stay or move to `Models/CloudKit/`
+
+**Tasks:**
+1. Create `Models/CloudKit/` folder
+2. Move data models to `Models/CloudKit/`
+3. Decide on record structures (stay or move)
+4. Update imports in all CloudKit services
+5. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Models moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-030: Move AsyncLock from Services/CloudKit/ to Services/Utilities/
+**Category:** Code Organization / File Location  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+`AsyncLock` is a utility class, not CloudKit-specific. It should be in Utilities folder.
+
+**Files to Move:**
+- `Services/CloudKit/AsyncLock.swift` (class) → `Services/Utilities/AsyncLock.swift`
+
+**Tasks:**
+1. Move `AsyncLock.swift` to `Services/Utilities/`
+2. Update imports in files that use AsyncLock
+3. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Utility moved to correct location
+- [ ] All imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-031: Move MigrationStatus from Services/Database/ to Models/Database/ or Keep
+**Category:** Code Organization / File Location  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+`MigrationStatus` is a data structure. Decide if it should be a Model or stay in Services if tightly coupled to MigrationService.
+
+**Files to Consider:**
+- `Services/Database/MigrationStatus.swift` (struct) → `Models/Database/MigrationStatus.swift` (if not tightly coupled)
+
+**Tasks:**
+1. Evaluate coupling with `MigrationService`
+2. Move to `Models/Database/` if appropriate
+3. Update imports if moved
+4. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] Decision made and documented
+- [ ] If moved, all imports updated
+- [ ] Build succeeds
+- [ ] Functionality unchanged
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - "Is A" Principle
+
+---
+
+### MED-032: Rename Right_RudderApp.swift to RightRudderApp.swift and Move to Root/
+**Category:** Code Organization / File Naming  
+**Effort:** 15 minutes  
+**Dependencies:** None
+
+**Description:**
+App entry point has underscore in name and is in root. Should follow naming conventions and optionally move to Root/ folder.
+
+**Files to Rename/Move:**
+- `Right_RudderApp.swift` → `RightRudderApp.swift` (remove underscore)
+- Optionally move to `Root/RightRudderApp.swift`
+
+**Tasks:**
+1. Rename file to remove underscore
+2. Update @main struct name if needed
+3. Optionally move to `Root/` folder
+4. Update any references
+5. Verify build succeeds
+
+**Acceptance Criteria:**
+- [ ] File renamed (underscore removed)
+- [ ] Optionally moved to Root/ folder
+- [ ] All references updated
+- [ ] Build succeeds
+- [ ] App launches correctly
+
+**Related Rule:** `.cursor/rules/swift-code-organization.mdc` - File Naming Conventions
+
+---
+
 ### MED-005: Create .swift-format.json Configuration
 **Category:** Code Quality  
 **Effort:** 1-2 hours  
@@ -1837,7 +2074,7 @@ Refactor legacy code patterns as opportunities arise.
 
 ---
 
-**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations (COMPLETED)  
-**Total Items:** 66 (13 of 14 "One Type Per File" violations completed, 1 not applicable)  
+**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations (COMPLETED) + File Organization "Is A" Principle Violations  
+**Total Items:** 74 (13 of 14 "One Type Per File" violations completed, 1 not applicable; 8 "Is A" principle violations added)  
 **Next Review:** After Phase 1 completion (2 weeks)
 
