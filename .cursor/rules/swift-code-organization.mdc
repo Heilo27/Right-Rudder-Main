@@ -1,0 +1,687 @@
+---
+description: useful when creating new Swift files or refactoring existing ones
+alwaysApply: false
+---
+
+# Swift Code Organization Guidelines
+
+Best practices for organizing Swift code in Right Rudder. Ensures code is maintainable, discoverable, and follows industry standards.
+
+## File Structure Principles
+
+### One Type Per File
+
+**Rule:** Each Swift file should contain one primary type (class, struct, enum, or protocol).
+
+```swift
+// ✅ Good: Student.swift
+struct Student {
+    // Student implementation
+}
+
+// ❌ Avoid: Models.swift
+struct Student { }
+struct ChecklistTemplate { }
+struct EndorsementImage { }
+```
+
+**Exceptions:**
+- Related types that are tightly coupled (e.g., `ChecklistTemplate` and `ChecklistItem`)
+- Small helper types used only by the primary type
+- Extensions that extend the primary type
+
+### File Naming Conventions
+
+**Match file name to primary type:**
+
+```swift
+// File: StudentDetailView.swift
+struct StudentDetailView: View {
+    // Implementation
+}
+
+// File: CloudKitShareService.swift
+class CloudKitShareService {
+    // Implementation
+}
+
+// File: Student.swift
+@Model
+class Student {
+    // Implementation
+}
+```
+
+**Right Rudder Patterns:**
+- Views: `*View.swift` (e.g., `StudentDetailView.swift`, `SettingsView.swift`)
+- Services: `*Service.swift` (e.g., `CloudKitShareService.swift`, `PushNotificationService.swift`)
+- Models: Match model name (e.g., `Student.swift`, `ChecklistTemplate.swift`)
+- Extensions: `Type+ExtensionName.swift` (e.g., `UIView+Extensions.swift`)
+
+**Avoid:**
+- Generic names: `NewModels.swift`, `Utils.swift`, `Helpers.swift`
+- Underscores in file names: `Right_RudderApp.swift` (use `RightRudderApp.swift`)
+
+*Reference: [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)*
+
+## Directory Organization
+
+### Current Right Rudder Structure
+
+**Current (Flat Structure):**
+```
+Right Rudder/
+├── StudentDetailView.swift
+├── StudentsView.swift
+├── CloudKitShareService.swift
+├── Student.swift
+└── ... (74 files in single directory)
+```
+
+**Recommended Structure (Future Refactoring):**
+```
+Right Rudder/
+├── Models/
+│   ├── Student.swift
+│   ├── ChecklistTemplate.swift
+│   ├── ChecklistItem.swift
+│   ├── StudentDocument.swift
+│   └── EndorsementImage.swift
+├── Views/
+│   ├── Student/
+│   │   ├── StudentsView.swift
+│   │   ├── StudentDetailView.swift
+│   │   ├── AddStudentView.swift
+│   │   └── EditStudentView.swift
+│   ├── Checklist/
+│   │   ├── ChecklistTemplatesView.swift
+│   │   ├── ChecklistTemplateDetailView.swift
+│   │   └── LessonView.swift
+│   ├── Endorsement/
+│   │   └── EndorsementsView.swift
+│   └── Settings/
+│       └── SettingsView.swift
+├── Services/
+│   ├── CloudKit/
+│   │   ├── CloudKitShareService.swift
+│   │   ├── CloudKitSyncService.swift
+│   │   └── CloudKitBackupService.swift
+│   ├── Database/
+│   │   ├── DatabaseMigrationService.swift
+│   │   └── DatabaseRecoveryService.swift
+│   └── Utilities/
+│       ├── ImageOptimizationService.swift
+│       └── MemoryMonitor.swift
+└── Utilities/
+    ├── Extensions/
+    └── Helpers/
+```
+
+**When Creating New Files:**
+- Place in appropriate directory if structure exists
+- If flat structure, group logically by prefix or comment
+- Consider future refactoring when choosing location
+
+*Reference: [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)*
+
+## Code Organization Within Files
+
+### Standard Order of Elements
+
+**Use MARK comments to organize file sections:**
+
+```swift
+import SwiftUI
+import SwiftData
+
+// MARK: - Properties
+@State private var property: String
+
+// MARK: - Initialization
+init() {
+    // Setup
+}
+
+// MARK: - Body
+var body: some View {
+    content
+}
+
+// MARK: - Subviews
+@ViewBuilder
+private var content: some View {
+    // View content
+}
+
+// MARK: - Methods
+private func performAction() {
+    // Implementation
+}
+
+// MARK: - Helpers
+private func helperMethod() {
+    // Helper implementation
+}
+```
+
+**Right Rudder Pattern:**
+```swift
+struct StudentDetailView: View {
+    // MARK: - Properties
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var student: Student
+    @State private var showingEditStudent = false
+    
+    // MARK: - Body
+    var body: some View {
+        content
+    }
+    
+    // MARK: - Subviews
+    @ViewBuilder
+    private var content: some View {
+        // Implementation
+    }
+    
+    // MARK: - Methods
+    private func performAction() {
+        // Implementation
+    }
+}
+```
+
+### MARK Comment Guidelines
+
+**Use MARK comments for:**
+- Properties (public, private, @State, @Binding, etc.)
+- Initialization (init methods)
+- Body/Computed Properties
+- Subviews (ViewBuilder methods)
+- Methods (public, private, helpers)
+- Extensions (protocol conformance)
+- Nested Types
+
+**MARK Format:**
+```swift
+// MARK: - Section Name
+// MARK: Section Name (without dash for subsections)
+```
+
+*Reference: [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)*
+
+## Naming Conventions
+
+### Type Names
+
+**Use UpperCamelCase for types:**
+```swift
+// ✅ Good
+struct StudentDetailView { }
+class CloudKitShareService { }
+enum DocumentType { }
+
+// ❌ Avoid
+struct studentDetailView { }
+class cloudKitShareService { }
+```
+
+### Variable and Function Names
+
+**Use lowerCamelCase:**
+```swift
+// ✅ Good
+let studentName: String
+var isComplete: Bool
+func fetchStudentData() { }
+
+// ❌ Avoid
+let StudentName: String
+var IsComplete: Bool
+func FetchStudentData() { }
+```
+
+### Descriptive Names
+
+**Be clear and specific:**
+```swift
+// ✅ Good
+let activeStudents: [Student]
+func calculateStudentProgress() -> Double
+var showingDeleteConfirmation: Bool
+
+// ❌ Avoid
+let students: [Student]  // Too vague if filtering active
+func calc() -> Double   // Too abbreviated
+var show: Bool          // Not descriptive
+```
+
+**Right Rudder Patterns:**
+- Boolean properties: `is*`, `has*`, `showing*`, `should*`
+- Collections: Plural nouns (`students`, `checklists`)
+- Actions: Verb phrases (`fetchStudentData`, `saveChanges`)
+
+*Reference: [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)*
+
+## Access Control
+
+### Use Appropriate Access Levels
+
+**Principle:** Make things as private as possible, expose only what's needed.
+
+```swift
+class CloudKitShareService {
+    // Public API - what others should use
+    public func createShare(for student: Student) async throws -> CKShare {
+        // Implementation
+    }
+    
+    // Internal helpers - accessible within module
+    internal func prepareShareRecord() -> CKRecord {
+        // Implementation
+    }
+    
+    // Private implementation - hidden from outside
+    private func validateSharePermissions() -> Bool {
+        // Implementation
+    }
+}
+```
+
+**Right Rudder Guidelines:**
+- Services: Public methods for API, private for implementation
+- Views: Private properties and helpers unless needed by parent
+- Models: Public properties (SwiftData models), private computed properties
+
+### Access Control Order
+
+**Order properties by access level:**
+```swift
+struct MyView: View {
+    // Public/Open
+    let publicProperty: String
+    
+    // Internal (default)
+    var internalProperty: String
+    
+    // Private
+    @State private var privateState: Bool
+    private let privateConstant: String
+}
+```
+
+*Reference: [Swift Access Control](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/accesscontrol/)*
+
+## Extensions for Organization
+
+### Use Extensions to Group Related Functionality
+
+**Separate protocol conformance:**
+```swift
+struct StudentDetailView: View {
+    // Main implementation
+}
+
+// MARK: - UITableViewDataSource
+extension StudentDetailView: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return items.count
+    }
+}
+
+// MARK: - UITableViewDelegate
+extension StudentDetailView: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // Handle selection
+    }
+}
+```
+
+**Group related methods:**
+```swift
+class CloudKitShareService {
+    // Core functionality
+}
+
+// MARK: - Share Creation
+extension CloudKitShareService {
+    func createShare() { }
+    func prepareShareRecord() { }
+}
+
+// MARK: - Share Management
+extension CloudKitShareService {
+    func updateShare() { }
+    func deleteShare() { }
+}
+```
+
+**Right Rudder Pattern:**
+- Use extensions for protocol conformance
+- Group related methods in extensions
+- Keep main type focused on core responsibility
+
+*Reference: [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)*
+
+## Import Organization
+
+### Order Imports Consistently
+
+**Standard order:**
+1. System frameworks (Foundation, SwiftUI, UIKit)
+2. Apple frameworks (CloudKit, SwiftData)
+3. Third-party frameworks
+4. Local modules
+
+```swift
+// ✅ Good: Ordered imports
+import Foundation
+import SwiftUI
+import SwiftData
+import CloudKit
+
+// ❌ Avoid: Unordered imports
+import CloudKit
+import SwiftUI
+import Foundation
+```
+
+**Right Rudder Pattern:**
+```swift
+import SwiftUI
+import SwiftData
+import CloudKit
+import PDFKit
+import Combine
+```
+
+**Note:** swift format will auto-sort imports lexicographically. Let it do its job.
+
+## Protocol-Oriented Organization
+
+### Use Protocols for Shared Functionality
+
+**Protocol extensions for default implementations:**
+```swift
+protocol Syncable {
+    func sync() async throws
+    func hasChanges() -> Bool
+}
+
+extension Syncable {
+    func sync() async throws {
+        guard hasChanges() else { return }
+        // Default sync implementation
+    }
+}
+
+// Types can adopt with minimal code
+class StudentService: Syncable {
+    func hasChanges() -> Bool {
+        // Implementation
+    }
+    // sync() inherited from protocol extension
+}
+```
+
+**Right Rudder Usage:**
+- Consider protocols for shared CloudKit sync patterns
+- Use protocol extensions for reusable view behaviors
+- Extract common patterns into protocols
+
+*Reference: [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)*
+
+## File Size Guidelines
+
+### Keep Files Focused
+
+**Guidelines:**
+- **Views:** Aim for < 500 lines (extract subviews if larger)
+- **Services:** Aim for < 1000 lines (split into smaller services)
+- **Models:** Keep lean, extract business logic to services
+
+**Right Rudder Current Issues:**
+- `CloudKitShareService.swift`: 3500+ lines → Should be split
+- `CloudKitSyncService.swift`: 1700+ lines → Should be split
+- `StudentDetailView.swift`: 1400+ lines → Extract subviews
+
+**When to Split:**
+- File exceeds 1000 lines
+- Multiple responsibilities evident
+- Hard to navigate (too many MARK sections)
+- Testing becomes difficult
+
+## Right Rudder Specific Patterns
+
+### SwiftUI View Organization
+
+**Standard structure for SwiftUI views:**
+```swift
+struct MyView: View {
+    // MARK: - Properties
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var model: Model
+    @State private var localState: String
+    
+    // MARK: - Body
+    var body: some View {
+        content
+    }
+    
+    // MARK: - Subviews
+    @ViewBuilder
+    private var content: some View {
+        VStack {
+            headerView
+            mainContent
+            footerView
+        }
+    }
+    
+    @ViewBuilder
+    private var headerView: some View {
+        // Header implementation
+    }
+    
+    // MARK: - Methods
+    private func performAction() {
+        // Implementation
+    }
+}
+```
+
+### Service Organization
+
+**Standard structure for services:**
+```swift
+class MyService {
+    // MARK: - Singleton (if applicable)
+    static let shared = MyService()
+    
+    // MARK: - Properties
+    private let container: CKContainer
+    
+    // MARK: - Initialization
+    private init() {
+        container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
+    }
+    
+    // MARK: - Public API
+    func performOperation() async throws {
+        // Implementation
+    }
+    
+    // MARK: - Private Helpers
+    private func helperMethod() {
+        // Implementation
+    }
+}
+```
+
+### Model Organization
+
+**SwiftData models:**
+```swift
+import SwiftData
+
+@Model
+final class Student {
+    // MARK: - Properties
+    var firstName: String
+    var lastName: String
+    
+    // MARK: - Relationships
+    @Relationship(deleteRule: .cascade)
+    var checklistAssignments: [ChecklistAssignment]?
+    
+    // MARK: - Initialization
+    init(firstName: String, lastName: String) {
+        self.firstName = firstName
+        self.lastName = lastName
+    }
+    
+    // MARK: - Computed Properties
+    var fullName: String {
+        "\(firstName) \(lastName)"
+    }
+    
+    // MARK: - Business Logic (consider moving to service)
+    func calculateProgress() -> Double {
+        // Implementation
+    }
+}
+```
+
+## Code Organization Checklist
+
+**When creating a new file:**
+
+- [ ] File name matches primary type name
+- [ ] One primary type per file
+- [ ] MARK comments organize sections
+- [ ] Properties grouped by access level
+- [ ] Methods organized logically
+- [ ] Extensions used for protocol conformance
+- [ ] Imports ordered consistently
+- [ ] Access control appropriate (private by default)
+- [ ] File size reasonable (< 1000 lines)
+
+**When refactoring:**
+
+- [ ] Extract large files into smaller components
+- [ ] Group related files in directories
+- [ ] Use extensions to organize code within files
+- [ ] Extract reusable code to protocols
+- [ ] Move business logic from models to services
+- [ ] Keep views focused on presentation
+
+## Common Anti-Patterns to Avoid
+
+### ❌ Don't: Mix Responsibilities
+
+```swift
+// ❌ Bad: View doing business logic
+struct StudentView: View {
+    func calculateProgress() -> Double {
+        // Complex calculation logic
+    }
+}
+
+// ✅ Good: View delegates to service
+struct StudentView: View {
+    @StateObject private var viewModel = StudentViewModel()
+    
+    var body: some View {
+        Text("Progress: \(viewModel.progress)")
+    }
+}
+```
+
+### ❌ Don't: Giant Files
+
+```swift
+// ❌ Bad: 3000+ line service file
+class CloudKitShareService {
+    // Everything in one file
+}
+
+// ✅ Good: Split by responsibility
+class CloudKitShareService { }
+class CloudKitSchemaService { }
+class ChecklistLibraryService { }
+```
+
+### ❌ Don't: Generic File Names
+
+```swift
+// ❌ Bad
+NewModels.swift
+Utils.swift
+Helpers.swift
+
+// ✅ Good
+StudentDocument.swift
+TemplateSortingUtilities.swift
+ImageOptimizationService.swift
+```
+
+### ❌ Don't: Inconsistent Organization
+
+```swift
+// ❌ Bad: No organization
+class MyView: View {
+    var property1: String
+    func method1() { }
+    var property2: String
+    func method2() { }
+}
+
+// ✅ Good: Organized with MARK comments
+class MyView: View {
+    // MARK: - Properties
+    var property1: String
+    var property2: String
+    
+    // MARK: - Methods
+    func method1() { }
+    func method2() { }
+}
+```
+
+## Right Rudder Refactoring Priorities
+
+**Based on project review:**
+
+1. **High Priority:**
+   - Split `CloudKitShareService.swift` (3500+ lines)
+   - Split `CloudKitSyncService.swift` (1700+ lines)
+   - Extract subviews from `StudentDetailView.swift` (1400+ lines)
+
+2. **Medium Priority:**
+   - Organize files into logical directories
+   - Rename `NewModels.swift` to specific names
+   - Rename `Right_RudderApp.swift` to `RightRudderApp.swift`
+
+3. **Low Priority:**
+   - Extract progress calculation from `Student.swift` to service
+   - Create shared CloudKit sync utilities
+   - Organize documentation files
+
+## Resources
+
+### Apple Documentation
+- [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
+- [Swift Access Control](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/accesscontrol/)
+- [Cocoa Coding Guidelines](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CodingGuidelines/)
+
+### External References
+- [Swift Code Organization - Compile N Run](https://www.compilenrun.com/docs/language/swift/swift-best-practices/swift-code-organization/)
+- [Swift Style Guide - Ray Wenderlich](https://github.com/raywenderlich/swift-style-guide)
+
+### Right Rudder Documentation
+- `PROJECT_REVIEW_CODE_QUALITY.md` - Code organization assessment
+- `PROJECT_REVIEW_BACKLOG.md` - Refactoring priorities (MED-004)
+- `AGENTS.md` - Development standards
+
+---
+
+**Remember:** Good code organization makes code easier to understand, maintain, and extend. When in doubt, favor clarity and consistency over cleverness.
