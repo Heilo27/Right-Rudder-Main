@@ -459,7 +459,7 @@ Core business logic for assigning templates to students has no tests.
 
 ---
 
-### HIGH-012: Add Accessibility Features
+### HIGH-013: Add Accessibility Features
 **Category:** Feature / Accessibility  
 **Effort:** 16-24 hours  
 **Dependencies:** None
@@ -1310,7 +1310,7 @@ Refactor legacy code patterns as opportunities arise.
 - MED-010: Code reuse
 
 **Features:** 4 items
-- HIGH-008: Accessibility
+- HIGH-013: Accessibility
 - MED-008: PDF export
 - MED-016, MED-017: Performance
 
