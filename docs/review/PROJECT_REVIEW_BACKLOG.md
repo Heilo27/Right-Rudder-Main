@@ -775,10 +775,11 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-011: Split AviationSnakeGameView.swift (7 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 2-3 hours  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`AviationSnakeGameView.swift` contains 7 types violating "One Type Per File" rule:
+`AviationSnakeGameView.swift` contained 7 types violating "One Type Per File" rule:
 - `Direction` (enum)
 - `Point` (struct)
 - `AirplaneView` (struct View)
@@ -788,19 +789,19 @@ Review access control across codebase. Ensure private by default, public only wh
 - `AviationSnakeGameView` (struct View)
 
 **Tasks:**
-1. Extract `Direction` enum to `Views/Games/Direction.swift`
-2. Extract `Point` struct to `Views/Games/Point.swift`
-3. Extract `AirplaneView` to `Views/Games/AirplaneView.swift`
-4. Extract `CloudView` to `Views/Games/CloudView.swift`
-5. Extract `BannerSegmentView` to `Views/Games/BannerSegmentView.swift`
-6. Extract `SnakeGame` class to `Views/Games/SnakeGame.swift`
-7. Keep `AviationSnakeGameView` in original file
+1. ✅ Extract `Direction` enum to `Views/Games/Direction.swift`
+2. ✅ Extract `Point` struct to `Views/Games/Point.swift`
+3. ✅ Extract `AirplaneView` to `Views/Games/AirplaneView.swift`
+4. ✅ Extract `CloudView` to `Views/Games/CloudView.swift`
+5. ✅ Extract `BannerSegmentView` to `Views/Games/BannerSegmentView.swift`
+6. ✅ Extract `SnakeGame` class to `Views/Games/SnakeGame.swift`
+7. ✅ Keep `AviationSnakeGameView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Game functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Game functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Games/AviationSnakeGameView.swift` (split into 7 files)
@@ -812,27 +813,28 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-012: Split TextInputWarmingService.swift (4 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 1-2 hours  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`TextInputWarmingService.swift` contains 4 types:
+`TextInputWarmingService.swift` contained 4 types:
 - `TextInputWarmingService` (class ObservableObject)
 - `TextInputWarmingModifier` (struct ViewModifier)
 - `ResponsiveTextFieldModifier` (struct ViewModifier)
 - `TextInputWarmingOnlyModifier` (struct ViewModifier)
 
 **Tasks:**
-1. Extract `TextInputWarmingModifier` to `Services/Utilities/TextInputWarmingModifier.swift`
-2. Extract `ResponsiveTextFieldModifier` to `Services/Utilities/ResponsiveTextFieldModifier.swift`
-3. Extract `TextInputWarmingOnlyModifier` to `Services/Utilities/TextInputWarmingOnlyModifier.swift`
-4. Keep `TextInputWarmingService` in original file
-5. Move View/TextField/TextEditor extensions to appropriate extension files
+1. ✅ Extract `TextInputWarmingModifier` to `Services/Utilities/TextInputWarmingModifier.swift`
+2. ✅ Extract `ResponsiveTextFieldModifier` to `Services/Utilities/ResponsiveTextFieldModifier.swift`
+3. ✅ Extract `TextInputWarmingOnlyModifier` to `Services/Utilities/TextInputWarmingOnlyModifier.swift`
+4. ✅ Keep `TextInputWarmingService` in original file
+5. ✅ Move View/TextField/TextEditor extensions to appropriate modifier files
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Extensions organized appropriately
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Extensions organized appropriately
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Services/Utilities/TextInputWarmingService.swift` (split into 4 files)
@@ -844,26 +846,27 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-013: Split StudentShareView.swift (4 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 1-2 hours  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`StudentShareView.swift` contains 4 types:
+`StudentShareView.swift` contained 4 types:
 - `StudentShareView` (struct View)
 - `InfoRow` (struct View)
 - `ActivityShareSheet` (struct UIViewControllerRepresentable)
 - `SuccessSplashView` (struct View)
 
 **Tasks:**
-1. Extract `InfoRow` to `Views/Student/InfoRow.swift`
-2. Extract `ActivityShareSheet` to `Views/Student/ActivityShareSheet.swift`
-3. Extract `SuccessSplashView` to `Views/Student/SuccessSplashView.swift`
-4. Keep `StudentShareView` in original file
+1. ✅ Extract `InfoRow` to `Views/Student/InfoRow.swift`
+2. ✅ Extract `ActivityShareSheet` to `Views/Student/ActivityShareSheet.swift`
+3. ✅ Extract `SuccessSplashView` to `Views/Student/SuccessSplashView.swift`
+4. ✅ Keep `StudentShareView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Student/StudentShareView.swift` (split into 4 files)
@@ -875,24 +878,25 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-014: Split ShareTemplatesView.swift (3 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 1 hour  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`ShareTemplatesView.swift` contains 3 types:
+`ShareTemplatesView.swift` contained 3 types:
 - `ShareTemplatesView` (struct View)
 - `TemplateRow` (struct View)
 - `TemplateShareSheet` (struct UIViewControllerRepresentable)
 
 **Tasks:**
-1. Extract `TemplateRow` to `Views/Checklist/TemplateRow.swift`
-2. Extract `TemplateShareSheet` to `Views/Checklist/TemplateShareSheet.swift`
-3. Keep `ShareTemplatesView` in original file
+1. ✅ Extract `TemplateRow` to `Views/Checklist/TemplateRow.swift`
+2. ✅ Extract `TemplateShareSheet` to `Views/Checklist/TemplateShareSheet.swift`
+3. ✅ Keep `ShareTemplatesView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Checklist/ShareTemplatesView.swift` (split into 3 files)
@@ -904,24 +908,25 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-015: Split ReceiveTemplatesView.swift (3 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 1 hour  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`ReceiveTemplatesView.swift` contains 3 types:
+`ReceiveTemplatesView.swift` contained 3 types:
 - `ReceiveTemplatesView` (struct View)
 - `CSVTemplateGeneratorView` (struct View)
 - `CSVShareSheet` (struct UIViewControllerRepresentable)
 
 **Tasks:**
-1. Extract `CSVTemplateGeneratorView` to `Views/Checklist/CSVTemplateGeneratorView.swift`
-2. Extract `CSVShareSheet` to `Views/Checklist/CSVShareSheet.swift`
-3. Keep `ReceiveTemplatesView` in original file
+1. ✅ Extract `CSVTemplateGeneratorView` to `Views/Checklist/CSVTemplateGeneratorView.swift`
+2. ✅ Extract `CSVShareSheet` to `Views/Checklist/CSVShareSheet.swift`
+3. ✅ Keep `ReceiveTemplatesView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Checklist/ReceiveTemplatesView.swift` (split into 3 files)
@@ -933,26 +938,27 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-016: Split StudentDetailView.swift (3 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 1-2 hours  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`StudentDetailView.swift` contains 3 types:
+`StudentDetailView.swift` contained 3 types:
 - `StudentDetailView` (struct View)
-- `EndorsementView` (struct View) - nested view
+- `EndorsementView` (struct View) - nested view (renamed to `EndorsementThumbnailView`)
 - `EndorsementDetailView` (struct View) - nested view
 
 **Tasks:**
-1. Extract `EndorsementView` to `Views/Student/EndorsementView.swift` (note: different from `Views/Endorsement/EndorsementView.swift`)
-2. Extract `EndorsementDetailView` to `Views/Student/EndorsementDetailView.swift`
-3. Keep `StudentDetailView` in original file
-4. Consider renaming to avoid conflict with `Views/Endorsement/EndorsementView.swift`
+1. ✅ Extract `EndorsementView` to `Views/Student/EndorsementThumbnailView.swift` (renamed to avoid conflict)
+2. ✅ Extract `EndorsementDetailView` to `Views/Student/EndorsementDetailView.swift`
+3. ✅ Keep `StudentDetailView` in original file
+4. ✅ Renamed to `EndorsementThumbnailView` to avoid conflict with `Views/Endorsement/EndorsementView.swift`
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Naming conflicts resolved
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Naming conflicts resolved
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Student/StudentDetailView.swift` (split into 3 files)
@@ -964,22 +970,24 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-017: Split CFIExpirationWarningView.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`CFIExpirationWarningView.swift` contains 2 types:
+`CFIExpirationWarningView.swift` contained 2 types:
 - `CFIExpirationWarningView` (struct View)
-- `CFIExpirationWarningService` (struct/class)
+- `CFIExpirationWarningService` (struct)
 
 **Tasks:**
-1. Extract `CFIExpirationWarningService` to `Services/Utilities/CFIExpirationWarningService.swift`
-2. Keep `CFIExpirationWarningView` in original file
+1. ✅ Extract `CFIExpirationWarningService` to `Services/Utilities/CFIExpirationWarningService.swift`
+2. ✅ Keep `CFIExpirationWarningView` in original file
+3. ✅ Fixed to use UserDefaults instead of @AppStorage (struct cannot use SwiftUI property wrappers)
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Service in Services folder
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Service in Services folder
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Settings/CFIExpirationWarningView.swift` (split into 2 files)
@@ -991,22 +999,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-018: Split ConflictResolutionView.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`ConflictResolutionView.swift` contains 2 types:
+`ConflictResolutionView.swift` contained 2 types:
 - `ConflictResolutionView` (struct View)
 - `ConflictRow` (struct View)
 
 **Tasks:**
-1. Extract `ConflictRow` to `Views/Conflicts/ConflictRow.swift`
-2. Keep `ConflictResolutionView` in original file
+1. ✅ Extract `ConflictRow` to `Views/Conflicts/ConflictRow.swift`
+2. ✅ Keep `ConflictResolutionView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Conflicts/ConflictResolutionView.swift` (split into 2 files)
@@ -1018,22 +1027,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-019: Split ChecklistTemplatesView.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`ChecklistTemplatesView.swift` contains 2 types:
+`ChecklistTemplatesView.swift` contained 2 types:
 - `ChecklistTemplatesView` (struct View)
 - `PhaseGroup` (struct Identifiable)
 
 **Tasks:**
-1. Extract `PhaseGroup` to `Views/Checklist/PhaseGroup.swift` or `Models/PhaseGroup.swift` (depending on if it's a model or view helper)
-2. Keep `ChecklistTemplatesView` in original file
+1. ✅ Extract `PhaseGroup` to `Views/Checklist/PhaseGroup.swift` (view helper)
+2. ✅ Keep `ChecklistTemplatesView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Appropriate folder location chosen
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Appropriate folder location chosen
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Checklist/ChecklistTemplatesView.swift` (split into 2 files)
@@ -1045,22 +1055,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-020: Split LessonView.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`LessonView.swift` contains 2 types:
+`LessonView.swift` contained 2 types:
 - `LessonView` (struct View)
 - `BufferedChecklistItemRow` (struct View)
 
 **Tasks:**
-1. Extract `BufferedChecklistItemRow` to `Views/Checklist/BufferedChecklistItemRow.swift`
-2. Keep `LessonView` in original file
+1. ✅ Extract `BufferedChecklistItemRow` to `Views/Checklist/BufferedChecklistItemRow.swift`
+2. ✅ Keep `LessonView` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] All imports updated
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] All imports updated
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Views/Checklist/LessonView.swift` (split into 2 files)
@@ -1072,25 +1083,21 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-021: Split DatabaseRecoveryService.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ⚠️ **NOT APPLICABLE**
 
 **Description:**
-`DatabaseRecoveryService.swift` contains 2 types:
-- `DatabaseRecoveryService` (class ObservableObject)
-- `DatabaseCorruptionError` (enum LocalizedError)
+`DatabaseRecoveryService.swift` was checked for violations. The file only contains `DatabaseRecoveryService` class. No `DatabaseCorruptionError` enum was found in this file.
 
 **Tasks:**
-1. Extract `DatabaseCorruptionError` to `Services/Database/DatabaseCorruptionError.swift`
-2. Keep `DatabaseRecoveryService` in original file
+- No action needed - file already follows "One Type Per File" rule
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Error enum in appropriate location
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Verified file contains only one type
+- [x] No violations found
 
 **Files:**
-- `Right Rudder/Services/Database/DatabaseRecoveryService.swift` (split into 2 files)
+- `Right Rudder/Services/Database/DatabaseRecoveryService.swift` (already compliant)
 
 **Related Rule:** `.cursor/rules/swift-code-organization.mdc` - One Type Per File
 
@@ -1099,22 +1106,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-022: Split MigrationService.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`MigrationService.swift` contains 2 types:
+`MigrationService.swift` contained 2 types:
 - `MigrationService` (class)
 - `MigrationStatus` (struct)
 
 **Tasks:**
-1. Extract `MigrationStatus` to `Services/Database/MigrationStatus.swift`
-2. Keep `MigrationService` in original file
+1. ✅ Extract `MigrationStatus` to `Services/Database/MigrationStatus.swift`
+2. ✅ Keep `MigrationService` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Status struct in appropriate location
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Status struct in appropriate location
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Services/Database/MigrationService.swift` (split into 2 files)
@@ -1126,22 +1134,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-023: Split CloudKitBackupService.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`CloudKitBackupService.swift` contains 2 types:
+`CloudKitBackupService.swift` contained 2 types:
 - `BackupSnapshot` (struct Identifiable, Codable)
 - `CloudKitBackupService` (class ObservableObject)
 
 **Tasks:**
-1. Extract `BackupSnapshot` to `Services/CloudKit/BackupSnapshot.swift` or `Models/BackupSnapshot.swift` (depending on if it's a model or service helper)
-2. Keep `CloudKitBackupService` in original file
+1. ✅ Extract `BackupSnapshot` to `Services/CloudKit/BackupSnapshot.swift` (service helper)
+2. ✅ Keep `CloudKitBackupService` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Appropriate folder location chosen
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Appropriate folder location chosen
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Services/CloudKit/CloudKitBackupService.swift` (split into 2 files)
@@ -1153,22 +1162,23 @@ Review access control across codebase. Ensure private by default, public only wh
 ### MED-024: Split CloudKitConflictDetector.swift (2 Types)
 **Category:** Code Organization / One Type Per File  
 **Effort:** 30 minutes  
-**Dependencies:** None
+**Dependencies:** None  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
-`CloudKitConflictDetector.swift` contains 2 types:
+`CloudKitConflictDetector.swift` contained 2 types:
 - `DataConflict` (struct Identifiable)
 - `CloudKitConflictDetector` (class ObservableObject)
 
 **Tasks:**
-1. Extract `DataConflict` to `Services/CloudKit/DataConflict.swift` or `Models/DataConflict.swift` (depending on if it's a model or service helper)
-2. Keep `CloudKitConflictDetector` in original file
+1. ✅ Extract `DataConflict` to `Services/CloudKit/DataConflict.swift` (service helper)
+2. ✅ Keep `CloudKitConflictDetector` in original file
 
 **Acceptance Criteria:**
-- [ ] Each type in its own file
-- [ ] Appropriate folder location chosen
-- [ ] Build succeeds
-- [ ] Functionality unchanged
+- [x] Each type in its own file
+- [x] Appropriate folder location chosen
+- [x] Build succeeds
+- [x] Functionality unchanged
 
 **Files:**
 - `Right Rudder/Services/CloudKit/CloudKitConflictDetector.swift` (split into 2 files)
@@ -1827,7 +1837,7 @@ Refactor legacy code patterns as opportunities arise.
 
 ---
 
-**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations  
-**Total Items:** 66 (added 14 items for "One Type Per File" violations)  
+**Backlog Status:** ✅ Updated with Code Organization Rules + One Type Per File Violations (COMPLETED)  
+**Total Items:** 66 (13 of 14 "One Type Per File" violations completed, 1 not applicable)  
 **Next Review:** After Phase 1 completion (2 weeks)
 
