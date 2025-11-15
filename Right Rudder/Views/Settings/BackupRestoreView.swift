@@ -100,31 +100,6 @@ struct BackupRestoreView: View {
   }
 }
 
-// MARK: - BackupRow
-
-struct BackupRow: View {
-  let backup: BackupSnapshot
-  let isSelected: Bool
-
-  var body: some View {
-    HStack {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(backup.date, style: .date)
-          .font(.headline)
-        Text("\(backup.studentCount) students, \(backup.templateCount) templates")
-          .font(.caption)
-          .foregroundColor(.secondary)
-      }
-      Spacer()
-      if isSelected {
-        Image(systemName: "checkmark.circle.fill")
-          .foregroundColor(.blue)
-      }
-    }
-    .padding(.vertical, 4)
-  }
-}
-
 #Preview {
   let backupService = CloudKitBackupService()
   return BackupRestoreView(backupService: backupService)
