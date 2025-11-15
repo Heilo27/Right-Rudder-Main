@@ -20,7 +20,7 @@ struct BannerSegmentView: View {
 
   // MARK: - Initialization
 
-  public init(position: Point, index: Int, total: Int, isLast: Bool, direction: Direction) {
+  init(position: Point, index: Int, total: Int, isLast: Bool, direction: Direction) {
     self.position = position
     self.index = index
     self.total = total

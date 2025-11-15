@@ -16,7 +16,7 @@ struct AirplaneView: View {
 
   // MARK: - Initialization
 
-  public init(direction: Direction) {
+  init(direction: Direction) {
     self.direction = direction
   }
 
