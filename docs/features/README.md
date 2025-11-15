@@ -37,7 +37,8 @@ Each FRD follows a standardized template (`FRD_TEMPLATE.md`) and includes:
 | [FEAT-003](FEAT-003_Lesson_Progress_Tracking.md) | Lesson Progress Tracking | ✅ Implemented | P0 | Jan 2025 |
 | [FEAT-004](FEAT-004_Endorsement_Management.md) | Endorsement Management | ✅ Implemented | P0 | Jan 2025 |
 | [FEAT-005](FEAT-005_Document_Management.md) | Document Management | ✅ Implemented | P0 | Jan 2025 |
-| [FEAT-006](FEAT-006_CloudKit_Sharing.md) | CloudKit Sharing & Student Companion App | ✅ Implemented | P0 | Jan 2025 |
+| [FEAT-006](FEAT-006_CloudKit_Sharing.md) | CloudKit Sharing & Student Companion App | ✅ Implemented* | P0 | Jan 2025 |
+| [FEAT-013](FEAT-013_Offline_Functionality.md) | Offline Functionality | ✅ Implemented | P0 | Jan 2025 |
 
 ### High Priority Features (P1)
 
@@ -47,6 +48,7 @@ Each FRD follows a standardized template (`FRD_TEMPLATE.md`) and includes:
 | [FEAT-008](FEAT-008_PDF_Export.md) | PDF Export | ⚠️ Minimal | P1 | Jan 2025 |
 | [FEAT-009](FEAT-009_CFI_Expiration_Warning.md) | CFI Expiration Warning System | ✅ Implemented | P1 | Jan 2025 |
 | [FEAT-010](FEAT-010_Template_Sharing.md) | Template Sharing Between Instructors | ✅ Implemented | P1 | Jan 2025 |
+| [FEAT-014](FEAT-014_Accessibility.md) | Accessibility | ❌ Not Implemented | P1 | Jan 2025 |
 
 ### Medium Priority Features (P2)
 
