@@ -1,0 +1,660 @@
+---
+description: useful when working on Swift files with CloudKit integrations
+alwaysApply: false
+---
+
+# CloudKit Best Practices & Production Requirements
+
+Comprehensive guide for CloudKit integration in Right Rudder. Follow Apple's security model and requirements to ensure proper functionality in both development and production environments.
+
+## Security Model
+
+### CloudKit Authentication
+
+**CloudKit uses iCloud account authentication:**
+- Users must be signed into iCloud on their device
+- CloudKit automatically handles authentication using the user's iCloud account
+- No app-specific authentication is required
+- Users can only access their own private database records
+
+**Key Security Principles:**
+- **Private Database**: Only accessible by the record owner
+- **Shared Database**: Accessible only to users explicitly granted access via CKShare
+- **Public Database**: Readable by all users, writable only by authenticated users with proper permissions
+- **No Cross-User Access**: Users cannot access other users' private data without explicit sharing
+
+*Reference: [Enabling CloudKit in Your App](https://developer.apple.com/documentation/cloudkit/enabling-cloudkit-in-your-app)*
+
+### Database Scopes
+
+**Three Database Scopes:**
+
+1. **Private Database** (`CKDatabase.Scope.private`)
+   - User's personal data
+   - Only accessible by the record owner
+   - Used for: Student records, personal checklists, private documents
+
+2. **Shared Database** (`CKDatabase.Scope.shared`)
+   - Records shared via CKShare
+   - Accessible only to participants in the share
+   - Used for: Student-instructor sharing
+
+3. **Public Database** (`CKDatabase.Scope.public`)
+   - Readable by all users
+   - Writable only with proper permissions
+   - Used for: Template library, shared content
+
+```swift
+// Right Rudder uses private database for instructor data
+let container = CKContainer(identifier: "iCloud.com.heiloprojects.rightrudder")
+let privateDatabase = container.privateCloudDatabase
+let sharedDatabase = container.sharedCloudDatabase
+```
+
+*Reference: [Designing and Creating a CloudKit Database](https://developer.apple.com/documentation/cloudkit/designing-and-creating-a-cloudkit-database)*
+
+## Required Entitlements
+
+### Essential Entitlements
+
+**All CloudKit apps MUST have these entitlements:**
+
+```xml
+<!-- Right Rudder.entitlements -->
+<key>com.apple.developer.icloud-services</key>
+<array>
+    <string>CloudKit</string>
+    <!-- Add CloudDocuments only if using iCloud Drive -->
+    <string>CloudDocuments</string>
+</array>
+
+<key>com.apple.developer.icloud-container-identifiers</key>
+<array>
+    <string>iCloud.com.heiloprojects.rightrudder</string>
+</array>
+```
+
+**Critical Notes:**
+- Container identifier format: `iCloud.com.<reverse-domain>`
+- Container identifier must match exactly in code and entitlements
+- Container cannot be renamed or deleted after creation
+- Multiple containers are allowed but each app typically uses one
+
+### Push Notifications Entitlement
+
+**Required for CloudKit subscriptions and push notifications:**
+
+```xml
+<key>aps-environment</key>
+<string>development</string>  <!-- Change to "production" for App Store builds -->
+```
+
+**⚠️ CRITICAL FOR PRODUCTION:**
+- Development builds: `aps-environment` = `development`
+- App Store builds: `aps-environment` = `production`
+- Xcode automatically changes this during archive, but verify in final build
+- Wrong environment = push notifications will NOT work
+
+*Reference: [APS Environment Entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/aps-environment)*
+
+### Data Protection Entitlement
+
+**Recommended for sensitive data:**
+
+```xml
+<key>com.apple.developer.default-data-protection</key>
+<string>NSFileProtectionComplete</string>
+```
+
+**Options:**
+- `NSFileProtectionComplete` - Highest security (recommended for student data)
+- `NSFileProtectionCompleteUnlessOpen` - High security with better performance
+- `NSFileProtectionCompleteUntilFirstUserAuthentication` - Standard protection
+
+*Reference: [Data Protection](https://developer.apple.com/documentation/foundation/nsfileprotectioncomplete)*
+
+### Complete Entitlements File
+
+**Right Rudder's current entitlements (verify all are present):**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- CloudKit Services -->
+    <key>com.apple.developer.icloud-services</key>
+    <array>
+        <string>CloudKit</string>
+        <string>CloudDocuments</string>
+    </array>
+    
+    <!-- CloudKit Container -->
+    <key>com.apple.developer.icloud-container-identifiers</key>
+    <array>
+        <string>iCloud.com.heiloprojects.rightrudder</string>
+    </array>
+    
+    <!-- Push Notifications Environment -->
+    <key>aps-environment</key>
+    <string>development</string>  <!-- MUST be "production" for App Store -->
+    
+    <!-- Data Protection -->
+    <key>com.apple.developer.default-data-protection</key>
+    <string>NSFileProtectionComplete</string>
+    
+    <!-- Ubiquity Container (for iCloud Drive if used) -->
+    <key>com.apple.developer.ubiquity-container-identifiers</key>
+    <array>
+        <string>iCloud.com.heiloprojects.rightrudder</string>
+    </array>
+    
+    <!-- Key-Value Store (if using NSUbiquitousKeyValueStore) -->
+    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
+    <string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+</dict>
+</plist>
+```
+
+*Reference: [About Entitlements](https://developer.apple.com/library/archive/documentation/Miscellaneous/Reference/EntitlementKeyReference/Chapters/AboutEntitlements.html)*
+
+## Info.plist Requirements
+
+### Required Privacy Usage Descriptions
+
+**CloudKit apps often need these permissions:**
+
+```xml
+<!-- Camera Access (for document/endorsement photos) -->
+<key>NSCameraUsageDescription</key>
+<string>This app needs access to your camera to take photos of student documents and endorsements for flight training records.</string>
+
+<!-- Photo Library Access -->
+<key>NSPhotoLibraryUsageDescription</key>
+<string>To save previous Document or Endorsement photos into the Student's records</string>
+
+<!-- Contacts Access (if importing student info) -->
+<key>NSContactsUsageDescription</key>
+<string>This app needs access to your contacts to import student information for flight training records.</string>
+```
+
+**Current Right Rudder Configuration:**
+- ✅ `NSCameraUsageDescription` - Configured
+- ✅ `NSPhotoLibraryUsageDescription` - Configured
+- ✅ `NSContactsUsageDescription` - Configured
+
+### Background Modes (Required for Push Notifications)
+
+**Add to Info.plist for CloudKit push notifications:**
+
+```xml
+<key>UIBackgroundModes</key>
+<array>
+    <string>remote-notification</string>
+    <!-- Optional: background fetch if needed -->
+    <string>fetch</string>
+</array>
+```
+
+**⚠️ CRITICAL:**
+- `remote-notification` is REQUIRED for CloudKit push notifications
+- Without this, CloudKit subscriptions will not trigger push notifications
+- Add via Xcode: Target → Signing & Capabilities → + Capability → Background Modes
+- Or add manually to Info.plist
+
+**Current Status:**
+- ⚠️ **MISSING** - Needs to be added to Right Rudder
+
+*Reference: [Configuring background execution modes](https://developer.apple.com/documentation/xcode/configuring-background-execution-modes)*
+
+### Complete Info.plist Checklist
+
+**Verify these keys are present:**
+
+- [ ] `NSCameraUsageDescription` - ✅ Present
+- [ ] `NSPhotoLibraryUsageDescription` - ✅ Present
+- [ ] `NSContactsUsageDescription` - ✅ Present (if using contacts)
+- [ ] `UIBackgroundModes` with `remote-notification` - ⚠️ **MISSING**
+- [ ] `CFBundleIdentifier` - ✅ Present (automatically set)
+- [ ] `CFBundleVersion` - ✅ Present (automatically set)
+
+*Reference: [About Info.plist Keys and Values](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Introduction/Introduction.html)*
+
+## Production vs Development
+
+### Environment Differences
+
+**Development Environment:**
+- Accessible during development and testing
+- Can be reset/deleted
+- Used for: Testing, debugging, schema development
+- Accessible by: Development builds, TestFlight builds (if configured)
+
+**Production Environment:**
+- Accessible by App Store apps only
+- Cannot be reset/deleted
+- Used for: Live user data
+- Accessible by: App Store builds only
+
+**⚠️ CRITICAL:**
+- Apps in App Store can ONLY access production environment
+- Development environment is NOT accessible to App Store apps
+- Schema MUST be deployed to production before App Store release
+- Data in development does NOT migrate to production
+
+### Schema Deployment
+
+**Before App Store Release:**
+
+1. **Finalize Schema in Development:**
+   - Create all record types
+   - Define all fields
+   - Add all indexes
+   - Test thoroughly
+
+2. **Deploy to Production:**
+   - Go to [CloudKit Dashboard](https://icloud.developer.apple.com/dashboard)
+   - Select container: `iCloud.com.heiloprojects.rightrudder`
+   - Select "Deploy Schema Changes"
+   - Review changes
+   - Click "Deploy"
+
+3. **Verify Production Schema:**
+   - Switch to Production environment in Dashboard
+   - Verify all record types exist
+   - Verify all fields are present
+   - Verify all indexes are created
+
+**⚠️ CRITICAL RULES:**
+- Schema changes are ADDITIVE ONLY in production
+- Cannot delete record types or fields in production
+- Cannot change field types in production
+- Can only add new record types, fields, and indexes
+- Test schema changes thoroughly in development first
+
+*Reference: [Deploying an iCloud Container's Schema](https://developer.apple.com/documentation/cloudkit/deploying-an-icloud-container-s-schema)*
+
+### Push Notification Environment
+
+**aps-environment Must Match Build Type:**
+
+```swift
+// Development builds
+aps-environment = "development"
+
+// App Store / TestFlight production builds
+aps-environment = "production"
+```
+
+**Verification:**
+- Check entitlements file before archiving
+- Xcode should automatically set to "production" for App Store builds
+- Verify in archived app's entitlements
+- Wrong environment = push notifications fail silently
+
+**Testing:**
+- Development: Test with `aps-environment = "development"`
+- Production: Test with TestFlight build using `aps-environment = "production"`
+
+*Reference: [APS Environment Entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/aps-environment)*
+
+## CloudKit Sharing (CKShare)
+
+### Security Model for Sharing
+
+**CKShare Security:**
+- Shares are created in private database
+- Shared records move to shared database when accepted
+- Only participants can access shared records
+- Permissions are set per participant (read-only, read-write, etc.)
+
+**Right Rudder Sharing Pattern:**
+```swift
+// Create share in custom zone (REQUIRED for sharing)
+let zone = CKRecordZone(zoneName: "SharedStudentsZone")
+let share = CKShare(rootRecord: studentRecord, shareID: shareID)
+share[CKShare.SystemFieldKey.publicPermission] = CKShare.ParticipantPermission.none
+share.publicPermission = .none  // Private share only
+
+// Add participant with read-only access
+let participant = CKShare.Participant()
+participant.userIdentity = userIdentity
+participant.permission = .readOnly  // Students can only read checklists
+share.addParticipant(participant)
+```
+
+**⚠️ CRITICAL:**
+- Shares MUST be created in a custom zone (not default zone)
+- Default zone shares are NOT supported
+- Right Rudder uses "SharedStudentsZone" for this purpose
+
+*Reference: [Sharing CloudKit Data with Other iCloud Users](https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users)*
+
+### Sharing Permissions
+
+**Available Permissions:**
+- `.none` - No access
+- `.readOnly` - Can read records
+- `.readWrite` - Can read and modify records
+
+**Right Rudder Usage:**
+- Students: `.readOnly` for checklists (cannot modify)
+- Students: `.readWrite` for documents (can upload)
+- Instructors: `.readWrite` (full access)
+
+## Encryption & Data Protection
+
+### CloudKit Encryption
+
+**CloudKit provides automatic encryption:**
+- Data encrypted in transit (TLS)
+- Data encrypted at rest
+- End-to-end encryption available for sensitive fields
+
+**Enable Field-Level Encryption:**
+```swift
+// In CloudKit Dashboard, mark sensitive fields as "Encrypted"
+// Example: Student SSN, medical information, etc.
+```
+
+**Right Rudder Considerations:**
+- Student personal information should use encryption
+- Document data should use encryption
+- Endorsement images should use encryption
+
+*Reference: [Encrypting User Data](https://developer.apple.com/documentation/cloudkit/encrypting-user-data)*
+
+### Data Protection Levels
+
+**File Protection:**
+- `NSFileProtectionComplete` - Highest security (Right Rudder uses this)
+- Data encrypted when device is locked
+- Requires passcode/Touch ID/Face ID
+
+**Best Practice:**
+- Use `NSFileProtectionComplete` for student data
+- Balance security with user experience
+- Test with device locked/unlocked states
+
+## Container Configuration
+
+### Container Identifier Format
+
+**Required Format:**
+```
+iCloud.com.<reverse-domain>
+```
+
+**Right Rudder:**
+```
+iCloud.com.heiloprojects.rightrudder
+```
+
+**Rules:**
+- Must start with `iCloud.`
+- Must use reverse domain notation
+- Must match exactly in entitlements and code
+- Cannot be changed after creation
+
+### Container Setup Checklist
+
+**Before First Use:**
+
+1. **Create Container:**
+   - Add iCloud capability in Xcode
+   - Enable CloudKit checkbox
+   - Container auto-created with bundle ID
+
+2. **Verify Container:**
+   - Go to [CloudKit Dashboard](https://icloud.developer.apple.com/dashboard)
+   - Verify container exists
+   - Verify container identifier matches
+
+3. **Configure Schema:**
+   - Create record types in Development
+   - Define fields and types
+   - Add indexes for queries
+   - Test thoroughly
+
+4. **Deploy to Production:**
+   - Deploy schema before App Store release
+   - Verify production schema matches development
+   - Test with production environment
+
+*Reference: [Enabling CloudKit in Your App](https://developer.apple.com/documentation/cloudkit/enabling-cloudkit-in-your-app)*
+
+## Push Notifications Setup
+
+### CloudKit Subscriptions
+
+**Create Subscription for Push Notifications:**
+
+```swift
+let subscription = CKQuerySubscription(
+    recordType: "StudentChecklist",
+    predicate: NSPredicate(format: "studentId == %@", studentId),
+    subscriptionID: "student-checklist-\(studentId)",
+    options: [.firesOnRecordCreation, .firesOnRecordUpdate]
+)
+
+let notificationInfo = CKSubscription.NotificationInfo()
+notificationInfo.alertBody = "Your instructor added a comment"
+notificationInfo.shouldBadge = true
+notificationInfo.soundName = "default"
+subscription.notificationInfo = notificationInfo
+
+try await database.save(subscription)
+```
+
+**Required Setup:**
+1. ✅ Entitlements: `aps-environment` set correctly
+2. ✅ Info.plist: `UIBackgroundModes` with `remote-notification`
+3. ✅ App: Handle remote notifications in app delegate
+4. ✅ CloudKit: Create subscriptions for record changes
+
+**Right Rudder Implementation:**
+- `PushNotificationService` handles registration
+- Subscriptions created when sharing student records
+- Notifications trigger when instructor adds comments
+
+*Reference: [Pushing background updates to your App](https://developer.apple.com/documentation/usernotifications/pushing-background-updates-to-your-app)*
+
+### Handling Remote Notifications
+
+**App Delegate / App Struct:**
+
+```swift
+// In Right_RudderApp.swift
+func application(_ application: UIApplication,
+                didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    
+    let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
+    
+    if let queryNotification = notification as? CKQueryNotification {
+        // Handle CloudKit query notification
+        handleCloudKitNotification(queryNotification)
+    }
+    
+    completionHandler(.newData)
+}
+```
+
+## Right Rudder Specific Patterns
+
+### Container Configuration
+
+**Current Setup:**
+```swift
+// Container identifier
+let containerIdentifier = "iCloud.com.heiloprojects.rightrudder"
+
+// ModelConfiguration
+let cloudKitConfiguration = ModelConfiguration(
+    schema: schema,
+    isStoredInMemoryOnly: false,
+    cloudKitDatabase: .private("iCloud.com.heiloprojects.rightrudder")
+)
+```
+
+### Custom Zone for Sharing
+
+**Required for CKShare:**
+
+```swift
+// Create custom zone (done automatically by CloudKitShareService)
+let zone = CKRecordZone(zoneName: "SharedStudentsZone")
+
+// Shares MUST be in custom zone, not default zone
+let share = CKShare(rootRecord: studentRecord, shareID: shareID)
+// Share is created in SharedStudentsZone
+```
+
+### Reference-Based Architecture
+
+**Templates Not Copied:**
+
+```swift
+// Templates stored centrally
+// Student progress references templates by ID
+// Reduces storage and improves sync performance
+```
+
+## Production Deployment Checklist
+
+### Pre-Release Checklist
+
+**Before App Store Submission:**
+
+- [ ] **Entitlements Verified:**
+  - [ ] `com.apple.developer.icloud-services` includes `CloudKit`
+  - [ ] `com.apple.developer.icloud-container-identifiers` matches code
+  - [ ] `aps-environment` set to `production` (for App Store builds)
+  - [ ] `com.apple.developer.default-data-protection` set appropriately
+
+- [ ] **Info.plist Complete:**
+  - [ ] All privacy usage descriptions present
+  - [ ] `UIBackgroundModes` includes `remote-notification`
+  - [ ] All required keys present
+
+- [ ] **CloudKit Dashboard:**
+  - [ ] Schema deployed to Production environment
+  - [ ] All record types exist in Production
+  - [ ] All indexes created in Production
+  - [ ] Security roles configured correctly
+
+- [ ] **Testing:**
+  - [ ] Test with TestFlight build (production environment)
+  - [ ] Verify push notifications work
+  - [ ] Verify sharing works end-to-end
+  - [ ] Verify data syncs correctly
+  - [ ] Test with device signed out/in of iCloud
+
+- [ ] **Code Verification:**
+  - [ ] Container identifier matches in all places
+  - [ ] Database scope correct (private vs shared)
+  - [ ] Error handling for CloudKit failures
+  - [ ] Offline sync queue implemented
+
+### Common Production Issues
+
+**Issue: "CloudKit account not available"**
+- **Cause**: User not signed into iCloud
+- **Solution**: Check `CKContainer.accountStatus()` and prompt user
+
+**Issue: Push notifications not working**
+- **Cause**: Wrong `aps-environment` or missing `UIBackgroundModes`
+- **Solution**: Verify entitlements and Info.plist
+
+**Issue: Schema errors in production**
+- **Cause**: Schema not deployed to production
+- **Solution**: Deploy schema via CloudKit Dashboard
+
+**Issue: Sharing not working**
+- **Cause**: Share created in default zone instead of custom zone
+- **Solution**: Always create shares in custom zones
+
+## Best Practices
+
+### Error Handling
+
+**Always Handle CloudKit Errors:**
+
+```swift
+do {
+    try await database.save(record)
+} catch let error as CKError {
+    switch error.code {
+    case .networkUnavailable:
+        // Queue for later sync
+    case .notAuthenticated:
+        // Prompt user to sign into iCloud
+    case .quotaExceeded:
+        // Inform user of storage limit
+    default:
+        // Handle other errors
+    }
+}
+```
+
+### Offline Support
+
+**Queue Operations When Offline:**
+
+```swift
+// Right Rudder uses OfflineSyncQueue
+// Operations queued when network unavailable
+// Synced when connection restored
+```
+
+### Performance
+
+**Optimize Queries:**
+- Use indexes for frequently queried fields
+- Limit query results with `CKQueryOperation.maximumResults`
+- Use `CKFetchRecordsOperation` for batch fetches
+- Cache frequently accessed data locally
+
+### Security
+
+**Follow Least Privilege:**
+- Students: Read-only access to checklists
+- Students: Write access only to documents
+- Instructors: Full access to their data
+- Never expose private data publicly
+
+## Key Resources
+
+### Apple Documentation
+
+- [CloudKit Documentation](https://developer.apple.com/documentation/cloudkit)
+- [Enabling CloudKit in Your App](https://developer.apple.com/documentation/cloudkit/enabling-cloudkit-in-your-app)
+- [Deploying an iCloud Container's Schema](https://developer.apple.com/documentation/cloudkit/deploying-an-icloud-container-s-schema)
+- [Sharing CloudKit Data](https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users)
+- [Encrypting User Data](https://developer.apple.com/documentation/cloudkit/encrypting-user-data)
+
+### Tools
+
+- [CloudKit Dashboard](https://icloud.developer.apple.com/dashboard)
+- [CloudKit Database App](https://developer.apple.com/documentation/cloudkit/managing-icloud-containers-with-cloudkit-database-app)
+- [cktool](https://developer.apple.com/icloud/ck-tool/)
+
+### Right Rudder Documentation
+
+- `CloudKitSharingGuide.md` - Sharing implementation details
+- `SETUP_CHECKLIST.md` - Setup checklist
+- `CLOUDKIT_SCHEMA_DEPLOYMENT.md` - Schema deployment guide
+- `CLOUDKIT_DEBUGGING_GUIDE.md` - Debugging guide
+
+---
+
+**⚠️ CRITICAL REMINDERS:**
+
+1. **Schema MUST be deployed to Production before App Store release**
+2. **`aps-environment` MUST be `production` for App Store builds**
+3. **`UIBackgroundModes` with `remote-notification` is REQUIRED for push notifications**
+4. **Shares MUST be created in custom zones, not default zone**
+5. **Container identifier MUST match exactly in entitlements and code**
+6. **Test with TestFlight builds to verify production environment**
+
+**Remember**: CloudKit's security model is rigid. Follow Apple's requirements exactly or features will fail silently in production.

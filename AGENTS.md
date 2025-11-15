@@ -49,16 +49,33 @@ All examples assume `WORKSPACE` and `SCHEME` exports exist. Replace with real na
 
 ```sh
 # Debug simulator build (fails fast)
+# For projects without code signing configured, disable signing for simulator builds:
+xcodebuild \
+  -project "Right Rudder.xcodeproj" \
+  -scheme "Right Rudder" \
+  -sdk iphonesimulator \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.0' \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+
+# Alternative with workspace (if using workspace):
 xcodebuild \
   -workspace "$WORKSPACE" \
   -scheme "$SCHEME" \
   -configuration Debug \
   -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO \
   build | xcbeautify
 ```
 - Use `DEVELOPER_DIR` if multiple Xcode versions are installed.
 - Add `-allowProvisioningUpdates` only when signing for devices.
 - Inspect available simulators via `xcrun simctl list devices`.
+- Simulator builds don't require code signing - disable with `CODE_SIGNING_REQUIRED=NO` if needed.
 
 Reference: `xcodebuild` CLI supports `-scheme`, `-destination`, `-derivedDataPath`, and more for scripted automation.[^xcodebuild]
 

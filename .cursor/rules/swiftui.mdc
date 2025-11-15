@@ -1,0 +1,507 @@
+---
+description: useful when working on Swift files that contain SwiftUI
+alwaysApply: false
+---
+# SwiftUI Best Practices & Guidelines
+
+Concise rules for building SwiftUI interfaces in Right Rudder. Follow Apple's Human Interface Guidelines and SwiftUI best practices.
+
+## State Management
+
+### Use Appropriate Property Wrappers
+
+**@State** - For view-local, transient UI state (value types only):
+```swift
+struct PlayButton: View {
+    @State private var isPlaying: Bool = false
+    
+    var body: some View {
+        Button(isPlaying ? "Pause" : "Play") {
+            isPlaying.toggle()
+        }
+    }
+}
+```
+*Reference: [Managing user interface state](https://developer.apple.com/documentation/swiftui/managing-user-interface-state)*
+
+**@Bindable** - For SwiftData models and Observable types:
+```swift
+struct StudentDetailView: View {
+    @Bindable var student: Student
+    
+    var body: some View {
+        TextField("Name", text: $student.firstName)
+    }
+}
+```
+
+**@StateObject** - For ObservableObject instances owned by the view:
+```swift
+struct ContentView: View {
+    @StateObject private var viewModel = StudentViewModel()
+    
+    var body: some View {
+        // Use viewModel
+    }
+}
+```
+
+**@Environment** - For accessing environment values:
+```swift
+struct MyView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        // Use environment values
+    }
+}
+```
+
+**@AppStorage** - For UserDefaults-backed preferences:
+```swift
+struct SettingsView: View {
+    @AppStorage("showProgressBars") private var showProgressBars = true
+    
+    var body: some View {
+        Toggle("Show Progress", isOn: $showProgressBars)
+    }
+}
+```
+
+### State Management Principles
+
+- **Single Source of Truth**: Each piece of data should have one authoritative source
+- **Minimize @State**: Use @State only for view-local UI state, not model data
+- **Lift State Up**: Share state through parent views using @Binding
+- **Keep Views Small**: Extract complex state management to ViewModels or services
+
+*Reference: [Model data](https://developer.apple.com/documentation/swiftui/model-data)*
+
+## View Composition
+
+### Extract Reusable Components
+
+Break large views into smaller, focused components:
+```swift
+struct ChecklistItemRow: View {
+    let item: ChecklistItem
+    @Binding var isCompleted: Bool
+    
+    var body: some View {
+        HStack {
+            Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+            Text(item.title)
+        }
+    }
+}
+```
+
+### Use View Builders for Complex Layouts
+
+```swift
+var body: some View {
+    VStack {
+        headerView
+        contentView
+        footerView
+    }
+}
+
+@ViewBuilder
+private var headerView: some View {
+    Text("Header")
+}
+
+@ViewBuilder
+private var contentView: some View {
+    List(items) { item in
+        ItemRow(item: item)
+    }
+}
+```
+
+## Performance Optimization
+
+### Minimize View Updates
+
+Use `id()` modifier to help SwiftUI identify views:
+```swift
+ForEach(items) { item in
+    ItemView(item: item)
+        .id(item.id) // Helps SwiftUI track identity
+}
+```
+
+### Lazy Loading
+
+Use `LazyVStack` and `LazyHStack` for large lists:
+```swift
+ScrollView {
+    LazyVStack {
+        ForEach(items) { item in
+            ItemView(item: item)
+        }
+    }
+}
+```
+
+### Conditional Rendering
+
+Use `if` statements for conditional views:
+```swift
+if isLoading {
+    ProgressView()
+} else {
+    ContentView()
+}
+```
+
+### Avoid Complex Computations in body
+
+Extract complex logic to computed properties or methods:
+```swift
+struct StudentListView: View {
+    let students: [Student]
+    
+    private var activeStudents: [Student] {
+        students.filter { $0.isActive }
+    }
+    
+    var body: some View {
+        List(activeStudents) { student in
+            StudentRow(student: student)
+        }
+    }
+}
+```
+
+*Reference: [WWDC 2023: Build faster, more efficient SwiftUI apps](https://developer.apple.com/videos/play/wwdc2023/10160/)*
+
+## Layout & Spacing
+
+### Use System Spacing
+
+Prefer system spacing over hardcoded values:
+```swift
+VStack(spacing: 16) { // Use system spacing
+    Text("Item 1")
+    Text("Item 2")
+}
+```
+
+### Adaptive Layouts
+
+Support both iPhone and iPad with size classes:
+```swift
+struct AdaptiveView: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    
+    var body: some View {
+        if sizeClass == .regular {
+            // iPad layout
+            HStack {
+                sidebar
+                content
+            }
+        } else {
+            // iPhone layout
+            NavigationStack {
+                content
+            }
+        }
+    }
+}
+```
+
+### Safe Area Handling
+
+Respect safe areas:
+```swift
+ScrollView {
+    content
+}
+.safeAreaInset(edge: .bottom) {
+    bottomBar
+}
+```
+
+## Navigation
+
+### Use NavigationStack (iOS 16+)
+
+```swift
+struct ContentView: View {
+    @State private var path = NavigationPath()
+    
+    var body: some View {
+        NavigationStack(path: $path) {
+            List {
+                NavigationLink("Student", value: student)
+            }
+            .navigationDestination(for: Student.self) { student in
+                StudentDetailView(student: student)
+            }
+        }
+    }
+}
+```
+
+*Reference: [NavigationStack](https://developer.apple.com/documentation/swiftui/navigationstack)*
+
+### Programmatic Navigation
+
+```swift
+@State private var presentedParks: [Park] = []
+
+NavigationStack(path: $presentedParks) {
+    List(parks) { park in
+        NavigationLink(park.name, value: park)
+    }
+    .navigationDestination(for: Park.self) { park in
+        ParkDetails(park: park)
+    }
+}
+```
+
+## Accessibility
+
+### Always Provide Accessibility Labels
+
+```swift
+Button(action: {}) {
+    Image(systemName: "checkmark")
+}
+.accessibilityLabel("Mark as complete")
+```
+
+### Support Dynamic Type
+
+```swift
+Text("Student Name")
+    .font(.headline)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // Limit if needed
+```
+
+### Accessibility Traits
+
+```swift
+Button("Submit") {
+    // action
+}
+.accessibilityLabel("Submit form")
+.accessibilityHint("Double tap to submit")
+.accessibilityAddTraits(.isButton)
+```
+
+### VoiceOver Support
+
+Test with VoiceOver enabled. Use semantic labels and hints.
+
+*Reference: [Accessibility in SwiftUI](https://developer.apple.com/documentation/swiftui/accessibility)*
+
+## Lists & Collections
+
+### Efficient List Rendering
+
+```swift
+List(students) { student in
+    StudentRow(student: student)
+}
+.listStyle(.insetGrouped) // Use appropriate style
+```
+
+### Section Organization
+
+```swift
+List {
+    Section("Active Students") {
+        ForEach(activeStudents) { student in
+            StudentRow(student: student)
+        }
+    }
+    
+    Section("Inactive Students") {
+        ForEach(inactiveStudents) { student in
+            StudentRow(student: student)
+        }
+    }
+}
+```
+
+## Forms & Input
+
+### Use Form for Input Views
+
+```swift
+Form {
+    Section("Personal Information") {
+        TextField("First Name", text: $firstName)
+        TextField("Last Name", text: $lastName)
+    }
+    
+    Section {
+        Button("Save") {
+            save()
+        }
+    }
+}
+```
+
+### Focus Management
+
+```swift
+@FocusState private var usernameFieldIsFocused: Bool
+
+TextField("Username", text: $username)
+    .focused($usernameFieldIsFocused)
+```
+
+*Reference: [focused(_:)](https://developer.apple.com/documentation/swiftui/view/focused(_:))*
+
+## Animations
+
+### Animate State Changes
+
+```swift
+withAnimation(.easeInOut(duration: 0.3)) {
+    isVisible.toggle()
+}
+```
+
+### Implicit Animations
+
+```swift
+VStack {
+    Text(episode.title)
+    PlayButton(isPlaying: $isPlaying)
+}
+.background(isPlaying ? Color.green : Color.red)
+.animation(.easeInOut, value: isPlaying)
+```
+
+## Error Handling
+
+### User-Friendly Error Display
+
+```swift
+@State private var errorMessage: String?
+
+var body: some View {
+    VStack {
+        content
+        if let errorMessage {
+            Text(errorMessage)
+                .foregroundColor(.red)
+        }
+    }
+}
+```
+
+## SwiftData Integration
+
+### Model Context Access
+
+```swift
+struct StudentListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var students: [Student]
+    
+    var body: some View {
+        List(students) { student in
+            StudentRow(student: student)
+        }
+    }
+}
+```
+
+### Bindable Models
+
+```swift
+struct StudentDetailView: View {
+    @Bindable var student: Student
+    
+    var body: some View {
+        Form {
+            TextField("Name", text: $student.firstName)
+        }
+    }
+}
+```
+
+*Reference: [Managing model data in your app](https://developer.apple.com/documentation/swiftui/managing-model-data-in-your-app)*
+
+## Code Organization
+
+### View File Structure
+
+```swift
+struct MyView: View {
+    // MARK: - Properties
+    @State private var property: String
+    
+    // MARK: - Body
+    var body: some View {
+        content
+    }
+    
+    // MARK: - Subviews
+    @ViewBuilder
+    private var content: some View {
+        // View content
+    }
+    
+    // MARK: - Methods
+    private func performAction() {
+        // Implementation
+    }
+}
+```
+
+## Testing Considerations
+
+### Make Views Testable
+
+- Extract business logic to ViewModels or services
+- Use dependency injection for services
+- Keep views focused on presentation
+
+## Platform-Specific Considerations
+
+### iPad Optimization
+
+- Use `NavigationSplitView` for master-detail layouts
+- Leverage size classes for adaptive layouts
+- Support pointer interactions
+
+### iPhone Optimization
+
+- Optimize for one-handed use
+- Use NavigationStack for hierarchical navigation
+- Consider safe area constraints
+
+*Reference: [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines)*
+
+## Key Resources
+
+- [SwiftUI Documentation](https://developer.apple.com/documentation/swiftui/)
+- [Model data management](https://developer.apple.com/documentation/swiftui/model-data)
+- [Managing user interface state](https://developer.apple.com/documentation/swiftui/managing-user-interface-state)
+- [WWDC SwiftUI Videos](https://developer.apple.com/videos/swiftui-ui-frameworks/)
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines)
+
+## Right Rudder Specific Patterns
+
+Based on codebase analysis:
+
+- Use `@Bindable` for SwiftData models (Student, ChecklistTemplate, etc.)
+- Extract reusable components (ChecklistItemRow, ListRowBackgroundModifier)
+- Use `@Environment(\.modelContext)` for database operations
+- Support both iPhone and iPad layouts
+- Use `@AppStorage` for user preferences (color schemes, UI toggles)
+- Implement proper CloudKit sync state management
+
+---
+
+**Remember**: SwiftUI is declarative. Describe what you want, not how to achieve it. Let SwiftUI handle the rendering and updates.
+

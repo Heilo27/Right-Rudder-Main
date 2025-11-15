@@ -1,0 +1,595 @@
+---
+description: useful when considering design choices for SwiftUI views
+alwaysApply: false
+---
+
+# SwiftUI Design Guidelines
+
+Design principles and visual guidelines for creating tasteful, accessible SwiftUI interfaces in Right Rudder. Follow Apple's Human Interface Guidelines to create interfaces that are both beautiful and functional.
+
+## Color Design
+
+### Use System Colors When Possible
+
+Prefer system colors for consistency and automatic adaptation:
+```swift
+// System colors adapt to light/dark mode automatically
+Text("Label")
+    .foregroundColor(.primary) // Adapts to light/dark mode
+
+Text("Secondary Label")
+    .foregroundColor(.secondary) // Automatically muted
+
+Rectangle()
+    .fill(Color(.systemBackground)) // Adapts to appearance
+```
+
+**System Color Hierarchy:**
+- `.primary` - Main text color
+- `.secondary` - Secondary text color
+- `.tertiary` - Tertiary text color
+- `.quaternary` - Quaternary text color
+- `.systemBackground` - Main background
+- `.secondarySystemBackground` - Secondary background
+- `.tertiarySystemBackground` - Tertiary background
+
+*Reference: [Color - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/color)*
+
+### Custom Color Schemes (Right Rudder)
+
+Right Rudder supports multiple color schemes. Use the app's color system:
+
+```swift
+// Use app color extensions (recommended)
+.foregroundColor(.appPrimary)
+.background(Color.appBackground)
+.foregroundColor(.appAccent)
+
+// Or access via ColorSchemeManager
+@AppStorage("selectedColorScheme") private var selectedColorScheme = AppColorScheme.skyBlue.rawValue
+
+var currentScheme: AppColorScheme {
+    AppColorScheme(rawValue: selectedColorScheme) ?? .skyBlue
+}
+
+.foregroundColor(currentScheme.primaryColor)
+```
+
+**Color Scheme Roles:**
+- **Primary Color** - Main UI elements, buttons, navigation
+- **Secondary Color** - Accents and highlights
+- **Accent Color** - Important actions, completion states
+- **Background Color** - Cards and sections
+- **Muted Box Color** - Content boxes, text editor backgrounds
+
+### Color Best Practices
+
+**Test in Both Light and Dark Mode:**
+```swift
+// Always provide light and dark variants for custom colors
+struct AppColors {
+    static let primary = Color("PrimaryColor") // Defined in Asset Catalog with light/dark variants
+}
+```
+
+**Ensure Sufficient Contrast:**
+- Text must meet WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
+- Test with Accessibility Inspector
+- Use system colors which automatically meet contrast requirements
+
+**Don't Rely on Color Alone:**
+```swift
+// Bad: Color-only indicator
+Circle()
+    .fill(isComplete ? .green : .gray)
+
+// Good: Color + shape/text indicator
+HStack {
+    Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+        .foregroundColor(isComplete ? .green : .gray)
+    Text(isComplete ? "Complete" : "Incomplete")
+}
+```
+
+**Use Color Consistently:**
+- Use the same color to mean the same thing throughout the app
+- Don't use the same color for different purposes
+- Reserve accent colors for important actions
+
+*Reference: [Color - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/color)*
+
+### Dark Mode Support
+
+Always test custom colors in both light and dark appearances:
+```swift
+// Use environment to detect appearance
+@Environment(\.colorScheme) private var colorScheme
+
+var backgroundColor: Color {
+    colorScheme == .dark ? Color.darkModeBackground : Color.lightModeBackground
+}
+```
+
+Provide variants for:
+- Light mode
+- Dark mode
+- Increased contrast mode (accessibility setting)
+
+*Reference: [Dark Mode - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/dark-mode)*
+
+## Typography
+
+### Use System Text Styles
+
+Prefer system text styles for automatic Dynamic Type support:
+```swift
+Text("Headline")
+    .font(.headline) // Automatically scales with Dynamic Type
+
+Text("Body text")
+    .font(.body) // Optimal reading size
+
+Text("Caption")
+    .font(.caption) // Smaller supporting text
+```
+
+**Text Style Hierarchy:**
+- `.largeTitle` - Largest, most prominent
+- `.title` - Section headings
+- `.title2` - Subsection headings
+- `.title3` - Sub-subsection headings
+- `.headline` - Emphasized body text
+- `.body` - Standard body text (default)
+- `.callout` - Slightly larger than body
+- `.subheadline` - Secondary information
+- `.footnote` - Supporting information
+- `.caption` - Smallest text
+- `.caption2` - Smallest supporting text
+
+*Reference: [Typography - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/typography)*
+
+### Font Weight Guidelines
+
+**Avoid Light Weights:**
+```swift
+// Good: Regular, Medium, Semibold, Bold
+Text("Label")
+    .fontWeight(.regular) // or .medium, .semibold, .bold
+
+// Avoid: Ultralight, Thin, Light (hard to read)
+```
+
+**Use Weight to Convey Hierarchy:**
+```swift
+VStack(alignment: .leading) {
+    Text("Section Title")
+        .font(.title2)
+        .fontWeight(.bold) // Emphasize importance
+    
+    Text("Supporting text")
+        .font(.body)
+        .fontWeight(.regular) // Standard weight
+}
+```
+
+### Dynamic Type Support
+
+**Always Support Dynamic Type:**
+```swift
+Text("Content")
+    .font(.body) // Automatically scales with user preferences
+
+// Limit size if needed (rarely)
+Text("Fixed Size")
+    .font(.body)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+```
+
+**Test at All Sizes:**
+- Test with Larger Text accessibility setting enabled
+- Ensure layout adapts gracefully
+- Avoid truncation at large sizes
+- Maintain hierarchy at all sizes
+
+**Adjust Layout for Large Text:**
+```swift
+@Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+var useStackedLayout: Bool {
+    dynamicTypeSize >= .xxxLarge
+}
+
+if useStackedLayout {
+    VStack {
+        title
+        subtitle
+    }
+} else {
+    HStack {
+        title
+        subtitle
+    }
+}
+```
+
+*Reference: [Get started with Dynamic Type](https://developer.apple.com/videos/play/wwdc2024/10074)*
+
+### Typography Best Practices
+
+**Minimize Typeface Variety:**
+- Use system fonts (San Francisco) primarily
+- Limit to 1-2 typefaces maximum
+- Use weight and size for hierarchy, not different fonts
+
+**Maintain Hierarchy:**
+```swift
+VStack(alignment: .leading, spacing: 8) {
+    Text("Main Title")
+        .font(.title)
+        .fontWeight(.bold)
+    
+    Text("Subtitle")
+        .font(.headline)
+        .foregroundColor(.secondary)
+    
+    Text("Body content")
+        .font(.body)
+}
+```
+
+**Ensure Legibility:**
+- Minimum 17pt for body text (iOS)
+- Avoid light weights for small text
+- Test readability in various lighting conditions
+- Consider line height for readability
+
+*Reference: [Typography - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/typography)*
+
+## Visual Hierarchy
+
+### Use Size, Weight, and Color
+
+Create clear hierarchy through visual distinction:
+```swift
+VStack(alignment: .leading, spacing: 12) {
+    // Primary: Large, bold, primary color
+    Text("Primary Information")
+        .font(.title2)
+        .fontWeight(.bold)
+        .foregroundColor(.primary)
+    
+    // Secondary: Medium, regular, secondary color
+    Text("Supporting Information")
+        .font(.body)
+        .foregroundColor(.secondary)
+    
+    // Tertiary: Small, regular, tertiary color
+    Text("Additional Details")
+        .font(.caption)
+        .foregroundColor(.tertiary)
+}
+```
+
+### Spacing and Layout
+
+**Use System Spacing:**
+```swift
+VStack(spacing: 16) { // Use standard spacing values
+    Text("Item 1")
+    Text("Item 2")
+}
+
+// Standard spacing values: 4, 8, 12, 16, 20, 24, 32
+```
+
+**Consistent Padding:**
+```swift
+VStack {
+    // content
+}
+.padding() // Standard padding (16pt)
+.padding(.horizontal, 20) // Consistent horizontal padding
+.padding(.vertical, 12) // Consistent vertical padding
+```
+
+**Group Related Content:**
+```swift
+VStack(spacing: 8) {
+    // Related items grouped together
+    Text("Title")
+    Text("Subtitle")
+}
+.padding()
+.background(Color(.secondarySystemBackground))
+.cornerRadius(12)
+```
+
+## Accessibility
+
+### Color Contrast
+
+**Ensure Sufficient Contrast:**
+- Normal text: 4.5:1 contrast ratio minimum
+- Large text (18pt+): 3:1 contrast ratio minimum
+- Test with Accessibility Inspector
+- System colors automatically meet requirements
+
+**Test with Accessibility Settings:**
+- Increase Contrast
+- Reduce Transparency
+- Differentiate Without Color
+
+*Reference: [Accessibility - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/accessibility)*
+
+### Accessibility Labels
+
+**Always Provide Labels:**
+```swift
+Button(action: {}) {
+    Image(systemName: "checkmark")
+}
+.accessibilityLabel("Mark as complete")
+.accessibilityHint("Double tap to mark this item as complete")
+```
+
+**Use Semantic Labels:**
+```swift
+Image(systemName: "person.fill")
+    .accessibilityLabel("Student profile photo")
+
+Text("John Doe")
+    .accessibilityLabel("Student name: John Doe")
+```
+
+**Combine Visual and Textual Information:**
+```swift
+HStack {
+    Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+    Text(isComplete ? "Complete" : "Incomplete")
+}
+.accessibilityElement(children: .combine)
+.accessibilityLabel(isComplete ? "Complete" : "Incomplete")
+```
+
+*Reference: [Accessibility fundamentals](https://developer.apple.com/documentation/swiftui/accessibility-fundamentals)*
+
+### Dynamic Type
+
+**Support All Text Sizes:**
+```swift
+Text("Content")
+    .font(.body) // Automatically supports Dynamic Type
+
+// Test with: Settings > Accessibility > Display & Text Size > Larger Text
+```
+
+**Adjust Layout for Large Text:**
+```swift
+@Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+var layout: some View {
+    if dynamicTypeSize >= .xxxLarge {
+        VStack { content } // Stacked layout for large text
+    } else {
+        HStack { content } // Horizontal layout for normal text
+    }
+}
+```
+
+**Scale Icons with Text:**
+```swift
+HStack {
+    Image(systemName: "person.fill")
+        .font(.body) // Scales with Dynamic Type
+    
+    Text("Student Name")
+        .font(.body)
+}
+```
+
+*Reference: [Get started with Dynamic Type](https://developer.apple.com/videos/play/wwdc2024/10074)*
+
+## Spacing & Layout
+
+### Consistent Spacing
+
+**Use Standard Spacing Values:**
+```swift
+VStack(spacing: 16) { // Standard spacing
+    // content
+}
+
+// Standard spacing scale: 4, 8, 12, 16, 20, 24, 32, 40
+```
+
+**Consistent Padding:**
+```swift
+.padding() // 16pt all sides
+.padding(.horizontal, 20) // Consistent horizontal
+.padding(.vertical, 12) // Consistent vertical
+.padding(EdgeInsets(top: 16, leading: 20, bottom: 16, trailing: 20)) // Specific
+```
+
+### Safe Areas
+
+**Respect Safe Areas:**
+```swift
+VStack {
+    // content
+}
+.safeAreaInset(edge: .bottom) {
+    // Bottom bar content
+}
+```
+
+**Handle Notches and Home Indicators:**
+```swift
+ScrollView {
+    content
+}
+.safeAreaPadding(.horizontal) // Horizontal safe area padding
+```
+
+## SF Symbols
+
+### Use SF Symbols for Consistency
+
+**Prefer SF Symbols Over Custom Icons:**
+```swift
+Image(systemName: "person.fill") // SF Symbol
+    .font(.title2)
+    .foregroundColor(.appPrimary)
+```
+
+**Match Symbol Weight to Text:**
+```swift
+HStack {
+    Image(systemName: "checkmark.circle.fill")
+        .fontWeight(.medium) // Match text weight
+    
+    Text("Complete")
+        .fontWeight(.medium)
+}
+```
+
+**Use Semantic Symbols:**
+```swift
+// Good: Semantic meaning
+Image(systemName: "person.fill") // Person icon
+Image(systemName: "checkmark.circle.fill") // Success/completion
+Image(systemName: "exclamationmark.triangle.fill") // Warning
+
+// Avoid: Generic symbols when semantic ones exist
+Image(systemName: "circle.fill") // Less semantic than checkmark.circle.fill
+```
+
+*Reference: [SF Symbols](https://developer.apple.com/sf-symbols/)*
+
+## Materials & Blur
+
+### Use System Materials
+
+**Prefer System Materials:**
+```swift
+.background(.ultraThinMaterial) // Subtle blur
+.background(.thinMaterial) // Light blur
+.background(.regularMaterial) // Standard blur
+.background(.thickMaterial) // Heavy blur
+.background(.ultraThickMaterial) // Maximum blur
+```
+
+**Materials Adapt Automatically:**
+- Light mode: Light appearance
+- Dark mode: Dark appearance
+- Increased Contrast: More opaque
+
+*Reference: [Materials - Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/materials)*
+
+## Right Rudder Design Patterns
+
+### Color Scheme Usage
+
+**Use App Color Extensions:**
+```swift
+// Primary actions
+Button("Save") {
+    save()
+}
+.foregroundColor(.white)
+.background(Color.appPrimary)
+
+// Secondary elements
+Text("Supporting text")
+    .foregroundColor(.appSecondary)
+
+// Accent states
+Image(systemName: "checkmark.circle.fill")
+    .foregroundColor(.appAccent)
+```
+
+### Card Design
+
+**Consistent Card Styling:**
+```swift
+VStack(alignment: .leading, spacing: 12) {
+    // Card content
+}
+.padding()
+.background(Color.appBackground)
+.cornerRadius(12)
+.shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+```
+
+### List Design
+
+**Use ListRowBackgroundModifier:**
+```swift
+List {
+    ForEach(items) { item in
+        ItemRow(item: item)
+    }
+}
+.listRowBackground(Color.appBackground)
+```
+
+## Testing & Validation
+
+### Design Checklist
+
+Before finalizing a view, verify:
+
+- [ ] Works in both light and dark mode
+- [ ] Supports Dynamic Type (test with Larger Text)
+- [ ] Meets color contrast requirements
+- [ ] Has accessibility labels for all interactive elements
+- [ ] Layout adapts to different screen sizes
+- [ ] Uses system colors/materials when possible
+- [ ] Consistent spacing and padding
+- [ ] Clear visual hierarchy
+- [ ] Tested on iPhone and iPad
+- [ ] Tested with VoiceOver enabled
+
+### Tools for Testing
+
+**Accessibility Inspector:**
+- Xcode > Open Developer Tool > Accessibility Inspector
+- Test color contrast ratios
+- Verify accessibility labels
+
+**Simulator Settings:**
+- Settings > Accessibility > Display & Text Size > Larger Text
+- Settings > Accessibility > Increase Contrast
+- Settings > Accessibility > Reduce Transparency
+
+**Device Testing:**
+- Test on actual devices (not just simulator)
+- Test in various lighting conditions
+- Test with True Tone enabled/disabled
+
+## Key Resources
+
+### Apple Documentation
+
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/)
+- [Color Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/color)
+- [Typography Guidelines](https://developer.apple.com/design/human-interface-guidelines/foundations/typography)
+- [Accessibility Guidelines](https://developer.apple.com/design/human-interface-guidelines/accessibility)
+- [Dark Mode Guidelines](https://developer.apple.com/design/human-interface-guidelines/dark-mode)
+- [Materials Guidelines](https://developer.apple.com/design/human-interface-guidelines/materials)
+
+### WWDC Videos
+
+- [Get started with Dynamic Type](https://developer.apple.com/videos/play/wwdc2024/10074)
+- [The details of UI typography](https://developer.apple.com/videos/play/wwdc2020/10175)
+- [Meet the expanded San Francisco font family](https://developer.apple.com/videos/play/wwdc2022/110381)
+- [Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219)
+
+### Design Resources
+
+- [SF Symbols](https://developer.apple.com/sf-symbols/)
+- [Apple Design Resources](https://developer.apple.com/design/resources/)
+- [San Francisco Fonts](https://developer.apple.com/fonts/)
+
+---
+
+**Remember**: Good design is invisible. It should feel effortless and natural. When in doubt, follow Apple's Human Interface Guidelines and use system components.
