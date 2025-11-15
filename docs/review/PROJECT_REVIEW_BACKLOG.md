@@ -1664,21 +1664,25 @@ Some code duplication exists. Need to extract shared utilities.
 ### MED-011: Add Pre-Commit Hooks
 **Category:** Process  
 **Effort:** 2-4 hours  
-**Dependencies:** CRIT-004
+**Dependencies:** CRIT-004  
+**Status:** ✅ **COMPLETED**
 
 **Description:**
 Prevent formatting violations before commit.
 
 **Tasks:**
-1. Set up pre-commit hook
-2. Run swift format lint
-3. Block commits with violations
-4. Document setup
+1. ✅ Set up pre-commit hook (`scripts/pre-commit-hook.sh`)
+2. ✅ Run swift format lint on staged files
+3. ✅ Block commits with violations
+4. ✅ Document setup (`docs/guides/PRE_COMMIT_HOOKS.md`)
+5. ✅ Create installation script (`scripts/install-pre-commit-hook.sh`)
 
 **Acceptance Criteria:**
-- [ ] Pre-commit hook configured
-- [ ] Violations blocked
-- [ ] Documentation
+- [x] Pre-commit hook configured
+- [x] Violations blocked (tested and working)
+- [x] Documentation created
+- [x] Installation script provided
+- [x] Hook automatically installed
 
 ---
 
