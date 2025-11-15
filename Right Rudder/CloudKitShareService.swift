@@ -425,7 +425,7 @@ class CloudKitShareService: ObservableObject {
           }
           print("🌍 CloudKit Environment: PRODUCTION (requires one-time schema deployment)")
           print(
-            "   ✅ Schemas must be deployed to Production before publishing (see CLOUDKIT_SCHEMA_DEPLOYMENT.md)"
+            "   ✅ Schemas must be deployed to Production before publishing (see docs/guides/CLOUDKIT_SCHEMA_DEPLOYMENT.md)"
           )
           print("   ✅ After deployment, unlimited records can be created automatically")
         } else {
@@ -1116,7 +1116,7 @@ class CloudKitShareService: ObservableObject {
       print("✅ All required Production schemas are deployed")
     } else {
       print("⚠️ Missing Production schemas: \(missingSchemas.joined(separator: ", "))")
-      print("   See CLOUDKIT_SCHEMA_DEPLOYMENT.md for deployment instructions")
+      print("   See docs/guides/CLOUDKIT_SCHEMA_DEPLOYMENT.md for deployment instructions")
       print("   This is a ONE-TIME setup required before publishing the app")
     }
   }
@@ -1905,7 +1905,7 @@ class CloudKitShareService: ObservableObject {
 
           Required Action (Developer Only):
           1. Deploy all record types to Production CloudKit schema via CloudKit Dashboard
-          2. See CLOUDKIT_SCHEMA_DEPLOYMENT.md for complete instructions
+          2. See docs/guides/CLOUDKIT_SCHEMA_DEPLOYMENT.md for complete instructions
           3. Required record types: Student, ChecklistAssignment, ItemProgress, StudentDocument, StudentPersonalInfo, TrainingGoals, CustomChecklistDefinition
           4. Wait 2-5 minutes for deployment to propagate
           5. Test share creation again
