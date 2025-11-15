@@ -8,7 +8,11 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ConflictResolutionView
+
 struct ConflictResolutionView: View {
+  // MARK: - Properties
+
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
   @Bindable var student: Student
@@ -16,6 +20,8 @@ struct ConflictResolutionView: View {
 
   @State private var resolvedConflicts: [String: String] = [:]
   @State private var isResolving = false
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -56,6 +62,8 @@ struct ConflictResolutionView: View {
       initializeResolutions()
     }
   }
+
+  // MARK: - Subviews
 
   private var headerSection: some View {
     VStack(spacing: 12) {
@@ -129,6 +137,8 @@ struct ConflictResolutionView: View {
     .padding()
     .background(Color.appAdaptiveBackground)
   }
+
+  // MARK: - Methods
 
   private func initializeResolutions() {
     // Initialize with instructor values as default
@@ -244,9 +254,15 @@ struct ConflictResolutionView: View {
   }
 }
 
+// MARK: - ConflictRow
+
 struct ConflictRow: View {
+  // MARK: - Properties
+
   let conflict: DataConflict
   @Binding var selectedValue: String
+
+  // MARK: - Body
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {

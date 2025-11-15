@@ -8,12 +8,18 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ChecklistTemplatesView
+
 struct ChecklistTemplatesView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \ChecklistTemplate.name, order: .forward) private var templates: [ChecklistTemplate]
   @State private var showingAddTemplate = false
   @State private var selectedCategory = "PPL"
   @State private var isEditing = false
+
+  // MARK: - Body
 
   var body: some View {
     if #available(iOS 16.0, *) {
@@ -76,6 +82,8 @@ struct ChecklistTemplatesView: View {
       }
     }
   }
+
+  // MARK: - Subviews
 
   private var categoryPicker: some View {
     Picker("Category", selection: $selectedCategory) {
@@ -224,6 +232,8 @@ struct ChecklistTemplatesView: View {
       }
     }
   }
+
+  // MARK: - Computed Properties
 
   private var filteredTemplates: [ChecklistTemplate] {
     let filtered = templates.filter { $0.category == selectedCategory }
@@ -415,6 +425,8 @@ struct ChecklistTemplatesView: View {
     return phaseOrder.firstIndex(of: phase) ?? phaseOrder.count
   }
 
+  // MARK: - Methods
+
   private func deleteTemplates(offsets: IndexSet, templates: [ChecklistTemplate]) {
     withAnimation {
       for index in offsets {
@@ -441,6 +453,8 @@ struct ChecklistTemplatesView: View {
     }
   }
 }
+
+// MARK: - PhaseGroup
 
 struct PhaseGroup: Identifiable {
   let id: String  // Use phase as the identifier

@@ -8,14 +8,22 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - ChecklistTemplateDetailView
+
 struct ChecklistTemplateDetailView: View {
+  // MARK: - Properties
+
   @Environment(\.modelContext) private var modelContext
   @State private var template: ChecklistTemplate
   @State private var showingEditTemplate = false
 
+  // MARK: - Initialization
+
   init(template: ChecklistTemplate) {
     self._template = State(initialValue: template)
   }
+
+  // MARK: - Body
 
   var body: some View {
     Form {

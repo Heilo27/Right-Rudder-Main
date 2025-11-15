@@ -1,13 +1,19 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - BackupRestoreView
+
 struct BackupRestoreView: View {
+  // MARK: - Properties
+
   @ObservedObject var backupService: CloudKitBackupService
   @Environment(\.modelContext) private var modelContext
   @Environment(\.dismiss) private var dismiss
   @State private var selectedBackup: BackupSnapshot?
   @State private var showingRestoreConfirmation = false
   @State private var isLoading = true
+
+  // MARK: - Body
 
   var body: some View {
     NavigationView {
@@ -93,6 +99,8 @@ struct BackupRestoreView: View {
     }
   }
 }
+
+// MARK: - BackupRow
 
 struct BackupRow: View {
   let backup: BackupSnapshot
